@@ -9,7 +9,7 @@ from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Create the MCP server with proper configuration
-mcp = FastMCP("Game API")
+mcp = FastMCP("Game API", enable_sessions=True)
 
 # Game state storage (in a real app, this would be a database)
 game_state = {"state": "initial", "score": 0}
@@ -67,9 +67,10 @@ def run_with_starlette():
     routes = [
         Route("/health", health),
         Route("/config", config),
-        # Mount the MCP app directly at /mcp
-        Mount("/mcp", mcp_app),
     ]
+    
+    # Add MCP routes directly to the main app
+    routes.extend(mcp_app.routes)
 
     # Add static files if directory exists
     # Serve static files at "/game"
