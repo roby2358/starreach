@@ -1,6 +1,6 @@
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-from starlette.routing import Route
+from starlette.routing import Route, Mount
 from starlette.staticfiles import StaticFiles
 from fastmcp import FastMCP
 import os
@@ -59,14 +59,32 @@ async def homepage(request):
 async def health(request):
     return JSONResponse({"status": "ok"})
 
-# Create the MCP ASGI app first - this contains the /mcp endpoint internally
+async def config(request):
+    """Config endpoint that some MCP clients might expect"""
+    return JSONResponse({
+        "name": "Game API",
+        "version": "1.0.0",
+        "mcp": {
+            "endpoint": "/mcp",
+            "transport": "streamable-http"
+        },
+        "capabilities": {
+            "tools": True,
+            "resources": True,
+            "prompts": False
+        }
+    })
+
+# Create the MCP ASGI app - by default it uses path="/mcp"
 mcp_app = mcp.http_app()
 
 # Create the main Starlette application
 app = Starlette(
     routes=[
         Route("/", homepage),
-        Route("/health", health)
+        Route("/health", health),
+        Route("/config", config),
+        Mount("", mcp_app),  # Mount MCP app at root to preserve its /mcp endpoint
     ],
     lifespan=mcp_app.lifespan,  # Important: Use MCP app's lifespan
 )
@@ -84,16 +102,13 @@ public_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public')
 if os.path.exists(public_dir):
     app.mount("/static", StaticFiles(directory=public_dir), name="static")
 
-# Mount the MCP server as a sub-application
-# The MCP app already has /mcp endpoint built-in, so we mount the whole app
-app.mount("/mcp", mcp_app)
-
 def run_app():
     """Main function to run the combined server"""
     print("Starting Starreach combined service application...")
     print("HTTP API available at: http://localhost:8000")
     print("Health check available at: http://localhost:8000/health")
-    print("MCP Server available at: http://localhost:8000/mcp/mcp")
+    print("Config available at: http://localhost:8000/config")
+    print("MCP Server available at: http://localhost:8000/mcp")
     print("Press Ctrl+C to stop the server")
 
     import uvicorn
