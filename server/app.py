@@ -6,22 +6,18 @@ from fastmcp import FastMCP
 import os
 import json
 from starlette.middleware.cors import CORSMiddleware
+import uvicorn
 
-# MCP Server Setup (FastMCP) - Create this first
+# Create the MCP server with proper configuration
 mcp = FastMCP("Game API")
 
 # Game state storage (in a real app, this would be a database)
-game_state = {"state": "initial", "players": [], "score": 0}
+game_state = {"state": "initial", "score": 0}
 
 @mcp.resource("state://game")
 def get_game_state() -> str:
-    """Get the current game state"""
+    """Get the current game state map"""
     return json.dumps(game_state)
-
-@mcp.resource("state://game/players")
-def get_players() -> str:
-    """Get the list of players"""
-    return json.dumps({"players": game_state["players"]})
 
 @mcp.tool()
 def update_game_state(new_state: str) -> str:
@@ -35,27 +31,7 @@ def update_game_state(new_state: str) -> str:
     except json.JSONDecodeError:
         return f"Error: Invalid JSON format for state update"
 
-@mcp.tool()
-def add_player(player_name: str) -> str:
-    """Add a new player to the game"""
-    global game_state
-    if player_name not in game_state["players"]:
-        game_state["players"].append(player_name)
-        return f"Player '{player_name}' added successfully. Current players: {game_state['players']}"
-    else:
-        return f"Player '{player_name}' already exists in the game"
-
-@mcp.tool()
-def update_score(points: int) -> str:
-    """Update the game score"""
-    global game_state
-    game_state["score"] += points
-    return f"Score updated by {points} points. Current score: {game_state['score']}"
-
 # HTTP API Setup (Starlette) - Create the main app
-async def homepage(request):
-    return JSONResponse({"message": "Welcome to the Game API"})
-
 async def health(request):
     return JSONResponse({"status": "ok"})
 
@@ -75,32 +51,61 @@ async def config(request):
         }
     })
 
-# Create the MCP ASGI app - by default it uses path="/mcp"
-mcp_app = mcp.http_app()
+def run_with_starlette():
+    """Approach using Starlette integration with CORS support"""
+    try:
+        # Create the MCP app - this creates the FastMCP ASGI app
+        # The MCP endpoint will be available at the path specified (default is /mcp)
+        mcp_app = mcp.http_app()
+        print(f"Created MCP app: {mcp_app}")
+        print(f"MCP app lifespan: {mcp_app.lifespan}")
+    except AttributeError as e:
+        print(f"Error creating MCP app: {e}")
+        return
 
-# Create the main Starlette application
-app = Starlette(
-    routes=[
-        Route("/", homepage),
+    # Create routes list
+    routes = [
         Route("/health", health),
         Route("/config", config),
-        Mount("", mcp_app),  # Mount MCP app at root to preserve its /mcp endpoint
-    ],
-    lifespan=mcp_app.lifespan,  # Important: Use MCP app's lifespan
-)
+        # Mount the MCP app directly at /mcp
+        Mount("/mcp", mcp_app),
+    ]
 
-# Add CORS middleware to allow all origins
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    # Add static files if directory exists
+    # Serve static files at "/game"
+    public_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public')
+    if os.path.exists(public_dir):
+        routes.append(Mount("/game", StaticFiles(directory=public_dir, html=True), name="public"))
+        print(f"Added static files mount at /game for directory: {public_dir}")
 
-# Mount static files
-public_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public')
-if os.path.exists(public_dir):
-    app.mount("/static", StaticFiles(directory=public_dir), name="static")
+    # Create the main Starlette application
+    # CRITICAL: Pass the lifespan from the MCP app to the main app
+    app = Starlette(
+        routes=routes,
+        lifespan=mcp_app.lifespan  # This is crucial for FastMCP to work properly
+    )
+
+    # Add CORS middleware to allow all origins (important for web clients)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    try:
+        print("Starting server with proper MCP integration...")
+        print("Debug: Available routes:")
+        for route in routes:
+            if hasattr(route, 'path'):
+                print(f"  - {route.path}")
+            else:
+                print(f"  - {route}")
+        print(f"MCP Server will be available at: http://localhost:8000/mcp")
+        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    except KeyboardInterrupt:
+        print("\nShutting down server...")
 
 def run_app():
     """Main function to run the combined server"""
@@ -109,14 +114,12 @@ def run_app():
     print("Health check available at: http://localhost:8000/health")
     print("Config available at: http://localhost:8000/config")
     print("MCP Server available at: http://localhost:8000/mcp")
+    print("Static files available at: http://localhost:8000/game")
     print("Press Ctrl+C to stop the server")
 
-    import uvicorn
-    try:
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-    except KeyboardInterrupt:
-        print("\nShutting down server...")
+    # Since we need custom endpoints AND CORS, we must use the Starlette integration
+    run_with_starlette()
 
-# This allows the file to be run directly as well
+# This allows the file to be run directly
 if __name__ == "__main__":
     run_app()
