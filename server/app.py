@@ -2,14 +2,13 @@
 from mcp.server.fastmcp import FastMCP
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.applications import Starlette
 from starlette.routing import Route
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
 # Create the MCP server using the OFFICIAL SDK with stateless_http=True
 # This is the KEY - stateless_http=True disables session requirements
-mcp = FastMCP("MyServer", stateless_http=True)
+mcp = FastMCP("Starreach", stateless_http=True)
 
 @mcp.tool()
 async def echo(message: str) -> str:
@@ -26,7 +25,7 @@ async def health_check(request: Request) -> JSONResponse:
 
 async def config_check(request: Request) -> JSONResponse:
     return JSONResponse({
-        "name": "MyServer",
+        "name": "Starreach",
         "version": "1.0.0",
         "mcp": {
             "endpoint": "/mcp",
