@@ -7,6 +7,17 @@ The game is a galaxy search and battle game. The Universe is divided into 10x10 
 Rev 1
 Displaying the current sector and surrounding sector, and providing the initial connection through the MCP server is all we need.
 
+## Run in Claude Desktop
+
+Provide the full path to the venv python and the launcher
+
+  "mcpServers": {
+    "starreach": {
+      "command": "C:/work/starreach/venv/Scripts/python.exe",
+      "args": ["C:/work/starreach/starreach.py"]
+    }
+  }
+
 ## How to Launch and View the Game
 
 1. **Set Up the Environment:**

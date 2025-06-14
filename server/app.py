@@ -5,6 +5,8 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
+import sys
+import argparse
 
 # Create the MCP server using the OFFICIAL SDK with stateless_http=True
 # This is the KEY - stateless_http=True disables session requirements
@@ -64,8 +66,15 @@ async def get_state(request: Request) -> JSONResponse:
     }
     return JSONResponse(game_state)
 
-def run_app():
-    # Get the streamable HTTP app from MCP
+def run_stdio():
+    """Run the MCP server in stdio mode"""
+    print("Starting MCP server in stdio mode...")
+    # app = mcp.stdio_app()
+    # app.run()
+    mcp.run()
+
+def run_streamable():
+    """Run the MCP server in streamable HTTP mode"""
     app = mcp.streamable_http_app()
 
     # Add your custom routes directly to the MCP app
@@ -82,11 +91,22 @@ def run_app():
         allow_headers=["*"],
     )
 
-    print("Starting MCP server...")
+    print("Starting MCP server in HTTP mode...")
     print("Health check available at: http://localhost:8000/health")
     print("Config available at: http://localhost:8000/config")
     print("MCP Server available at: http://localhost:8000/mcp")
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+def run_app():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Run the Starreach MCP server')
+    parser.add_argument('--stream', action='store_true', help='Run in streamable HTTP mode instead of stdio')
+    args = parser.parse_args()
+
+    if args.stream:
+        run_streamable()
+    else:
+        run_stdio()
 
 if __name__ == "__main__":
     run_app()
