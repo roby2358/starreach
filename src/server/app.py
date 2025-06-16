@@ -5,7 +5,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.middleware.cors import CORSMiddleware
 from starlette.applications import Starlette
-from src.models.game import Game
+from src.models.game import Game, GameState
 from typing import TypedDict
 import uvicorn
 import argparse
@@ -44,16 +44,7 @@ class StarreachServer:
         @self.mcp.tool()
         async def state() -> GameState:
             """Get the current game state including ship hull information"""
-            return {
-                "ship_max_hull": current_game.ship.max_hull,
-                "ship_hull": current_game.ship.hull,
-                "ship_x": current_game.sector.ship_x,
-                "ship_y": current_game.sector.ship_y,
-                "star_count": current_game.sector.stars,
-                "base_count": current_game.sector.starbases,
-                "enemy_count": current_game.sector.enemies,
-                "map": current_game.sector.map
-            }
+            return current_game.state
 
         @self.mcp.resource("test://example")
         async def get_example_resource() -> str:
@@ -98,30 +89,8 @@ class StarreachServer:
         })
 
     async def get_state(self, request: Request) -> JSONResponse:
-        """Return arbitrary game state"""
-        game_state = {
-            "player": {
-                "name": "StarReach Commander",
-                "level": 42,
-                "health": 100,
-                "position": {"x": 150, "y": 200, "z": 50}
-            },
-            "ship": {
-                "name": "USS Enterprise",
-                "hull_integrity": 95,
-                "shields": 80,
-                "fuel": 75
-            },
-            "mission": {
-                "current": "Explore Nebula X-7",
-                "status": "in_progress",
-                "objectives_complete": 3,
-                "objectives_total": 7
-            },
-            "timestamp": "2024-12-20T15:30:45Z",
-            "game_time": "Day 15, Hour 22"
-        }
-        return JSONResponse(game_state)
+        """Return the current game state"""
+        return JSONResponse(self.game.state)
 
     @staticmethod
     def _print_endpoints():
