@@ -52,6 +52,16 @@ class StarreachServer:
             """Get the current game state including ship hull information"""
             return current_game.state
 
+        @self.mcp.tool()
+        async def subwarp(x: int, y: int) -> dict:
+            """Move the ship point by point towards the destination coordinates"""
+            final_x, final_y = current_game.sector.subwarp(x, y)
+            return {
+                "final_x": final_x,
+                "final_y": final_y,
+                "state": current_game.state
+            }
+
         @self.mcp.resource("test://instructions")
         async def instructions() -> str:
             """Get instructions for displaying the sector"""
