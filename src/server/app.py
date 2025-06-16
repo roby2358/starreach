@@ -5,15 +5,48 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 from starlette.middleware.cors import CORSMiddleware
 from starlette.applications import Starlette
+from src.models.game import Game
+from typing import TypedDict
 import uvicorn
 import argparse
 import threading
 
+# Create a global game instance
+game_instance = Game()
+
+class GameState(TypedDict):
+    ship_max_hull: int
+    ship_hull: int
+
 class StarreachServer:
     def __init__(self, mcp_instance: FastMCP):
         self.mcp = mcp_instance
+        self.game = game_instance  # Use the global game instance
         self.http_app = self._create_http_app()
         self.http_thread = None
+        
+        # Register MCP tools and resources
+        self._register_mcp_handlers()
+
+    def _register_mcp_handlers(self):
+        """Register MCP tools and resources"""
+        @self.mcp.tool()
+        async def echo(message: str) -> str:
+            """Echo back the provided message"""
+            return f"Echo: {message}"
+
+        @self.mcp.tool()
+        async def state() -> GameState:
+            """Get the current game state including ship hull information"""
+            return {
+                "ship_max_hull": game_instance.ship.max_hull,
+                "ship_hull": game_instance.ship.hull
+            }
+
+        @self.mcp.resource("test://example")
+        async def get_example_resource() -> str:
+            """Get an example resource"""
+            return "This is an example resource"
 
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
@@ -78,7 +111,6 @@ class StarreachServer:
         }
         return JSONResponse(game_state)
 
-
     @staticmethod
     def _print_endpoints():
         """Print available HTTP endpoints"""
@@ -87,19 +119,16 @@ class StarreachServer:
         print("Config: http://localhost:8000/config")
         print("State: http://localhost:8000/state")
 
-
     def run_http_server(self):
         """Run the HTTP server in the current thread"""
         self._print_endpoints()
         uvicorn.run(self.http_app, host="0.0.0.0", port=8000, log_level="info")
-
 
     def start_http_server_thread(self):
         """Start the HTTP server in a background thread"""
         self._print_endpoints()
         self.http_thread = threading.Thread(target=self.run_http_server, daemon=True)
         self.http_thread.start()
-
 
     def run_streamable(self):
         """Run the MCP server in streamable HTTP mode"""
@@ -119,7 +148,6 @@ class StarreachServer:
         
         uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
-
     def run_stdio(self):
         """Run the MCP server in stdio mode with HTTP endpoints"""
         print("Starting MCP server in stdio mode with HTTP endpoints...")
@@ -130,20 +158,13 @@ class StarreachServer:
 # This is the KEY - stateless_http=True disables session requirements
 mcp = FastMCP("Starreach", stateless_http=True)
 
-@mcp.tool()
-async def echo(message: str) -> str:
-    """Echo back the provided message"""
-    return f"Echo: {message}"
-
-@mcp.resource("test://example")
-async def get_example_resource() -> str:
-    """Get an example resource"""
-    return "This is an example resource"
-
 def run_app():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Run the Starreach MCP server')
     parser.add_argument('--stream', action='store_true', help='Run in streamable HTTP mode instead of stdio')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind the server to')
+    parser.add_argument('--port', type=int, default=8000, help='Port to bind the server to')
+    parser.add_argument('--log-level', default='info', choices=['debug', 'info', 'warning', 'error'], help='Logging level')
     args = parser.parse_args()
 
     server = StarreachServer(mcp)
