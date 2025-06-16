@@ -12,16 +12,22 @@ import argparse
 import threading
 
 # Create a global game instance
-game_instance = Game()
+current_game = Game()
 
 class GameState(TypedDict):
     ship_max_hull: int
     ship_hull: int
+    ship_x: int
+    ship_y: int
+    star_count: int
+    base_count: int
+    enemy_count: int
+    map: list[list[str]]
 
 class StarreachServer:
     def __init__(self, mcp_instance: FastMCP):
         self.mcp = mcp_instance
-        self.game = game_instance  # Use the global game instance
+        self.game = current_game  # Use the global game instance
         self.http_app = self._create_http_app()
         self.http_thread = None
         
@@ -39,8 +45,14 @@ class StarreachServer:
         async def state() -> GameState:
             """Get the current game state including ship hull information"""
             return {
-                "ship_max_hull": game_instance.ship.max_hull,
-                "ship_hull": game_instance.ship.hull
+                "ship_max_hull": current_game.ship.max_hull,
+                "ship_hull": current_game.ship.hull,
+                "ship_x": current_game.sector.ship_x,
+                "ship_y": current_game.sector.ship_y,
+                "star_count": current_game.sector.stars,
+                "base_count": current_game.sector.starbases,
+                "enemy_count": current_game.sector.enemies,
+                "map": current_game.sector.map
             }
 
         @self.mcp.resource("test://example")
