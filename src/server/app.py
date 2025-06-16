@@ -10,9 +10,15 @@ from typing import TypedDict
 import uvicorn
 import argparse
 import threading
+import os
+from pathlib import Path
 
 # Create a global game instance
 current_game = Game()
+
+# Define project root and public directory paths
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+PUBLIC_DIR = PROJECT_ROOT / 'public'
 
 class GameState(TypedDict):
     ship_max_hull: int
@@ -46,10 +52,12 @@ class StarreachServer:
             """Get the current game state including ship hull information"""
             return current_game.state
 
-        @self.mcp.resource("test://example")
-        async def get_example_resource() -> str:
-            """Get an example resource"""
-            return "This is an example resource"
+        @self.mcp.resource("test://instructions")
+        async def instructions() -> str:
+            """Get instructions for displaying the sector"""
+            instructions_path = PUBLIC_DIR / 'instructions.txt'
+            with open(instructions_path, 'r') as f:
+                return f.read().strip()
 
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
