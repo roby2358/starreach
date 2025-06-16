@@ -6,7 +6,6 @@ from starlette.routing import Route
 from starlette.middleware.cors import CORSMiddleware
 from starlette.applications import Starlette
 import uvicorn
-import sys
 import argparse
 import threading
 
@@ -33,10 +32,12 @@ class StarreachServer:
         )
         return app
 
-    async def health_check(self, request: Request) -> JSONResponse:
+    @staticmethod
+    async def health_check(request: Request) -> JSONResponse:
         return JSONResponse({"status": "ok"})
 
-    async def config_check(self, request: Request) -> JSONResponse:
+    @staticmethod
+    async def config_check(request: Request) -> JSONResponse:
         return JSONResponse({
             "name": "Starreach",
             "version": "1.0.0",
@@ -77,17 +78,21 @@ class StarreachServer:
         }
         return JSONResponse(game_state)
 
-    def _print_endpoints(self):
+
+    @staticmethod
+    def _print_endpoints():
         """Print available HTTP endpoints"""
         print("HTTP endpoints available at: http://localhost:8000")
         print("Health check: http://localhost:8000/health")
         print("Config: http://localhost:8000/config")
         print("State: http://localhost:8000/state")
 
+
     def run_http_server(self):
         """Run the HTTP server in the current thread"""
         self._print_endpoints()
         uvicorn.run(self.http_app, host="0.0.0.0", port=8000, log_level="info")
+
 
     def start_http_server_thread(self):
         """Start the HTTP server in a background thread"""
@@ -95,16 +100,15 @@ class StarreachServer:
         self.http_thread = threading.Thread(target=self.run_http_server, daemon=True)
         self.http_thread.start()
 
+
     def run_streamable(self):
         """Run the MCP server in streamable HTTP mode"""
         print("Starting MCP server in HTTP mode...")
         app = self.mcp.streamable_http_app()
         
-        # Add our routes to the MCP app
         for route in self.http_app.routes:
             app.router.routes.insert(0, route)
         
-        # Add CORS middleware
         app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -114,6 +118,7 @@ class StarreachServer:
         )
         
         uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
 
     def run_stdio(self):
         """Run the MCP server in stdio mode with HTTP endpoints"""
