@@ -1,12 +1,13 @@
 from .ship import Ship
 from .sector import Sector
-from typing import TypedDict
+from typing import TypedDict, Tuple, List
 
 class GameState(TypedDict):
     ship_max_hull: int
     ship_hull: int
-    ship_x: int
-    ship_y: int
+    ship_xy: Tuple[int, int]
+    starbase_xy: Tuple[int, int] | None
+    enemies_xy: List[Tuple[int, int]]
     star_count: int
     base_count: int
     enemy_count: int
@@ -23,8 +24,9 @@ class Game:
         return {
             "ship_max_hull": self.ship.max_hull,
             "ship_hull": self.ship.hull,
-            "ship_x": self.sector.ship_x,
-            "ship_y": self.sector.ship_y,
+            "ship_xy": self.sector.ship_xy,
+            "starbase_xy": self.sector.starbase_xy,
+            "enemies_xy": self.sector.enemies_xy,
             "star_count": self.sector.stars,
             "base_count": self.sector.starbases,
             "enemy_count": self.sector.enemies,

@@ -6,11 +6,9 @@ from starlette.routing import Route
 from starlette.middleware.cors import CORSMiddleware
 from starlette.applications import Starlette
 from src.models.game import Game, GameState
-from typing import TypedDict
 import uvicorn
 import argparse
 import threading
-import os
 from pathlib import Path
 
 # Create a global game instance
@@ -19,16 +17,6 @@ current_game = Game()
 # Define project root and public directory paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 PUBLIC_DIR = PROJECT_ROOT / 'public'
-
-class GameState(TypedDict):
-    ship_max_hull: int
-    ship_hull: int
-    ship_x: int
-    ship_y: int
-    star_count: int
-    base_count: int
-    enemy_count: int
-    map: list[list[str]]
 
 class StarreachServer:
     def __init__(self, mcp_instance: FastMCP):
@@ -49,20 +37,16 @@ class StarreachServer:
 
         @self.mcp.tool()
         async def state() -> GameState:
-            """Get the current game state including ship hull information"""
+            """Get the current game state, no parameters"""
             return current_game.state
 
         @self.mcp.tool()
         async def subwarp(x: int, y: int) -> dict:
-            """Move the ship point by point towards the destination coordinates"""
-            final_x, final_y = current_game.sector.subwarp(x, y)
-            return {
-                "final_x": final_x,
-                "final_y": final_y,
-                "state": current_game.state
-            }
+            """Move the ship, provide x, y coordinates for the destination"""
+            final_x, final_y = current_game.sector.subwarp((x, y))
+            return current_game.state
 
-        @self.mcp.resource("test://instructions")
+        @self.mcp.prompt("instructions")
         async def instructions() -> str:
             """Get instructions for displaying the sector"""
             instructions_path = PUBLIC_DIR / 'instructions.txt'
@@ -102,7 +86,7 @@ class StarreachServer:
             "capabilities": {
                 "tools": True,
                 "resources": True,
-                "prompts": False
+                "prompts": True
             }
         })
 

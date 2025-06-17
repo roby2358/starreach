@@ -10,13 +10,20 @@ class Sector:
         # Initialize 10x10 grid with empty spaces
         self.map = [["." for _ in range(10)] for _ in range(10)]
         # Place ship randomly first
-        ship_pos = self._find_valid_position()
-        if ship_pos:
-            self.ship_x, self.ship_y = ship_pos
-            self.map[self.ship_y][self.ship_x] = "S"
+        if ship_pos := self._find_valid_position():
+            self.ship_xy = ship_pos
+            self.set_space(ship_pos, "S")
         # Then place other items
         self._place_items(self.stars, "*")
         self._place_items(self.starbases, "B")
+        # Initialize empty lists for starbases and enemies
+        self.starbase_xy = None
+        self.enemies_xy = []
+
+    def set_space(self, pos: Tuple[int, int], char: str) -> None:
+        """Set a space on the map to the given character."""
+        x, y = pos
+        self.map[y][x] = char
 
     @staticmethod
     def _random_position() -> Tuple[int, int]:
@@ -39,14 +46,19 @@ class Sector:
     def _place_items(self, count: int, symbol: str):
         for _ in range(count):
             if pos := self._find_valid_position():
-                x, y = pos
-                self.map[y][x] = symbol
+                self.set_space(pos, symbol)
+                if symbol == "B":
+                    self.starbase_xy = pos
+                # We'll handle enemies later
 
-    def path(self, x1: int, y1: int, dest_x: int, dest_y: int) -> List[Tuple[int, int]]:
+    def path(self, start_xy: Tuple[int, int], dest_xy: Tuple[int, int]) -> List[Tuple[int, int]]:
         """
-        Calculate the path from (x1,y1) to destination using Bresenham's line algorithm.
+        Calculate the path from start_xy to dest_xy using Bresenham's line algorithm.
         Returns a list of (x, y) tuples representing the points visited.
         """
+        x1, y1 = start_xy
+        dest_x, dest_y = dest_xy
+        
         # If destination is the same as start position, return start position
         if dest_x == x1 and dest_y == y1:
             return [(x1, y1)]
@@ -86,18 +98,18 @@ class Sector:
         
         return path
 
-    def subwarp(self, dest_x: int, dest_y: int) -> Tuple[int, int]:
+    def subwarp(self, dest_xy: Tuple[int, int]) -> Tuple[int, int]:
         """
         Move the ship point by point towards the destination using path.
         Returns the final position (x, y) where the ship ended up.
         """
-        move_path = self.path(self.ship_x, self.ship_y, dest_x, dest_y)
+        move_path = self.path(self.ship_xy, dest_xy)
         if not move_path:
-            return self.ship_x, self.ship_y
+            return self.ship_xy
             
         # Update map and ship position
-        self.map[self.ship_y][self.ship_x] = "."
-        self.ship_x, self.ship_y = move_path[-1]
-        self.map[self.ship_y][self.ship_x] = "S"
+        self.set_space(self.ship_xy, ".")
+        self.ship_xy = move_path[-1]
+        self.set_space(self.ship_xy, "S")
         
-        return self.ship_x, self.ship_y
+        return self.ship_xy
