@@ -5,12 +5,13 @@ from typing import TypedDict, Tuple, List
 class GameState(TypedDict):
     ship_max_hull: int
     ship_hull: int
-    ship_xy: Tuple[int, int]
-    starbase_xy: Tuple[int, int] | None
-    enemies_xy: List[Tuple[int, int]]
+    ship_yx: Tuple[int, int]
+    starbase_yx: Tuple[int, int]
+    enemies_yx: List[Tuple[int, int]]
     star_count: int
     base_count: int
     enemy_count: int
+    # 2D grid where first index is y, second is x
     map: list[list[str]]
 
 class Game:
@@ -24,9 +25,9 @@ class Game:
         return {
             "ship_max_hull": self.ship.max_hull,
             "ship_hull": self.ship.hull,
-            "ship_xy": self.sector.ship_xy,
-            "starbase_xy": self.sector.starbase_xy,
-            "enemies_xy": self.sector.enemies_xy,
+            "ship_yx": self.sector.ship_yx,
+            "starbase_yx": self.sector.starbase_yx,
+            "enemies_yx": self.sector.enemies_yx,
             "star_count": self.sector.stars,
             "base_count": self.sector.starbases,
             "enemy_count": self.sector.enemies,

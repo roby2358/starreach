@@ -41,9 +41,9 @@ class StarreachServer:
             return current_game.state
 
         @self.mcp.tool()
-        async def subwarp(x: int, y: int) -> dict:
-            """Move the ship, provide x, y coordinates for the destination"""
-            final_x, final_y = current_game.sector.subwarp((x, y))
+        async def subwarp(y: int, x: int) -> dict:
+            """Move the ship, provide y, x coordinates (vertical, horizontal) for the destination"""
+            final_y, final_x = current_game.sector.subwarp((y, x))
             return current_game.state
 
         @self.mcp.prompt("instructions")

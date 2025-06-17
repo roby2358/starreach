@@ -33,7 +33,7 @@ $(document).ready(function() {
             // Add ship info
             sectorHtml += `<div class="ship-info">
                 <h3>Ship Status</h3>
-                <p>Position: (${data.ship_x}, ${data.ship_y})</p>
+                <p>Position: (${data.ship_yx[0]}, ${data.ship_yx[1]})</p>
                 <p>Hull: ${data.ship_hull}/${data.ship_max_hull}</p>
             </div>`;
             
