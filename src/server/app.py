@@ -10,9 +10,35 @@ import uvicorn
 import argparse
 import threading
 from pathlib import Path
+from typing import Dict, Optional
+import uuid
+from datetime import datetime
 
-# Create a global game instance
-current_game = Game()
+class GameSession:
+    def __init__(self, session_id: str):
+        self.session_id = session_id
+        self.game = Game()
+        self.players = set()  # Track connected players
+        self.created_at = datetime.now()
+
+class GameManager:
+    def __init__(self):
+        self.sessions: Dict[str, GameSession] = {}
+        
+    def create_session(self) -> str:
+        session_id = str(uuid.uuid4())
+        self.sessions[session_id] = GameSession(session_id)
+        return session_id
+        
+    def get_session(self, session_id: str) -> Optional[GameSession]:
+        return self.sessions.get(session_id)
+        
+    def remove_session(self, session_id: str) -> None:
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+
+# Create a global game manager instance
+game_manager = GameManager()
 
 # Define project root and public directory paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -21,7 +47,7 @@ PUBLIC_DIR = PROJECT_ROOT / 'public'
 class StarreachServer:
     def __init__(self, mcp_instance: FastMCP):
         self.mcp = mcp_instance
-        self.game = current_game  # Use the global game instance
+        self.game_manager = game_manager
         self.http_app = self._create_http_app()
         self.http_thread = None
         
@@ -31,20 +57,66 @@ class StarreachServer:
     def _register_mcp_handlers(self):
         """Register MCP tools and resources"""
         @self.mcp.tool()
-        async def echo(message: str) -> str:
-            """Echo back the provided message"""
-            return f"Echo: {message}"
+        async def single_player() -> dict:
+            """Start a new single-player game session and join it automatically"""
+            session_id = self.game_manager.create_session()
+            session = self.game_manager.get_session(session_id)
+            session.players.add(session_id)
+            return {
+                "session_id": session_id,
+                "state": session.game.state,
+                "message": "Single player game started successfully"
+            }
 
         @self.mcp.tool()
-        async def state() -> GameState:
-            """Get the current game state, no parameters"""
-            return current_game.state
+        async def create_game() -> dict:
+            """Create a new game session and return its ID"""
+            session_id = self.game_manager.create_session()
+            return {"session_id": session_id, "message": "Game session created successfully"}
 
         @self.mcp.tool()
-        async def subwarp(y: int, x: int) -> dict:
-            """Move the ship, provide y, x coordinates (vertical, horizontal) for the destination"""
-            final_y, final_x = current_game.sector.subwarp((y, x))
-            return current_game.state
+        async def join_game(session_id: str) -> dict:
+            """Join an existing game session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            session.players.add(session_id)  # In a real implementation, you'd use player IDs
+            return {
+                "session_id": session_id,
+                "state": session.game.state,
+                "message": "Successfully joined game session"
+            }
+
+        @self.mcp.tool()
+        async def list_games() -> dict:
+            """List all available game sessions"""
+            return {
+                "sessions": [
+                    {
+                        "session_id": session_id,
+                        "player_count": len(session.players),
+                        "created_at": session.created_at.isoformat()
+                    }
+                    for session_id, session in self.game_manager.sessions.items()
+                ]
+            }
+
+        @self.mcp.tool()
+        async def state(session_id: str) -> GameState:
+            """Get the current game state for a specific session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            return session.game.state
+
+        @self.mcp.tool()
+        async def subwarp(session_id: str, y: int, x: int) -> dict:
+            """Move the ship in a specific game session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            final_y, final_x = session.game.sector.subwarp((y, x))
+            return session.game.state
 
         @self.mcp.prompt("instructions")
         async def instructions() -> str:
@@ -137,9 +209,9 @@ class StarreachServer:
         self.start_http_server_thread()
         self.mcp.run()
 
-# Create the MCP server using the OFFICIAL SDK with stateless_http=True
-# This is the KEY - stateless_http=True disables session requirements
-mcp = FastMCP("Starreach", stateless_http=True)
+# Create the MCP server using the OFFICIAL SDK
+# Remove stateless_http=True to enable session-based communication
+mcp = FastMCP("Starreach")
 
 def run_app():
     # Parse command line arguments
