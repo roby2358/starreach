@@ -57,48 +57,15 @@ class StarreachServer:
     def _register_mcp_handlers(self):
         """Register MCP tools and resources"""
         @self.mcp.tool()
-        async def single_player() -> dict:
+        async def create_game() -> dict:
             """Start a new single-player game session and join it automatically"""
             session_id = self.game_manager.create_session()
             session = self.game_manager.get_session(session_id)
             session.players.add(session_id)
             return {
+                "message": "Single player game started successfully",
                 "session_id": session_id,
-                "state": session.game.state,
-                "message": "Single player game started successfully"
-            }
-
-        @self.mcp.tool()
-        async def create_game() -> dict:
-            """Create a new game session and return its ID"""
-            session_id = self.game_manager.create_session()
-            return {"session_id": session_id, "message": "Game session created successfully"}
-
-        @self.mcp.tool()
-        async def join_game(session_id: str) -> dict:
-            """Join an existing game session"""
-            session = self.game_manager.get_session(session_id)
-            if not session:
-                raise ValueError("Game session not found")
-            session.players.add(session_id)  # In a real implementation, you'd use player IDs
-            return {
-                "session_id": session_id,
-                "state": session.game.state,
-                "message": "Successfully joined game session"
-            }
-
-        @self.mcp.tool()
-        async def list_games() -> dict:
-            """List all available game sessions"""
-            return {
-                "sessions": [
-                    {
-                        "session_id": session_id,
-                        "player_count": len(session.players),
-                        "created_at": session.created_at.isoformat()
-                    }
-                    for session_id, session in self.game_manager.sessions.items()
-                ]
+                "state": session.game.state
             }
 
         @self.mcp.tool()
