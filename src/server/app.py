@@ -10,7 +10,7 @@ import uvicorn
 import argparse
 import threading
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple
 import uuid
 from datetime import datetime
 
@@ -56,6 +56,14 @@ class StarreachServer:
 
     def _register_mcp_handlers(self):
         """Register MCP tools and resources"""
+
+        @self.mcp.prompt("instructions")
+        async def instructions() -> str:
+            """Get instructions for displaying the sector"""
+            instructions_path = PUBLIC_DIR / 'instructions.txt'
+            with open(instructions_path, 'r') as f:
+                return f.read().strip()
+
         @self.mcp.tool()
         async def create_game() -> dict:
             """Start a new single-player game session and join it automatically"""
@@ -85,12 +93,21 @@ class StarreachServer:
             final_y, final_x = session.game.sector.subwarp((y, x))
             return session.game.state
 
-        @self.mcp.prompt("instructions")
-        async def instructions() -> str:
-            """Get instructions for displaying the sector"""
-            instructions_path = PUBLIC_DIR / 'instructions.txt'
-            with open(instructions_path, 'r') as f:
-                return f.read().strip()
+        @self.mcp.tool()
+        async def galaxy_map(session_id: str) -> dict:
+            """Get the complete 10x10 galaxy map for a specific session (enemies, starbases, stars)"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            return {"map": session.game.galaxy_map()}
+
+        @self.mcp.tool()
+        async def long_range_scan(session_id: str) -> dict:
+            """Get a 3x3 scan around the current sector position for a specific session (enemies, starbases, stars)"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            return {"scan": session.game.long_range_scan()}
 
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""

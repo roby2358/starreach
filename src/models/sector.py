@@ -2,7 +2,7 @@ from typing import List, Tuple, Optional
 import random
 from itertools import islice
 
-class Sector:
+class ActiveSector:
     def __init__(self, stars: int, starbases: int, enemies: int):
         self.stars = stars
         self.starbases = starbases
