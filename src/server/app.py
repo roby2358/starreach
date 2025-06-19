@@ -99,7 +99,7 @@ class StarreachServer:
             session = self.game_manager.get_session(session_id)
             if not session:
                 raise ValueError("Game session not found")
-            return {"map": session.game.galaxy_map()}
+            return {"map": session.game.galaxy.galaxy_map()}
 
         @self.mcp.tool()
         async def long_range_scan(session_id: str) -> dict:
@@ -107,7 +107,7 @@ class StarreachServer:
             session = self.game_manager.get_session(session_id)
             if not session:
                 raise ValueError("Game session not found")
-            return {"scan": session.game.long_range_scan()}
+            return {"scan": session.game.galaxy.long_range_scan(session.game.sector_yx)}
 
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
