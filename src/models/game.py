@@ -24,6 +24,29 @@ class Game:
         self.sector_yx = (4, 4)  # Starting sector coordinates
         self.sector = ActiveSector(stars=4, starbases=1, enemies=0)
 
+    def warp(self, y: int, x: int) -> bool:
+        """
+        Warp the ship to a new sector at coordinates (y, x).
+        Returns True if warp was successful, False otherwise.
+        """
+        # Validate coordinates are within galaxy bounds
+        if not (0 <= y < 10 and 0 <= x < 10):
+            return False
+            
+        # Update sector coordinates
+        self.sector_yx = (y, x)
+        
+        # Get sector data from galaxy
+        visible, enemy_count, starbase_count, star_count = self.galaxy.galaxy[y][x]
+        
+        # Mark sector as visible
+        self.galaxy.galaxy[y][x] = (True, enemy_count, starbase_count, star_count)
+        
+        # Generate new active sector
+        self.sector = ActiveSector(stars=star_count, starbases=starbase_count, enemies=enemy_count)
+        
+        return True
+
     @property
     def state(self) -> GameState:
         """Get the current game state"""

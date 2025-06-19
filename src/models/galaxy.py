@@ -5,7 +5,6 @@ class Galaxy:
     def __init__(self):
         self.galaxy = self._generate_galaxy()
 
-    @staticmethod
     def _generate_galaxy(self) -> List[List[Tuple[bool, int, int, int]]]:
         """Generate a 10x10 galaxy grid with random sector data"""
         galaxy = []

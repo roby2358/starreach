@@ -109,6 +109,22 @@ class StarreachServer:
                 raise ValueError("Game session not found")
             return {"scan": session.game.galaxy.long_range_scan(session.game.sector_yx)}
 
+        @self.mcp.tool()
+        async def galaxy_warp(session_id: str, y: int, x: int) -> dict:
+            """Warp the ship to a new sector at coordinates (y, x) for a specific session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            
+            success = session.game.warp(y, x)
+            if not success:
+                raise ValueError("Invalid warp coordinates. Must be between 0-9 for both y and x.")
+            
+            return {
+                "message": f"Successfully warped to sector ({y}, {x})",
+                "state": session.game.state
+            }
+
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
         app = Starlette(routes=[
