@@ -1,5 +1,6 @@
 from typing import List, Tuple, Optional
 import random
+import math
 from itertools import islice
 
 class ActiveSector:
@@ -83,14 +84,14 @@ class ActiveSector:
             if e2 < dx:
                 err += dx
                 next_y += sy
-                
-            # If we hit an obstacle, stop at previous position
+
+            # Add point to path
+            path.append((next_y, next_x))
+
+            # If we hit an obstacle, stop
             if not self._is_valid_position(next_y, next_x):
                 break
                 
-            # Add point to path
-            path.append((next_y, next_x))
-            
             # If we've reached the destination, stop
             if next_x == x2 and next_y == y2:
                 break
@@ -103,11 +104,18 @@ class ActiveSector:
         Returns a dict with new_ship_yx, distance, and time.
         """
         move_path = self.path(self.ship_yx, dest_yx)
+        
+        # If the last element in the path isn't valid, remove it
+        if move_path and not self._is_valid_position(*move_path[-1]):
+            move_path.pop()
+            
+        # If path is now empty after removing invalid last element
         if not move_path:
             return {
                 "new_ship_yx": self.ship_yx,
                 "distance": 0,
-                "time": 0.0
+                "time": 0.0,
+            "path": move_path
             }
             
         # Calculate distance (number of sectors traversed)
@@ -124,7 +132,8 @@ class ActiveSector:
         return {
             "new_ship_yx": self.ship_yx,
             "distance": distance,
-            "time": time
+            "time": time,
+            "path": move_path
         }
 
     def dock(self) -> dict:
@@ -171,4 +180,61 @@ class ActiveSector:
             "success": True,
             "message": "Successfully docked with starbase.",
             "time": 0.5
+        }
+
+    def blast(self, target_yx: Tuple[int, int]) -> dict:
+        """
+        Fire a blaston beam from the ship to the target position.
+        The first enemy in the path is hit and removed from the sector.
+        Energy cost scales with the square root of euclidean distance.
+        Returns dict with success status, energy cost, and hit enemy position.
+        """
+        # Calculate the path from ship to target
+        beam_path = self.path(self.ship_yx, target_yx)
+        
+        if not beam_path:
+            return {
+                "success": False,
+                "error": "Invalid target position",
+                "energy_cost": 0,
+                "time": 0,
+                "path": beam_path
+            }
+        
+        # Find the first enemy in the beam path
+        hit_enemy_pos = None
+        for pos in beam_path:
+            if pos in self.enemies_yx:
+                hit_enemy_pos = pos
+                break
+        
+        # If no enemy was hit, return failure
+        if hit_enemy_pos is None:
+            return {
+                "success": False,
+                "error": "No enemy in beam path",
+                "energy_cost": 0,
+                "time": 0,
+                "path": beam_path
+            }
+        
+        # Calculate euclidean distance from ship to target
+        ship_y, ship_x = self.ship_yx
+        target_y, target_x = target_yx
+        euclidean_distance = math.sqrt((target_y - ship_y)**2 + (target_x - ship_x)**2)
+        
+        # Calculate energy cost: 1000 at range 1, scales with square root of distance
+        energy_cost = int(1000 * math.sqrt(euclidean_distance))
+        
+        # Remove the enemy from the sector
+        self.set_space(hit_enemy_pos, ".")
+        self.enemies_yx.remove(hit_enemy_pos)
+        self.enemies -= 1
+        
+        return {
+            "success": True,
+            "message": f"Enemy destroyed at position {hit_enemy_pos}",
+            "energy_cost": energy_cost,
+            "hit_enemy_pos": hit_enemy_pos,
+            "time": 0.1
         }

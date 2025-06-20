@@ -145,6 +145,20 @@ class StarreachServer:
                 "state": session.game.state
             }
 
+        @self.mcp.tool()
+        async def blast(session_id: str, y: int, x: int) -> dict:
+            """Fire a blaston beam at coordinates (y, x) in a specific game session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            
+            blast_result = session.game.blast(y, x)
+            
+            return {
+                "blast": blast_result,
+                "state": session.game.state
+            }
+
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
         app = Starlette(routes=[

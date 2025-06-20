@@ -115,6 +115,36 @@ class Game:
             "remaining_energy": self.ship.energy
         }
 
+    def blast(self, y: int, x: int) -> dict:
+        """
+        Fire a blaston beam at the specified coordinates (y, x).
+        The first enemy in the beam path is hit and destroyed.
+        Energy cost scales with the square root of euclidean distance.
+        Returns the blast result from Sector's blast method.
+        """
+        # Get the blast result from the sector
+        blast_result = self.sector.blast((y, x))
+        
+        # If blast was successful, deduct energy cost and update galaxy enemy count
+        if blast_result["success"]:
+            energy_cost = blast_result["energy_cost"]
+            
+            # Check if ship has enough energy
+            if self.ship.energy < energy_cost:
+                # Set energy to 0 instead of failing
+                self.ship.energy = 0
+                blast_result["remaining_energy"] = self.ship.energy
+            else:
+                # Deduct energy cost
+                self.ship.energy -= energy_cost
+                blast_result["remaining_energy"] = self.ship.energy
+            
+            # Update galaxy enemy count for this sector
+            sector_y, sector_x = self.sector_yx
+            self.galaxy.galaxy[sector_y][sector_x] = (True, self.sector.enemies, self.sector.starbases, self.sector.stars)
+        
+        return blast_result
+
     @property
     def state(self) -> GameState:
         """Get the current game state"""
