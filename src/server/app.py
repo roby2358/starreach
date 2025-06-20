@@ -115,7 +115,7 @@ class StarreachServer:
             session = self.game_manager.get_session(session_id)
             if not session:
                 raise ValueError("Game session not found")
-            return {"scan": session.game.galaxy.long_range_scan(session.game.sector_yx)}
+            return session.game.long_range_scan()
 
         @self.mcp.tool()
         async def galaxy_warp(session_id: str, y: int, x: int) -> dict:

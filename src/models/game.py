@@ -70,6 +70,32 @@ class Game:
         
         return subwarp_result
 
+    def long_range_scan(self) -> dict:
+        """
+        Perform a long range scan of the 3x3 area around the current sector.
+        Returns the scan result from Galaxy's long_range_scan method.
+        Energy cost: 100
+        """
+        # Check if ship has enough energy
+        if self.ship.energy < 100:
+            return {
+                "error": "Insufficient energy",
+                "required_energy": 100,
+                "current_energy": self.ship.energy
+            }
+        
+        # Deduct energy cost
+        self.ship.energy -= 100
+        
+        # Perform the scan using galaxy's long_range_scan method
+        scan_result = self.galaxy.long_range_scan(self.sector_yx)
+        
+        return {
+            "scan": scan_result,
+            "energy_cost": 100,
+            "remaining_energy": self.ship.energy
+        }
+
     @property
     def state(self) -> GameState:
         """Get the current game state"""
