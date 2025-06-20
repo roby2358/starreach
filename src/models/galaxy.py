@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 import random
 
 class Galaxy:
@@ -28,21 +28,58 @@ class Galaxy:
             galaxy.append(row)
         return galaxy
 
-    def galaxy_map(self) -> List[List[Tuple[int, int, int]]]:
+    def warp(self, y: int, x: int, current_sector_yx: Tuple[int, int]) -> dict:
+        """
+        Warp to a new sector at coordinates (y, x).
+        Returns a dict with new_sector_yx, distance, and time.
+        If coordinates are invalid, returns original position with 0 distance and time.
+        """
+        # Validate coordinates are within galaxy bounds
+        if not (0 <= y < 10 and 0 <= x < 10):
+            return {
+                "new_sector_yx": current_sector_yx,
+                "distance": 0,
+                "time": 0.0
+            }
+            
+        # Get sector data from galaxy and mark sector as visible
+        _, enemy_count, starbase_count, star_count = self.galaxy[y][x]
+        self.galaxy[y][x] = (True, enemy_count, starbase_count, star_count)
+        
+        # Calculate Euclidean distance between current and target sectors
+        current_y, current_x = current_sector_yx
+        euclidean_distance = ((y - current_y) ** 2 + (x - current_x) ** 2) ** 0.5
+        
+        # Calculate distance (Euclidean distance * 10 rounded to int)
+        distance = int(euclidean_distance * 10)
+        
+        # Calculate time (distance * 0.01)
+        time = distance * 0.01
+        
+        return {
+            "new_sector_yx": (y, x),
+            "distance": distance,
+            "time": time
+        }
+
+    def galaxy_map(self) -> List[str]:
         """Return the complete 10x10 galaxy map with hidden data for non-visible sectors"""
         result = []
         for y in range(10):
-            row = []
+            row_string = ""
             for x in range(10):
                 visible, enemy_count, starbase_count, star_count = self.galaxy[y][x]
                 if visible:
-                    row.append((enemy_count, starbase_count, star_count))
+                    row_string += f"{enemy_count}|{starbase_count}|{star_count}"
                 else:
-                    row.append((0, 0, 0))
-            result.append(row)
+                    row_string += "....."
+                # Add space between sectors (except for the last one)
+                if x < 9:
+                    row_string += " "
+            result.append(row_string)
         return result
 
-    def long_range_scan(self, sector_yx: Tuple[int, int]) -> List[List[Tuple[int, int, int]]]:
+    def long_range_scan(self, sector_yx: Tuple[int, int]) -> List[str]:
         """
         Return a 3x3 grid around the current sector position.
         Each element is (enemy_count, starbase_count, star_count).
@@ -52,7 +89,7 @@ class Galaxy:
         scan_area = []
         
         for y_offset in range(-1, 2):  # -1, 0, 1
-            row = []
+            row_string = ""
             for x_offset in range(-1, 2):  # -1, 0, 1
                 galaxy_y = current_y + y_offset
                 galaxy_x = current_x + x_offset
@@ -62,10 +99,13 @@ class Galaxy:
                     visible, enemy_count, starbase_count, star_count = self.galaxy[galaxy_y][galaxy_x]
                     # Mark this sector as visible since we're scanning it
                     self.galaxy[galaxy_y][galaxy_x] = (True, enemy_count, starbase_count, star_count)
-                    row.append((enemy_count, starbase_count, star_count))
+                    row_string += f"{enemy_count}|{starbase_count}|{star_count}"
                 else:
                     # Outside galaxy bounds
-                    row.append((0, 0, 0))
-            scan_area.append(row)
+                    row_string += "....."
+                # Add space between sectors (except for the last one)
+                if x_offset < 1:
+                    row_string += " "
+            scan_area.append(row_string)
         
         return scan_area 

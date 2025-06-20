@@ -97,18 +97,32 @@ class ActiveSector:
         
         return path
 
-    def subwarp(self, dest_yx: Tuple[int, int]) -> Tuple[int, int]:
+    def subwarp(self, dest_yx: Tuple[int, int]) -> dict:
         """
         Move the ship point by point towards the destination using path.
-        Returns the final position (y, x) where the ship ended up.
+        Returns a dict with new_ship_yx, distance, and time.
         """
         move_path = self.path(self.ship_yx, dest_yx)
         if not move_path:
-            return self.ship_yx
+            return {
+                "new_ship_yx": self.ship_yx,
+                "distance": 0,
+                "time": 0.0
+            }
+            
+        # Calculate distance (number of sectors traversed)
+        distance = len(move_path) - 1  # Subtract 1 because we don't count the starting position
+        
+        # Calculate time (distance * 0.1)
+        time = distance * 0.1
             
         # Update map and ship position
         self.set_space(self.ship_yx, ".")
         self.ship_yx = move_path[-1]
         self.set_space(self.ship_yx, "S")
         
-        return self.ship_yx
+        return {
+            "new_ship_yx": self.ship_yx,
+            "distance": distance,
+            "time": time
+        }

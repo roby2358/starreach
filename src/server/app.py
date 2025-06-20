@@ -30,6 +30,11 @@ class GameManager:
         self.sessions[session_id] = GameSession(session_id)
         return session_id
         
+    def create_session_with_id(self, session_id: str) -> str:
+        """Create a session with a specific ID"""
+        self.sessions[session_id] = GameSession(session_id)
+        return session_id
+        
     def get_session(self, session_id: str) -> Optional[GameSession]:
         return self.sessions.get(session_id)
         
@@ -90,8 +95,11 @@ class StarreachServer:
             session = self.game_manager.get_session(session_id)
             if not session:
                 raise ValueError("Game session not found")
-            final_y, final_x = session.game.sector.subwarp((y, x))
-            return session.game.state
+            movement_result = session.game.subwarp(y, x)
+            return {
+                "movement": movement_result,
+                "state": session.game.state
+            }
 
         @self.mcp.tool()
         async def galaxy_map(session_id: str) -> dict:
@@ -116,12 +124,10 @@ class StarreachServer:
             if not session:
                 raise ValueError("Game session not found")
             
-            success = session.game.warp(y, x)
-            if not success:
-                raise ValueError("Invalid warp coordinates. Must be between 0-9 for both y and x.")
+            movement_result = session.game.warp(y, x)
             
             return {
-                "message": f"Successfully warped to sector ({y}, {x})",
+                "movement": movement_result,
                 "state": session.game.state
             }
 
@@ -164,7 +170,15 @@ class StarreachServer:
 
     async def get_state(self, request: Request) -> JSONResponse:
         """Return the current game state"""
-        return JSONResponse(self.game.state)
+        # For HTTP endpoint, use a default session or create one
+        default_session_id = "default"
+        session = self.game_manager.get_session(default_session_id)
+        if not session:
+            # Create a default session for the HTTP endpoint
+            self.game_manager.create_session_with_id(default_session_id)
+            session = self.game_manager.get_session(default_session_id)
+        
+        return JSONResponse(session.game.state)
 
     @staticmethod
     def _print_endpoints():

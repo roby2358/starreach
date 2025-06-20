@@ -17,13 +17,14 @@ $(document).ready(function() {
             }
             sectorHtml += '</div>';
             
-            // Add the grid
-            data.map.forEach((row, y) => {
+            // Add the grid - now each row is a string
+            data.map.forEach((rowString, y) => {
                 sectorHtml += '<div class="grid-row">';
                 sectorHtml += `<div class="row-header">${y}</div>`;
-                row.forEach(cell => {
-                    sectorHtml += `<div class="grid-cell">${cell}</div>`;
-                });
+                // Iterate over each character in the string
+                for (let x = 0; x < rowString.length; x++) {
+                    sectorHtml += `<div class="grid-cell">${rowString[x]}</div>`;
+                }
                 sectorHtml += '</div>';
             });
             
