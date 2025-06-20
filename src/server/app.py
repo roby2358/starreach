@@ -131,6 +131,20 @@ class StarreachServer:
                 "state": session.game.state
             }
 
+        @self.mcp.tool()
+        async def dock(session_id: str) -> dict:
+            """Attempt to dock with a starbase in the current sector for a specific session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            
+            dock_result = session.game.dock()
+            
+            return {
+                "dock": dock_result,
+                "state": session.game.state
+            }
+
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
         app = Starlette(routes=[

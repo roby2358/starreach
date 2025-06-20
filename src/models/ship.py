@@ -4,5 +4,6 @@ class Ship:
         self.hull = self.max_hull
         self.max_shields = 3000
         self.shields = self.max_shields
-        self.energy = 50000
+        self.max_energy = 50000
+        self.energy = self.max_energy
         self.quantorpedoes = 20

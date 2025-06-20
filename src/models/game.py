@@ -70,6 +70,25 @@ class Game:
         
         return subwarp_result
 
+    def dock(self) -> dict:
+        """
+        Attempt to dock with a starbase.
+        Requirements:
+        - Starbase must be in one of the 8 adjacent positions around the ship
+        - No enemies in the sector
+        Returns dict with success status and time consumed (0.5)
+        """
+        # Get the dock result from the sector
+        dock_result = self.sector.dock()
+        
+        # If docking was successful, repair ship
+        if dock_result["success"]:
+            self.ship.shields = self.ship.max_shields
+            self.ship.energy = self.ship.max_energy
+            dock_result["message"] = "Successfully docked with starbase. Ship recharged."
+        
+        return dock_result
+
     def long_range_scan(self) -> dict:
         """
         Perform a long range scan of the 3x3 area around the current sector.

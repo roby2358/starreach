@@ -126,3 +126,49 @@ class ActiveSector:
             "distance": distance,
             "time": time
         }
+
+    def dock(self) -> dict:
+        """
+        Attempt to dock with a starbase.
+        Requirements:
+        - Starbase must be in one of the 8 adjacent positions around the ship
+        - No enemies in the sector
+        Returns dict with success status and time consumed (0.5)
+        """
+        # Check if there are enemies in the sector
+        if self.enemies > 0:
+            return {
+                "success": False,
+                "error": "Cannot dock while enemies are present in the sector",
+                "time": 0.0
+            }
+        
+        # Check if there's a starbase in the sector
+        if self.starbases == 0 or self.starbase_yx is None:
+            return {
+                "success": False,
+                "error": "No starbase present in this sector",
+                "time": 0.0
+            }
+        
+        # Get ship and starbase positions
+        ship_y, ship_x = self.ship_yx
+        base_y, base_x = self.starbase_yx
+        
+        # Check if starbase is adjacent to ship (in one of the 8 surrounding positions)
+        y_diff = abs(ship_y - base_y)
+        x_diff = abs(ship_x - base_x)
+        
+        if y_diff > 1 or x_diff > 1:
+            return {
+                "success": False,
+                "error": "Starbase is not adjacent to the ship",
+                "time": 0.0
+            }
+        
+        # Docking successful
+        return {
+            "success": True,
+            "message": "Successfully docked with starbase.",
+            "time": 0.5
+        }
