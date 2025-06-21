@@ -159,6 +159,20 @@ class StarreachServer:
                 "state": session.game.state
             }
 
+        @self.mcp.tool()
+        async def torpedo(session_id: str, y: int, x: int) -> dict:
+            """Fire a quantorpedo at coordinates (y, x) in a specific game session"""
+            session = self.game_manager.get_session(session_id)
+            if not session:
+                raise ValueError("Game session not found")
+            
+            torpedo_result = session.game.torpedo(y, x)
+            
+            return {
+                "torpedo": torpedo_result,
+                "state": session.game.state
+            }
+
     def _create_http_app(self) -> Starlette:
         """Create and configure the HTTP application"""
         app = Starlette(routes=[

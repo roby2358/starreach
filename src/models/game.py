@@ -85,6 +85,7 @@ class Game:
         if dock_result["success"]:
             self.ship.shields = self.ship.max_shields
             self.ship.energy = self.ship.max_energy
+            self.ship.quantorpedoes = self.ship.max_quantorpedoes
             dock_result["message"] = "Successfully docked with starbase. Ship recharged."
         
         return dock_result
@@ -140,10 +141,38 @@ class Game:
                 blast_result["remaining_energy"] = self.ship.energy
             
             # Update galaxy enemy count for this sector
-            sector_y, sector_x = self.sector_yx
-            self.galaxy.galaxy[sector_y][sector_x] = (True, self.sector.enemies, self.sector.starbases, self.sector.stars)
+            self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
         
         return blast_result
+
+    def torpedo(self, y: int, x: int) -> dict:
+        """
+        Fire a quantorpedo at the specified coordinates (y, x).
+        The first enemy in the torpedo path is hit and destroyed.
+        Consumes one quantorpedo from the ship.
+        Returns the torpedo result from Sector's torpedo method.
+        """
+        # Check if ship has quantorpedoes
+        if self.ship.quantorpedoes <= 0:
+            return {
+                "success": False,
+                "error": "No quantorpedoes remaining",
+                "time": 0
+            }
+        
+        # Get the torpedo result from the sector
+        torpedo_result = self.sector.torpedo((y, x))
+        
+        # If torpedo was successful, consume one quantorpedo and update galaxy enemy count
+        if torpedo_result["success"]:
+            # Consume one quantorpedo
+            self.ship.quantorpedoes -= 1
+            torpedo_result["remaining_quantorpedoes"] = self.ship.quantorpedoes
+            
+            # Update galaxy enemy count for this sector
+            self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
+        
+        return torpedo_result
 
     @property
     def state(self) -> GameState:

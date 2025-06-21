@@ -182,12 +182,10 @@ class ActiveSector:
             "time": 0.5
         }
 
-    def blast(self, target_yx: Tuple[int, int]) -> dict:
+    def _target_enemy(self, target_yx: Tuple[int, int]) -> dict:
         """
-        Fire a blaston beam from the ship to the target position.
-        The first enemy in the path is hit and removed from the sector.
-        Energy cost scales with the square root of euclidean distance.
-        Returns dict with success status, energy cost, and hit enemy position.
+        Target an enemy along the path from ship to target position.
+        Returns dict with success status, beam path, and hit enemy position.
         """
         # Calculate the path from ship to target
         beam_path = self.path(self.ship_yx, target_yx)
@@ -196,9 +194,8 @@ class ActiveSector:
             return {
                 "success": False,
                 "error": "Invalid target position",
-                "energy_cost": 0,
-                "time": 0,
-                "path": beam_path
+                "path": beam_path,
+                "hit_enemy_pos": None
             }
         
         # Find the first enemy in the beam path
@@ -213,10 +210,37 @@ class ActiveSector:
             return {
                 "success": False,
                 "error": "No enemy in beam path",
+                "path": beam_path,
+                "hit_enemy_pos": None
+            }
+        
+        return {
+            "success": True,
+            "path": beam_path,
+            "hit_enemy_pos": hit_enemy_pos
+        }
+
+    def blast(self, target_yx: Tuple[int, int]) -> dict:
+        """
+        Fire a blaston beam from the ship to the target position.
+        The first enemy in the path is hit and removed from the sector.
+        Energy cost scales with the square root of euclidean distance.
+        Returns dict with success status, energy cost, and hit enemy position.
+        """
+        # Use the factored out targeting logic
+        targeting_result = self._target_enemy(target_yx)
+        
+        if not targeting_result["success"]:
+            return {
+                "success": False,
+                "error": targeting_result["error"],
                 "energy_cost": 0,
                 "time": 0,
-                "path": beam_path
+                "path": targeting_result["path"]
             }
+        
+        hit_enemy_pos = targeting_result["hit_enemy_pos"]
+        beam_path = targeting_result["path"]
         
         # Calculate euclidean distance from ship to target
         ship_y, ship_x = self.ship_yx
@@ -235,6 +259,39 @@ class ActiveSector:
             "success": True,
             "message": f"Enemy destroyed at position {hit_enemy_pos}",
             "energy_cost": energy_cost,
+            "hit_enemy_pos": hit_enemy_pos,
+            "time": 0.1
+        }
+
+    def torpedo(self, target_yx: Tuple[int, int]) -> dict:
+        """
+        Fire a quantorpedo from the ship to the target position.
+        The first enemy in the path is hit and removed from the sector.
+        No energy cost, but consumes one quantorpedo.
+        Returns dict with success status and hit enemy position.
+        """
+        # Use the factored out targeting logic
+        targeting_result = self._target_enemy(target_yx)
+        
+        if not targeting_result["success"]:
+            return {
+                "success": False,
+                "error": targeting_result["error"],
+                "time": 0,
+                "path": targeting_result["path"]
+            }
+        
+        hit_enemy_pos = targeting_result["hit_enemy_pos"]
+        torpedo_path = targeting_result["path"]
+        
+        # Remove the enemy from the sector
+        self.set_space(hit_enemy_pos, ".")
+        self.enemies_yx.remove(hit_enemy_pos)
+        self.enemies -= 1
+        
+        return {
+            "success": True,
+            "message": f"Enemy destroyed at position {hit_enemy_pos}",
             "hit_enemy_pos": hit_enemy_pos,
             "time": 0.1
         }

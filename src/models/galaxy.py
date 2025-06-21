@@ -109,3 +109,12 @@ class Galaxy:
             scan_area.append(row_string)
         
         return scan_area 
+
+    def update_sector_data(self, sector_yx: Tuple[int, int], enemies: int, starbases: int, stars: int) -> None:
+        """
+        Update the galaxy data for a specific sector with current counts.
+        Marks the sector as visible and updates enemy, starbase, and star counts.
+        """
+        sector_y, sector_x = sector_yx
+        if 0 <= sector_y < 10 and 0 <= sector_x < 10:
+            self.galaxy[sector_y][sector_x] = (True, enemies, starbases, stars) 
