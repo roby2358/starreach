@@ -57,6 +57,13 @@ class ActiveSector:
                 positions.append(pos)
         return positions
 
+    @staticmethod
+    def euclidean_distance(pos1: Tuple[int, int], pos2: Tuple[int, int]) -> float:
+        """Calculate the Euclidean distance between two positions"""
+        y1, x1 = pos1
+        y2, x2 = pos2
+        return math.sqrt((y2 - y1)**2 + (x2 - x1)**2)
+
     def path(self, start_yx: Tuple[int, int], dest_yx: Tuple[int, int]) -> List[Tuple[int, int]]:
         """
         Calculate the path from start_yx to dest_yx using Bresenham's line algorithm.

@@ -9,6 +9,6 @@ class StarbaseHail(Event):
     
     def execute(self, game: 'Game') -> List[str]:
         if game.sector.enemies == 0:
-            return ["Starbase hails your ship"] 
+            return ["Starbase communication: all clear, approach for docking"] 
         else:
-            return ["Starbase under attack, requests assistance"] 
+            return ["Starbase communication: under attack, needs assistance"] 
