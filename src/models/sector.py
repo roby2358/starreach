@@ -3,6 +3,12 @@ import random
 import math
 from itertools import islice
 
+# Rasphyx
+# Geakthon
+# Deltaclast
+# Auvoros
+# Raskaos
+
 class ActiveSector:
     def __init__(self, stars: int, starbases: int, enemies: int):
         self.stars = stars
@@ -134,15 +140,15 @@ class ActiveSector:
         if not move_path:
             return {
                 "new_ship_yx": self.ship_yx,
-                "time": 0.0,
+                "time": 0,
                 "path": move_path
             }
             
         # Calculate movement path and distance using the factored method
         truncated_path, actual_distance = self.calculate_movement_path(move_path, max_distance)
         
-        # Calculate time (actual_distance * 0.1)
-        time = actual_distance * 0.1
+        # Calculate time (actual_distance * 1)
+        time = actual_distance * 1
             
         # Update map and ship position
         self.set_space(self.ship_yx, ".")
@@ -161,14 +167,14 @@ class ActiveSector:
         Requirements:
         - Starbase must be in one of the 8 adjacent positions around the ship
         - No enemies in the sector
-        Returns dict with success status and time consumed (0.5)
+        Returns dict with success status and time consumed (5)
         """
         # Check if there are enemies in the sector
         if self.enemies > 0:
             return {
                 "success": False,
                 "error": "Cannot dock while enemies are present in the sector",
-                "time": 0.0
+                "time": 0
             }
         
         # Check if there's a starbase in the sector
@@ -176,7 +182,7 @@ class ActiveSector:
             return {
                 "success": False,
                 "error": "No starbase present in this sector",
-                "time": 0.0
+                "time": 0
             }
         
         # Get ship and starbase positions
@@ -191,14 +197,14 @@ class ActiveSector:
             return {
                 "success": False,
                 "error": "Starbase is not adjacent to the ship",
-                "time": 0.0
+                "time": 0
             }
         
         # Docking successful
         return {
             "success": True,
             "message": "Successfully docked with starbase.",
-            "time": 0.5
+            "time": 5
         }
 
     def _target_enemy(self, target_yx: Tuple[int, int]) -> dict:
@@ -282,9 +288,9 @@ class ActiveSector:
         energy_cost = int(1000 * math.sqrt(euclidean_distance))
         
         # Calculate time: proportional to square root of distance
-        # At range 1: time = 0.1, at range 6: time = 0.3
-        # Formula: time = -0.037840 + 0.137840 * (distance**0.5)
-        time = -0.037840 + 0.137840 * (euclidean_distance ** 0.5)
+        # At range 1: time = 1, at range 6: time = 3
+        # Formula: time = -0.37840 + 1.37840 * (distance**0.5)
+        time = int(-0.37840 + 1.37840 * (euclidean_distance ** 0.5))
         
         # Remove the enemy from the sector
         self.set_space(hit_enemy_pos, ".")
@@ -334,5 +340,5 @@ class ActiveSector:
             "message": f"Enemy destroyed at position {hit_enemy_pos}",
             "energy_cost": energy_cost,
             "hit_enemy_pos": hit_enemy_pos,
-            "time": 0.1
+            "time": 1
         }

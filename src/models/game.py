@@ -20,6 +20,7 @@ class GameState(TypedDict):
     enemy_count: int
     # List of strings where each string represents a row of the sector map
     map: list[str]
+    stardate: str
 
 class Game:
     def __init__(self):
@@ -27,6 +28,22 @@ class Game:
         self.ship = Ship()
         self.sector_yx = (4, 4)  # Starting sector coordinates
         self.sector = ActiveSector(stars=4, starbases=1, enemies=0)
+        # Initialize stardate between 1000000 and 2000000
+        self.stardate = random.randint(1000000, 2000000)
+
+    def _format_stardate(self) -> str:
+        """Format stardate as 99-9999-99, truncating all values to int"""
+        stardate_str = str(int(self.stardate))
+        # Pad with zeros if needed
+        stardate_str = stardate_str.zfill(8)
+        # Take only the first 8 digits if longer
+        stardate_str = stardate_str[:8]
+        # Format as 99-9999-99
+        return f"{stardate_str[:2]}-{stardate_str[2:6]}-{stardate_str[6:8]}"
+
+    def _add_time(self, time_value: float) -> None:
+        """Add time value to stardate"""
+        self.stardate += time_value
 
     def warp(self, y: int, x: int) -> dict:
         """
@@ -44,6 +61,9 @@ class Game:
         # Calculate and deduct energy cost (10 * distance)
         energy_cost = 10 * warp_result["distance"]
         self.ship.energy -= energy_cost
+        
+        # Add time to stardate
+        self._add_time(warp_result["time"])
         
         # Update sector coordinates
         self.sector_yx = warp_result["new_sector_yx"]
@@ -75,6 +95,9 @@ class Game:
         energy_cost = 2 * distance
         self.ship.energy -= energy_cost
         
+        # Add time to stardate
+        self._add_time(subwarp_result["time"])
+        
         return subwarp_result
 
     def dock(self) -> dict:
@@ -88,12 +111,15 @@ class Game:
         # Get the dock result from the sector
         dock_result = self.sector.dock()
         
-        # If docking was successful, repair ship
+        # If docking was successful, repair ship and add time to stardate
         if dock_result["success"]:
             self.ship.shields = self.ship.max_shields
             self.ship.energy = self.ship.max_energy
             self.ship.quantorpedoes = self.ship.max_quantorpedoes
             dock_result["message"] = "Successfully docked with starbase. Ship recharged."
+            
+            # Add time to stardate
+            self._add_time(dock_result["time"])
         
         return dock_result
 
@@ -133,7 +159,7 @@ class Game:
         # Get the blast result from the sector
         blast_result = self.sector.blast((y, x))
         
-        # If blast was successful, deduct energy cost and update galaxy enemy count
+        # If blast was successful, deduct energy cost, add time to stardate, and update galaxy enemy count
         if blast_result["success"]:
             energy_cost = blast_result["energy_cost"]
             
@@ -146,6 +172,9 @@ class Game:
                 # Deduct energy cost
                 self.ship.energy -= energy_cost
                 blast_result["remaining_energy"] = self.ship.energy
+            
+            # Add time to stardate
+            self._add_time(blast_result["time"])
             
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
@@ -170,7 +199,7 @@ class Game:
         # Get the torpedo result from the sector
         torpedo_result = self.sector.torpedo((y, x))
         
-        # If torpedo was successful, consume one quantorpedo, deduct energy cost, and update galaxy enemy count
+        # If torpedo was successful, consume one quantorpedo, deduct energy cost, add time to stardate, and update galaxy enemy count
         if torpedo_result["success"]:
             # Consume one quantorpedo
             self.ship.quantorpedoes -= 1
@@ -186,6 +215,9 @@ class Game:
                 # Deduct energy cost
                 self.ship.energy -= energy_cost
                 torpedo_result["remaining_energy"] = self.ship.energy
+            
+            # Add time to stardate
+            self._add_time(torpedo_result["time"])
             
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
@@ -211,5 +243,6 @@ class Game:
             "star_count": self.sector.stars,
             "base_count": self.sector.starbases,
             "enemy_count": self.sector.enemies,
-            "map": map_strings
+            "map": map_strings,
+            "stardate": self._format_stardate()
         }
