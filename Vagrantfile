@@ -28,7 +28,7 @@ Vagrant.configure("2") do |config|
   config.vm.provider "virtualbox" do |vb|
     vb.memory = "4096"  # 4GB RAM minimum
     vb.cpus = 2
-    vb.name = "noble-starreacg"
+    vb.name = "noble-starreach"
   end
 
   # Provision the VM with required dependencies
