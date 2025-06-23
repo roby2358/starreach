@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 class Event(ABC):
     """Base class for all game events"""
     
     @abstractmethod
-    def can_occur(self, game_state: Dict[str, Any]) -> bool:
+    def can_occur(self, game: 'Game') -> bool:
         """Check if this event can occur given the current game state"""
         pass
     
     @abstractmethod
-    def execute(self, game_state: Dict[str, Any]) -> str:
-        """Execute the event and return the event message"""
+    def execute(self, game: 'Game') -> List[str]:
+        """Execute the event and return a list of event messages"""
         pass 

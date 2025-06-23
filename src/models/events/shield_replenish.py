@@ -1,15 +1,12 @@
-from typing import Dict, Any
+from typing import Dict, Any, List
 from .Event import Event
 
 class ShieldReplenish(Event):
-    """Shields replenish from energy stores"""
+    """Shields are replenished"""
     
-    def can_occur(self, game_state: Dict[str, Any]) -> bool:
-        current_shields = game_state.get("ship_shields", 0)
-        max_shields = game_state.get("ship_max_shields", 0)
-        energy = game_state.get("ship_energy", 0)
-        return current_shields < max_shields and energy > 0
+    def can_occur(self, game: 'Game') -> bool:
+        return game.ship.shields < game.ship.max_shields
     
-    def execute(self, game_state: Dict[str, Any]) -> str:
+    def execute(self, game: 'Game') -> List[str]:
         # Stub implementation
-        return "Shields replenish from energy stores" 
+        return ["Shields are replenished"] 

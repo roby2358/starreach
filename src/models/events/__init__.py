@@ -4,6 +4,7 @@ from .shield_replenish import ShieldReplenish
 from .enemy_move import EnemyMove
 from .enemy_fire import EnemyFire
 from .enemy_advance import EnemyAdvance
+from .enemies_turn import EnemiesTurn
 
 __all__ = [
     'Event',
@@ -11,5 +12,6 @@ __all__ = [
     'ShieldReplenish',
     'EnemyMove',
     'EnemyFire',
-    'EnemyAdvance'
+    'EnemyAdvance',
+    'EnemiesTurn'
 ] 

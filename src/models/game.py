@@ -55,19 +55,19 @@ class Game:
         if self.stardate % 3 != 0:
             return []
         
-        return [
-            event_type.execute(self.state)
-            for event_type in self.stardate_event_types
-            if event_type.can_occur(self.state)
-        ]
+        events = []
+        for event_type in self.stardate_event_types:
+            if event_type.can_occur(self):
+                events.extend(event_type.execute(self))
+        return events
 
     def _warp_events(self) -> list:
         """Generate events specific to warping into a new sector"""
-        return [
-            event_type.execute(self.state)
-            for event_type in self.warp_event_types
-            if event_type.can_occur(self.state)
-        ]
+        events = []
+        for event_type in self.warp_event_types:
+            if event_type.can_occur(self):
+                events.extend(event_type.execute(self))
+        return events
 
     def warp(self, y: int, x: int) -> dict:
         """
