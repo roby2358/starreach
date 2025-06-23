@@ -32,9 +32,9 @@ class Game:
         # Initialize stardate between 1000000 and 2000000
         self.stardate = random.randint(1000000, 2000000)
         # Event system
-        self.stardate_event_types = [StarbaseHail(), ShieldReplenish(), EnemyMove(),
+        self.stardate_event_types = [ShieldReplenish(), EnemyMove(),
                              EnemyFire(), EnemyAdvance()]
-        self.warp_event_types = []
+        self.warp_event_types = [StarbaseHail()]
 
     def _format_stardate(self) -> str:
         """Format stardate as 99-9999-99, truncating all values to int"""
@@ -52,13 +52,14 @@ class Game:
 
     def _stardate_events(self) -> list:
         """Check if this is the 3rd stardate increment and generate events if needed"""
-        # Check every 3rd stardate increment
-        events = []
-        if self.stardate % 3 == 0:
-            for event_type in self.stardate_event_types:
-                if event_type.can_occur(self.state):
-                    events.append(event_type.execute(self.state))
-        return events
+        if self.stardate % 3 != 0:
+            return []
+        
+        return [
+            event_type.execute(self.state)
+            for event_type in self.stardate_event_types
+            if event_type.can_occur(self.state)
+        ]
 
     def _warp_events(self) -> list:
         """Generate events specific to warping into a new sector"""
@@ -87,6 +88,9 @@ class Game:
         
         # Add time to stardate
         self._add_time(warp_result["time"])
+        
+        # Advance to next multiple of 3 for stardate events
+        self.stardate = ((self.stardate + 2) // 3) * 3
         
         # Check for events
         self._warp_events()
