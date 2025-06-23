@@ -60,12 +60,19 @@ class Game:
         Move the ship within the current sector to coordinates (y, x).
         Returns the subwarp result dict from Sector's subwarp method.
         Energy cost: 2 * distance
+        Max distance: 3 if enemies present, 10 otherwise
         """
+        # Determine max distance based on enemy presence
+        max_distance = 3 if self.sector.enemies > 0 else 10
+        
         # Get the subwarp result from the sector
-        subwarp_result = self.sector.subwarp((y, x))
+        subwarp_result = self.sector.subwarp((y, x), max_distance)
+        
+        # Calculate distance from path length (subtract 1 for starting position)
+        distance = len(subwarp_result["path"]) - 1 if subwarp_result["path"] else 0
         
         # Calculate and deduct energy cost (2 * distance)
-        energy_cost = 2 * subwarp_result["distance"]
+        energy_cost = 2 * distance
         self.ship.energy -= energy_cost
         
         return subwarp_result
@@ -149,7 +156,7 @@ class Game:
         """
         Fire a quantorpedo at the specified coordinates (y, x).
         The first enemy in the torpedo path is hit and destroyed.
-        Consumes one quantorpedo from the ship.
+        Consumes one quantorpedo from the ship and 100 energy.
         Returns the torpedo result from Sector's torpedo method.
         """
         # Check if ship has quantorpedoes
@@ -163,11 +170,22 @@ class Game:
         # Get the torpedo result from the sector
         torpedo_result = self.sector.torpedo((y, x))
         
-        # If torpedo was successful, consume one quantorpedo and update galaxy enemy count
+        # If torpedo was successful, consume one quantorpedo, deduct energy cost, and update galaxy enemy count
         if torpedo_result["success"]:
             # Consume one quantorpedo
             self.ship.quantorpedoes -= 1
             torpedo_result["remaining_quantorpedoes"] = self.ship.quantorpedoes
+            
+            # Deduct energy cost
+            energy_cost = torpedo_result["energy_cost"]
+            if self.ship.energy < energy_cost:
+                # Set energy to 0 instead of failing
+                self.ship.energy = 0
+                torpedo_result["remaining_energy"] = self.ship.energy
+            else:
+                # Deduct energy cost
+                self.ship.energy -= energy_cost
+                torpedo_result["remaining_energy"] = self.ship.energy
             
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)

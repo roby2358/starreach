@@ -98,7 +98,28 @@ class ActiveSector:
         
         return path
 
-    def subwarp(self, dest_yx: Tuple[int, int]) -> dict:
+    def calculate_movement_path(self, move_path: List[Tuple[int, int]], max_distance: int) -> tuple:
+        """
+        Calculate the actual movement path and distance based on max_distance limit.
+        Returns tuple of (truncated_path, actual_distance).
+        """
+        # Calculate the full distance (number of sectors traversed)
+        # Subtract 1 because we don't count the starting position
+        full_distance = len(move_path) - 1
+        
+        # Limit the actual distance traveled to max_distance
+        actual_distance = min(full_distance, max_distance)
+        
+        # If we're limiting the movement, truncate the path
+        # Keep the starting position plus the limited number of moves
+        if actual_distance < full_distance:
+            truncated_path = move_path[:actual_distance + 1]
+        else:
+            truncated_path = move_path
+        
+        return truncated_path, actual_distance
+
+    def subwarp(self, dest_yx: Tuple[int, int], max_distance: int) -> dict:
         """
         Move the ship point by point towards the destination using path.
         Returns a dict with new_ship_yx, distance, and time.
@@ -113,27 +134,25 @@ class ActiveSector:
         if not move_path:
             return {
                 "new_ship_yx": self.ship_yx,
-                "distance": 0,
                 "time": 0.0,
-            "path": move_path
+                "path": move_path
             }
             
-        # Calculate distance (number of sectors traversed)
-        distance = len(move_path) - 1  # Subtract 1 because we don't count the starting position
+        # Calculate movement path and distance using the factored method
+        truncated_path, actual_distance = self.calculate_movement_path(move_path, max_distance)
         
-        # Calculate time (distance * 0.1)
-        time = distance * 0.1
+        # Calculate time (actual_distance * 0.1)
+        time = actual_distance * 0.1
             
         # Update map and ship position
         self.set_space(self.ship_yx, ".")
-        self.ship_yx = move_path[-1]
+        self.ship_yx = truncated_path[-1]
         self.set_space(self.ship_yx, "S")
         
         return {
             "new_ship_yx": self.ship_yx,
-            "distance": distance,
             "time": time,
-            "path": move_path
+            "path": truncated_path
         }
 
     def dock(self) -> dict:
@@ -225,8 +244,25 @@ class ActiveSector:
         Fire a blaston beam from the ship to the target position.
         The first enemy in the path is hit and removed from the sector.
         Energy cost scales with the square root of euclidean distance.
+        Time scales with the square root of euclidean distance.
+        Maximum range: 6 spaces.
         Returns dict with success status, energy cost, and hit enemy position.
         """
+        # Calculate euclidean distance from ship to target
+        ship_y, ship_x = self.ship_yx
+        target_y, target_x = target_yx
+        euclidean_distance = math.sqrt((target_y - ship_y)**2 + (target_x - ship_x)**2)
+        
+        # Check if target is within range (6 spaces maximum)
+        if euclidean_distance > 6:
+            return {
+                "success": False,
+                "error": "Target is out of range (maximum 6 spaces)",
+                "energy_cost": 0,
+                "time": 0,
+                "path": []
+            }
+        
         # Use the factored out targeting logic
         targeting_result = self._target_enemy(target_yx)
         
@@ -242,13 +278,13 @@ class ActiveSector:
         hit_enemy_pos = targeting_result["hit_enemy_pos"]
         beam_path = targeting_result["path"]
         
-        # Calculate euclidean distance from ship to target
-        ship_y, ship_x = self.ship_yx
-        target_y, target_x = target_yx
-        euclidean_distance = math.sqrt((target_y - ship_y)**2 + (target_x - ship_x)**2)
-        
         # Calculate energy cost: 1000 at range 1, scales with square root of distance
         energy_cost = int(1000 * math.sqrt(euclidean_distance))
+        
+        # Calculate time: proportional to square root of distance
+        # At range 1: time = 0.1, at range 6: time = 0.3
+        # Formula: time = -0.037840 + 0.137840 * (distance**0.5)
+        time = -0.037840 + 0.137840 * (euclidean_distance ** 0.5)
         
         # Remove the enemy from the sector
         self.set_space(hit_enemy_pos, ".")
@@ -260,15 +296,15 @@ class ActiveSector:
             "message": f"Enemy destroyed at position {hit_enemy_pos}",
             "energy_cost": energy_cost,
             "hit_enemy_pos": hit_enemy_pos,
-            "time": 0.1
+            "time": time
         }
 
     def torpedo(self, target_yx: Tuple[int, int]) -> dict:
         """
         Fire a quantorpedo from the ship to the target position.
         The first enemy in the path is hit and removed from the sector.
-        No energy cost, but consumes one quantorpedo.
-        Returns dict with success status and hit enemy position.
+        Energy cost: 100 (flat rate).
+        Returns dict with success status, energy cost, and hit enemy position.
         """
         # Use the factored out targeting logic
         targeting_result = self._target_enemy(target_yx)
@@ -277,12 +313,16 @@ class ActiveSector:
             return {
                 "success": False,
                 "error": targeting_result["error"],
+                "energy_cost": 0,
                 "time": 0,
                 "path": targeting_result["path"]
             }
         
         hit_enemy_pos = targeting_result["hit_enemy_pos"]
         torpedo_path = targeting_result["path"]
+        
+        # Flat energy cost of 100
+        energy_cost = 100
         
         # Remove the enemy from the sector
         self.set_space(hit_enemy_pos, ".")
@@ -292,6 +332,7 @@ class ActiveSector:
         return {
             "success": True,
             "message": f"Enemy destroyed at position {hit_enemy_pos}",
+            "energy_cost": energy_cost,
             "hit_enemy_pos": hit_enemy_pos,
             "time": 0.1
         }
