@@ -1,7 +1,7 @@
 from .ship import Ship
 from .sector import ActiveSector
 from .galaxy import Galaxy
-from .events import StarbaseHail, ShieldReplenish, EnemyMove, EnemyFire, EnemyAdvance
+from .events import StarbaseHail, ShieldReplenish, EnemiesTurn
 from typing import TypedDict, Tuple, List
 import random
 
@@ -32,8 +32,7 @@ class Game:
         # Initialize stardate between 1000000 and 2000000
         self.stardate = random.randint(1000000, 2000000)
         # Event system
-        self.stardate_event_types = [ShieldReplenish(), EnemyMove(),
-                             EnemyFire(), EnemyAdvance()]
+        self.stardate_event_types = [ShieldReplenish(), EnemiesTurn()]
         self.warp_event_types = [StarbaseHail()]
 
     def _format_stardate(self) -> str:
