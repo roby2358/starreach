@@ -1,6 +1,7 @@
 from .ship import Ship
 from .sector import ActiveSector
 from .galaxy import Galaxy
+from .events import StarbaseHail, ShieldReplenish, EnemyMove, EnemyFire, EnemyAdvance
 from typing import TypedDict, Tuple, List
 import random
 
@@ -30,6 +31,10 @@ class Game:
         self.sector = ActiveSector(stars=4, starbases=1, enemies=0)
         # Initialize stardate between 1000000 and 2000000
         self.stardate = random.randint(1000000, 2000000)
+        # Event system
+        self.stardate_event_types = [StarbaseHail(), ShieldReplenish(), EnemyMove(),
+                             EnemyFire(), EnemyAdvance()]
+        self.warp_event_types = []
 
     def _format_stardate(self) -> str:
         """Format stardate as 99-9999-99, truncating all values to int"""
@@ -44,6 +49,24 @@ class Game:
     def _add_time(self, time_value: float) -> None:
         """Add time value to stardate"""
         self.stardate += time_value
+
+    def _stardate_events(self) -> list:
+        """Check if this is the 3rd stardate increment and generate events if needed"""
+        # Check every 3rd stardate increment
+        events = []
+        if self.stardate % 3 == 0:
+            for event_type in self.stardate_event_types:
+                if event_type.can_occur(self.state):
+                    events.append(event_type.execute(self.state))
+        return events
+
+    def _warp_events(self) -> list:
+        """Generate events specific to warping into a new sector"""
+        events = []
+        for event_type in self.warp_event_types:
+            if event_type.can_occur(self.state):
+                events.append(event_type.execute(self.state))
+        return events
 
     def warp(self, y: int, x: int) -> dict:
         """
@@ -65,6 +88,9 @@ class Game:
         # Add time to stardate
         self._add_time(warp_result["time"])
         
+        # Check for events
+        self._warp_events()
+        
         # Update sector coordinates
         self.sector_yx = warp_result["new_sector_yx"]
         
@@ -72,6 +98,9 @@ class Game:
         y, x = self.sector_yx
         _, enemy_count, starbase_count, star_count = self.galaxy.galaxy[y][x]
         self.sector = ActiveSector(stars=star_count, starbases=starbase_count, enemies=enemy_count)
+        
+        # Add events to response
+        warp_result["events"] = self._warp_events()
         
         return warp_result
 
@@ -98,6 +127,12 @@ class Game:
         # Add time to stardate
         self._add_time(subwarp_result["time"])
         
+        # Check for events
+        self._stardate_events()
+        
+        # Add events to response
+        subwarp_result["events"] = self._stardate_events()
+        
         return subwarp_result
 
     def dock(self) -> dict:
@@ -121,6 +156,12 @@ class Game:
             # Add time to stardate
             self._add_time(dock_result["time"])
         
+        # Check for events
+        self._stardate_events()
+        
+        # Add events to response
+        dock_result["events"] = self._stardate_events()
+        
         return dock_result
 
     def long_range_scan(self) -> dict:
@@ -143,10 +184,14 @@ class Game:
         # Perform the scan using galaxy's long_range_scan method
         scan_result = self.galaxy.long_range_scan(self.sector_yx)
         
+        # Check for events
+        self._stardate_events()
+        
         return {
             "scan": scan_result,
             "energy_cost": 100,
-            "remaining_energy": self.ship.energy
+            "remaining_energy": self.ship.energy,
+            "events": self._stardate_events()
         }
 
     def blast(self, y: int, x: int) -> dict:
@@ -178,6 +223,12 @@ class Game:
             
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
+        
+        # Check for events
+        self._stardate_events()
+        
+        # Add events to response
+        blast_result["events"] = self._stardate_events()
         
         return blast_result
 
@@ -221,6 +272,12 @@ class Game:
             
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
+        
+        # Check for events
+        self._stardate_events()
+        
+        # Add events to response
+        torpedo_result["events"] = self._stardate_events()
         
         return torpedo_result
 
