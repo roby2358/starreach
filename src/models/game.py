@@ -63,11 +63,11 @@ class Game:
 
     def _warp_events(self) -> list:
         """Generate events specific to warping into a new sector"""
-        events = []
-        for event_type in self.warp_event_types:
-            if event_type.can_occur(self.state):
-                events.append(event_type.execute(self.state))
-        return events
+        return [
+            event_type.execute(self.state)
+            for event_type in self.warp_event_types
+            if event_type.can_occur(self.state)
+        ]
 
     def warp(self, y: int, x: int) -> dict:
         """
