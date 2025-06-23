@@ -1,6 +1,4 @@
-from typing import Dict, Any, List
-import random
-import math
+from typing import List
 from .Event import Event
 
 class EnemyFire(Event):

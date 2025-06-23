@@ -1,7 +1,6 @@
 from typing import List, Tuple, Optional
 import random
 import math
-from itertools import islice
 
 # Rasphyx
 # Geakthon

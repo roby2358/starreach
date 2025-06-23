@@ -1,5 +1,4 @@
-from typing import Dict, Any, List
-import random
+from typing import List
 from .Event import Event
 
 class EnemyAdvance(Event):

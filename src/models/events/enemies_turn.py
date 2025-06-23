@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import List
 import random
 from .Event import Event
 from .enemy_fire import EnemyFire
