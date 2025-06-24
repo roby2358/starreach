@@ -31,6 +31,8 @@ class Game:
         self.sector = ActiveSector(stars=4, starbases=1, enemies=0)
         # Initialize stardate between 1000000 and 2000000
         self.stardate = random.randint(1000000, 2000000)
+        # Track the stardate when the last action occurred
+        self.last_action_stardate = self.stardate
         # Event system
         self.stardate_event_types = [ShieldReplenish(), EnemiesTurn()]
         self.warp_event_types = [StarbaseHail()]
@@ -50,15 +52,32 @@ class Game:
         self.stardate += time_value
 
     def _stardate_events(self) -> list:
-        """Check if this is the 3rd stardate increment and generate events if needed"""
-        if self.stardate % 3 != 0:
+        """Check if stardate has increased by 3 or more since last action and generate events if needed"""
+        if self.stardate < self.last_action_stardate + 3:
             return []
         
         events = []
         for event_type in self.stardate_event_types:
             if event_type.can_occur(self):
                 events.extend(event_type.execute(self))
+        
         return events
+
+    def _advance_last_action_stardate(self) -> None:
+        """Update last_action_stardate to current stardate after events have been processed"""
+        self.last_action_stardate = self.stardate
+
+    def _warp_energy_cost(self, distance: int) -> int:
+        """Calculate energy cost for warp action"""
+        return 10 * distance
+
+    def _subwarp_energy_cost(self, distance: int) -> int:
+        """Calculate energy cost for subwarp action"""
+        return 2 * distance
+
+    def _long_range_scan_energy_cost(self) -> int:
+        """Calculate energy cost for long range scan action"""
+        return 500
 
     def _warp_events(self) -> list:
         """Generate events specific to warping into a new sector"""
@@ -82,28 +101,24 @@ class Game:
             return warp_result
             
         # Calculate and deduct energy cost (10 * distance)
-        energy_cost = 10 * warp_result["distance"]
+        energy_cost = self._warp_energy_cost(warp_result["distance"])
         self.ship.energy -= energy_cost
         
         # Add time to stardate
+        # Reset the event clock after successful warp
         self._add_time(warp_result["time"])
-        
-        # Advance to next multiple of 3 for stardate events
-        self.stardate = ((self.stardate + 2) // 3) * 3
-        
-        # Check for events
-        self._warp_events()
+        self._advance_last_action_stardate()
         
         # Update sector coordinates
-        self.sector_yx = warp_result["new_sector_yx"]
-        
         # Unpack sector data and generate new active sector
+        self.sector_yx = warp_result["new_sector_yx"]
         y, x = self.sector_yx
         _, enemy_count, starbase_count, star_count = self.galaxy.galaxy[y][x]
         self.sector = ActiveSector(stars=star_count, starbases=starbase_count, enemies=enemy_count)
         
-        # Add events to response
-        warp_result["events"] = self._warp_events()
+        # Check for events
+        warp_events = self._warp_events()
+        warp_result["events"] = warp_events
         
         return warp_result
 
@@ -115,26 +130,23 @@ class Game:
         Max distance: 3 if enemies present, 10 otherwise
         """
         # Determine max distance based on enemy presence
-        max_distance = 3 if self.sector.enemies > 0 else 10
-        
         # Get the subwarp result from the sector
+        max_distance = 3 if self.sector.enemies > 0 else 10
         subwarp_result = self.sector.subwarp((y, x), max_distance)
         
         # Calculate distance from path length (subtract 1 for starting position)
         distance = len(subwarp_result["path"]) - 1 if subwarp_result["path"] else 0
         
         # Calculate and deduct energy cost (2 * distance)
-        energy_cost = 2 * distance
+        energy_cost = self._subwarp_energy_cost(distance)
         self.ship.energy -= energy_cost
         
         # Add time to stardate
         self._add_time(subwarp_result["time"])
         
-        # Check for events
-        self._stardate_events()
-        
         # Add events to response
         subwarp_result["events"] = self._stardate_events()
+        self._advance_last_action_stardate()
         
         return subwarp_result
 
@@ -159,11 +171,8 @@ class Game:
             # Add time to stardate
             self._add_time(dock_result["time"])
         
-        # Check for events
-        self._stardate_events()
-        
-        # Add events to response
         dock_result["events"] = self._stardate_events()
+        self._advance_last_action_stardate()
         
         return dock_result
 
@@ -174,28 +183,29 @@ class Game:
         Energy cost: 100
         """
         # Check if ship has enough energy
-        if self.ship.energy < 100:
+        if self.ship.energy < self._long_range_scan_energy_cost():
             return {
                 "error": "Insufficient energy",
-                "required_energy": 100,
+                "required_energy": self._long_range_scan_energy_cost(),
                 "current_energy": self.ship.energy
             }
         
         # Deduct energy cost
-        self.ship.energy -= 100
+        self.ship.energy -= self._long_range_scan_energy_cost()
         
         # Perform the scan using galaxy's long_range_scan method
         scan_result = self.galaxy.long_range_scan(self.sector_yx)
-        
-        # Check for events
-        self._stardate_events()
-        
+
+        events = self._stardate_events()
+        self._advance_last_action_stardate()
+
         return {
             "scan": scan_result,
-            "energy_cost": 100,
+            "energy_cost": self._long_range_scan_energy_cost(),
             "remaining_energy": self.ship.energy,
-            "events": self._stardate_events()
+            "events": events
         }
+        self._advance_last_action_stardate()
 
     def blast(self, y: int, x: int) -> dict:
         """
@@ -227,11 +237,9 @@ class Game:
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
         
-        # Check for events
-        self._stardate_events()
-        
         # Add events to response
         blast_result["events"] = self._stardate_events()
+        self._advance_last_action_stardate()
         
         return blast_result
 
@@ -276,11 +284,9 @@ class Game:
             # Update galaxy enemy count for this sector
             self.galaxy.update_sector_data(self.sector_yx, self.sector.enemies, self.sector.starbases, self.sector.stars)
         
-        # Check for events
-        self._stardate_events()
-        
         # Add events to response
         torpedo_result["events"] = self._stardate_events()
+        self._advance_last_action_stardate()
         
         return torpedo_result
 
