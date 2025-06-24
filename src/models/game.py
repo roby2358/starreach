@@ -205,7 +205,6 @@ class Game:
             "remaining_energy": self.ship.energy,
             "events": events
         }
-        self._advance_last_action_stardate()
 
     def blast(self, y: int, x: int) -> dict:
         """
