@@ -7,15 +7,27 @@ All coordinates are given as (y,x) or (vertical, horizontal).
 
 Show the sector as
   0 1 2 3 4 5 6 7 8 9
-0 . . . . . . . . . .
-etc.
+0 . . . . . . . . . *
+1 . . . . . . . . . .
+2 . . . . . . . . . .
+3 . . . . . . . . * .
+4 . . . . . . . . . .
+5 . . . . . . . . . .
+6 B . . . . . . . . .
+7 . . . . . . * * . .
+8 . . . . . . . . . .
+9 . . . . . . . . . S
 
 Omit any legend. The captain understands the nomenclature.
 
-For the galaxy map and long range scan, show each sector as "....." or "4|1|8"
+Omit the star count. It's not important.
 
-Long range scan will only show the sectors adjacent
+Show the long range scan as
+     3     4     5
+3  0|0|6 3|0|6 1|0|5
+4  3|1|4 0|1|4 0|0|7
+5  3|0|4 0|0|3 0|0|8
 
-Galactic map shows the whole galaxy 0..9
+For the galaxy map, show each sector as "....." or "4|1|8"
 
 Open with a greeting and the current state.

@@ -1,9 +1,34 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Final
 import random
 
 class Galaxy:
+    center_yx: Final[Tuple[int, int]] = (4, 4)
+    
     def __init__(self):
         self.galaxy = self._generate_galaxy()
+
+    def random_enemies(self, sector_yx: Tuple[int, int]) -> int:
+        """Generate random enemy count for a sector based on distance from center"""
+        y, x = sector_yx
+        center_y, center_x = self.center_yx
+        
+        distance = ((y - center_y) ** 2 + (x - center_x) ** 2) ** 0.5
+        
+        max_distance = (5 ** 2 + 5 ** 2) ** 0.5 
+        distance_factor = 0.3 + (distance / max_distance) * 0.7
+        
+        base_enemies = random.randint(-3, 9)
+        scaled_enemies = int(distance_factor * base_enemies)
+        
+        return max(0, min(scaled_enemies, 9))
+
+    def random_starbases(self) -> int:
+        """Generate random starbase count for a sector"""
+        return 1 if random.random() < 0.02 else 0
+
+    def random_stars(self) -> int:
+        """Generate random star count for a sector"""
+        return random.randint(2, 8)
 
     def _generate_galaxy(self) -> List[List[Tuple[bool, int, int, int]]]:
         """Generate a 10x10 galaxy grid with random sector data"""
@@ -13,16 +38,16 @@ class Galaxy:
             for x in range(10):
                 # Generate random counts for each sector
                 
-                if y == 4 and x == 4:
+                if (y, x) == self.center_yx:
                     visible = True
                     enemy_count = 0
                     starbase_count = 1
                     star_count = 4
                 else:
                     visible = False
-                    enemy_count = random.randint(0, 9)
-                    starbase_count = random.randint(0, 1)
-                    star_count = random.randint(2, 8)
+                    enemy_count = self.random_enemies((y, x))
+                    starbase_count = self.random_starbases()
+                    star_count = self.random_stars()
                     
                 row.append((visible, enemy_count, starbase_count, star_count))
             galaxy.append(row)
