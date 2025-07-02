@@ -67,15 +67,18 @@ class Game:
         """Update last_action_stardate to current stardate after events have been processed"""
         self.last_action_stardate = self.stardate
 
-    def _warp_energy_cost(self, distance: int) -> int:
+    @staticmethod
+    def _warp_energy_cost(distance: int) -> int:
         """Calculate energy cost for warp action"""
         return 10 * distance
 
-    def _subwarp_energy_cost(self, distance: int) -> int:
+    @staticmethod
+    def _subwarp_energy_cost(distance: int) -> int:
         """Calculate energy cost for subwarp action"""
         return 2 * distance
 
-    def _long_range_scan_energy_cost(self) -> int:
+    @staticmethod
+    def _long_range_scan_energy_cost() -> int:
         """Calculate energy cost for long range scan action"""
         return 500
 
