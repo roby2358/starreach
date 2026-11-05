@@ -26,12 +26,13 @@ inferences, waiting for review.
 ### D-20 Deploy into yuwakisacloud from this repo: Rust core in WASM, thin TypeScript Worker, one Durable Object per game — *Decided, unbuilt; gated on Q-15*
 - **Choice:** Starreach stays in this repo and deploys into the yuwakisacloud Cloudflare
   account and zone at `starreach.yuwakisa.com`. A Rust `starreach-core` crate holds the
-  rules. It is deterministic with a seeded RNG (Q-10) and is compiled to WASM behind one
-  JSON function, `apply(state, command) -> result`, with one result shape (Q-12). A thin
+  rules. It is deterministic with a seeded RNG (D-28) and is compiled to WASM behind one
+  JSON function, `apply(state, command) -> result`, with one result shape (D-29). A thin
   TypeScript Worker owns everything that touches the platform: streamable-HTTP MCP at
   `/mcp`, one SQLite Durable Object per game storing the state and the owner's auth/ `sub`,
   token checking with `auth-client` (copied into this repo for now), the auth service
-  binding, and `public/` as static assets. The details are in `YUWAKISA.md`.
+  binding, and `public/` as static assets. That layer is the Cloudflare adapter of D-21.
+  The details are in `YUWAKISA.md`.
 - **Alternatives:** a TypeScript rewrite as a `starreach/` project inside yuwakisacloud (the
   platform's single-language posture); a full Rust Worker with `workers-rs` (it would have to
   re-implement the token check); Python in Cloudflare Containers; Python Workers with Durable
@@ -48,6 +49,42 @@ inferences, waiting for review.
   `"default"` session (Q-8, G-3).
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
+
+### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided, unbuilt*
+- **Choice:** `core/` is the Rust crate (rules only, compiled to WASM). `app/` is a
+  TypeScript package with no platform imports: it defines the MCP tools and the
+  `instructions` prompt, loads the core, and talks to storage through a `GameStore`
+  interface. `adapters/node/` runs the app over stdio and streamable HTTP with an in-memory
+  store. `adapters/cloudflare/` is the only place Cloudflare APIs appear: the Worker, the
+  Durable Object store, `wrangler.jsonc`, and the auth hook. npm workspaces join the TS
+  packages. `just` recipes launch either adapter locally on `HTTP_PORT`.
+- **Alternatives:** a single Worker project (Cloudflare APIs spread through the code); an
+  app with only the Cloudflare adapter, run locally under `wrangler dev` (no stdio for
+  Claude Desktop).
+- **Why:** The rules can't depend on a platform, and the MCP surface shouldn't either.
+  Keeping Cloudflare in one directory means a platform change touches one adapter. The Node
+  adapter keeps Claude Desktop (stdio) working without Cloudflare tooling.
+- **Evidence:** none yet.
+
+### D-22 Games are addressed by an explicit `game_id` — *Decided, unbuilt*
+- **Alternatives:** bind the game to the MCP connection (a reconnect loses the game unless
+  auth ties it to a user).
+- **Why:** G-1: the LLM holds the id and can resume. It maps directly onto one Durable
+  Object per game, and it works before auth exists. Once auth exists, the store also
+  records the owner's `sub` (D-20).
+
+### D-28 All randomness comes from a seed stored in the game; constants are named — *Decided, unbuilt*
+- **Alternatives:** a global, unseeded RNG; tests that build boards by hand only.
+- **Why:** The core is a pure function of `(game, command)`, so every random draw has to
+  come from state carried in the game. This makes R-20 (determinism) testable and lets
+  sector layouts persist (D-26). Constants live in one Rust module under the names in
+  ONTOLOGY's Numbers table.
+
+### D-29 Every command returns one result shape — *Decided, unbuilt*
+- **Alternatives:** per-command shapes (`distance: 0`, `success: false`, a bare `error`, a
+  scan failure without `state`).
+- **Why:** The LLM and the app layer handle one shape: `{ok, error, events, report,
+  state}`. Every field is always present, so a client never tests whether a key exists.
 
 ### D-17 Events are strings — *Decided*
 - **Alternatives:** structured event records (`{type, from, to, damage}`) that the LLM or
@@ -100,7 +137,9 @@ inferences, waiting for review.
 ### D-15 One ray rule for all movement and fire — *Decided*
 - **Alternatives:** pathfinding for movement; hit-scan weapons that ignore obstacles.
 - **Why:** One code path. Stars and other ships become cover for both sides, which makes
-  positioning matter (F-danger). Blocked fire is visible in the messages.
+  positioning matter (F-danger). Blocked fire is visible in the messages. A move toward a
+  star stops in the cell before it, rather than destroying the ship: instant death from one
+  misread coordinate is harsh with an LLM in the loop.
 
 ### D-19 Enemies are anonymous and die in one hit — *Decided*
 - **Alternatives:** enemy health; named enemy races (the names Rasphyx, Geakthon,
@@ -122,33 +161,83 @@ inferences, waiting for review.
 - **Why:** In combat you can't simply fly away from enemies within a sector, so each move
   is a tactical step (F-danger).
 
-### D-7 Docking fully resupplies but needs a clear sector and an adjacent starbase — *Decided*
-- **Alternatives:** partial resupply over time; docking under fire.
-- **Why:** The starbase sector must be cleared first. Docking is the reward. Hull is not
-  restored (see Q-7).
+### D-7 Docking fully resupplies and repairs, but needs a clear sector and an adjacent starbase — *Decided, unbuilt (hull repair)*
+- **Alternatives:** partial resupply over time; docking under fire; no hull repair.
+- **Why:** The starbase sector must be cleared first. Docking is the reward. It restores
+  the hull too, because otherwise hull damage is a countdown with no counterplay, and
+  "retreat to resupply" (DYNAMICS) needs a resupply that matters.
 
 ### D-8 A long-range scan costs energy and reveals the 3×3 block — *Decided*
 - **Alternatives:** free scans; scans that cost time.
 - **Why:** Information as currency (F-discovery). `LRS_ENERGY` is small next to
   `SHIP_MAX_ENERGY`, so the price is mild.
 
-### D-9 Two weapons: blast (ranged, energy) and torpedo (unlimited range, limited ammo) — *Decided*
+### D-9 Two weapons: blast (ranged, energy) and torpedo (unlimited range, limited ammo) — *Decided; blast geometry unbuilt*
 - **Alternatives:** a single weapon.
 - **Why:** A real choice between them. The blast is limited by `BLAST_RANGE` and its cost
-  rises with √range. The torpedo is cheap in energy but scarce (`SHIP_MAX_QUANTORPEDOES`)
+  rises with √range, measured to the enemy it hits, not to the aimed cell (so aiming past
+  a near enemy costs what hitting it costs). The torpedo is cheap in energy but scarce (`SHIP_MAX_QUANTORPEDOES`)
   and reaches anything on the ray.
 - **Evidence:** Modeled by: `python tools/model_balance.py` — a blast costs 1000 energy at range 1, 1414 at
   range 2, and 2449 at range 6. That is roughly 20–50 blasts per full tank. Blast time is
-  1 up to range 2 and 2 from range 3 to 6. (The time formula's comment intends 3 at range
-  6; see Q-11.)
+  1 up to range 2 and 2 from range 3 to 6.
 
-### D-10 Enemies act on a stardate clock: two thirds fire, one third advance — *Decided, tuned by none yet*
-- **Alternatives:** enemies act after every action; each enemy rolls its own action.
-- **Why:** Time passing is the threat. Faster actions give you more shots before the enemy
-  replies. Damage falls off steeply with distance, so range is protection.
+### D-10 Enemies act on an accumulating stardate clock; each enemy advances with probability `ENEMY_ADVANCE_FRACTION`, else fires — *Decided, unbuilt, tuned by none yet*
+- **Alternatives:** a clock that resets after every action (then no single action but a
+  3-step subwarp ever fills it, so shots never draw a reply); enemies act after every
+  action; lowering `EVENT_INTERVAL`; a fixed split of `int(n × ENEMY_ADVANCE_FRACTION)`
+  advancers (0 for 1–2 enemies, so small groups never close in).
+- **Why:** Time passing is the threat, and it adds up across actions, so every action that
+  takes time brings the next enemy turn closer. Faster actions still buy more shots before
+  the reply. A per-enemy roll lets small groups advance too. Damage falls off steeply with
+  distance, so range is protection.
 - **Evidence:** Modeled by: `python tools/model_balance.py` — 2000 damage at range 1, 674 at 2, 356 at 3, 120
-  at 6. With 5000 shields plus hull, about 2.5 point-blank hits destroy the ship. By
-  reading the code: the clock fires only on 3-step subwarps (see Q-2).
+  at 6. With 5000 shields plus hull, about 2.5 point-blank hits destroy the ship.
+
+### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided, unbuilt*
+- **Alternatives:** a stardate deadline; open-ended play.
+- **Why:** G-2 and F-danger need stakes. After the end, actions are refused and queries
+  still work, so the LLM can narrate the final state. A deadline can be added later if
+  pacing needs it.
+
+### D-30 A stranded ship loses, unless a starbase is in its sector, which transfers emergency energy instead — *Decided, unbuilt; the stranded test and amount are Proposed*
+- **Alternatives:** an emergency tow home at a cost; accept a game that neither ends nor
+  continues; losing even beside a starbase.
+- **Why:** With no overdraft (D-24), running dry far from a starbase would otherwise leave
+  a game that can't progress. Losing is the honest end, and it makes energy management a
+  real stake (G-4, Loss Aversion). Beside a starbase, though, help is at hand: the
+  transfer lets the ship move to dock or fight for an enemy-held base, so a starbase
+  sector is always a refuge (Landmarks as Anchors). The test checks only the warp to the
+  nearest *visible* other starbase sector, so it uses what the player knows.
+- **Evidence:** Arithmetic: the longest warp to Star Central is from (9,9), distance
+  `int(√50 × WARP_DISTANCE_SCALE)` = 70, costing 700, so `STARBASE_EMERGENCY_ENERGY` (1000)
+  always clears the stranded test when Star Central is the fallback. In Star Central itself,
+  with no other starbase visible, the floor reapplies after each action; Star Central never
+  has enemies, so docking is always available there anyway.
+
+### D-24 An action you can't afford is refused — *Decided, unbuilt*
+- **Alternatives:** overdraft that damages the hull; clamping energy at 0 so the last shot
+  is free.
+- **Why:** G-4: every action is paid for. One rule for every action, as the scan already
+  did. Energy never goes below 0.
+
+### D-25 Enemies get a turn before you warp out — *Decided, unbuilt*
+- **Alternatives:** warp is blocked while enemies are present; free escape.
+- **Why:** Leaving a fight should cost something, without trapping the player (F-danger,
+  Scarcity of Agency). Escape stays possible but risky.
+
+### D-26 Sector layouts regenerate from the seed — *Decided, unbuilt*
+- **Alternatives:** store every layout once seen; re-roll on every visit.
+- **Why:** Leaving and returning shouldn't re-roll the board (map memory, F-discovery).
+  Deriving the layout from `(seed, sector)` keeps the game value small. Stars and the
+  starbase are placed before enemies, so terrain is stable even after kills. Enemies that
+  moved return to their original cells; the ship's arrival cell can shift with the enemy
+  count.
+
+### D-27 Shields recharge from energy — *Decided, unbuilt, tuned by none yet*
+- **Alternatives:** restore a fixed amount for free.
+- **Why:** It ties shields to the energy economy (G-4): fighting drains the tank twice.
+  `SHIELD_REPLENISH` and `SHIELD_ENERGY_PER_POINT` are starting values.
 
 ### D-11 Ship stats — *Decided, tuned by none yet*
 - **Why:** Starting values. Energy is generous next to costs (see D-9). Unmeasured.
@@ -163,65 +252,17 @@ inferences, waiting for review.
 
 Each question lists its options and Claude's recommendation.
 
-- **Q-1 How does a game end?** Today nothing happens at hull 0, and clearing every enemy
-  doesn't win. Options: (a) hull 0 = loss, all enemies destroyed = win; (b) add a stardate
-  deadline; (c) leave it open-ended. **Recommend (a)**, with (b) later if pacing needs it.
-- **Q-2 When do enemies act?** The clock resets after every action, and no single action
-  except a 3-step subwarp reaches `EVENT_INTERVAL`. So blasts, torpedoes and scans never
-  provoke a response. Options: (a) let time accumulate since the last enemy turn (reset only
-  when events fire); (b) enemies act after every action that takes time; (c) lower
-  `EVENT_INTERVAL`. **Recommend (a).** It keeps the "faster actions buy shots" design.
-- **Q-3 What if energy is short?** Warp and subwarp drive energy negative. Blast and
-  torpedo still succeed and clamp energy at 0, so the last shot is free. Options: (a) refuse
-  any action you can't afford, as the scan already does; (b) allow overdraft that damages
-  the hull. **Recommend (a).**
-- **Q-4 Stars: block or kill?** The README says flying into a star ends the game. The code
-  stops the ship one cell short. **Recommend keeping the stop** and correcting the README.
-  Instant death from one misread coordinate is harsh when an LLM sits in the loop.
-- **Q-5 Should sector layouts persist?** Every warp in rebuilds positions at random, so
-  leaving and returning re-rolls the board, the ship's spot, and enemy positions. Options:
-  (a) store each layout once seen; (b) seed each sector so it regenerates the same way;
-  (c) accept re-rolls. **Recommend (b)** (it needs Q-10).
-- **Q-6 What does ShieldReplenish do?** It is a stub. Options: (a) restore a fixed amount
-  per firing; (b) shields drain energy to recharge. **Recommend (b)**: it ties shields to
-  the energy economy (G-4).
-- **Q-7 Should docking repair the hull?** Nothing restores the hull today. **Recommend yes.**
-  Otherwise hull damage is a permanent countdown with no counterplay.
-- **Q-8 What does the browser show?** `GET /state` shows its own `"default"` session, not
-  the LLM's. The page assets aren't served by the app, and `index.html` links `styles.css`
-  and `script.js` at the root while they live in `css/` and `js/`. **Recommend:** mount
-  `public/` as static files, fix the links, and show the most recently active session
-  (single player).
-- **Q-9 Does the README or the code win on these?** The README says stars per sector 0–7
-  (code: `STARS_PER_SECTOR` 2–8), the start at "[4,4:5,5]" (code: (4,4)), MCP on port 8001
-  (code: 8000 or stdio), and the UI at `/static/index.html` (not served). **Recommend the
-  code wins**, and the README is corrected.
-- **Q-10 Seeded RNG and named constants?** Everything uses the global `random` module, and
-  most numbers are inline literals. **Recommend:** give `Game(seed)` its own
-  `random.Random`, and lift the constants into one `constants.py` under the names in
-  ONTOLOGY's Numbers table. This unblocks R-20 and deterministic tests.
-- **Q-11 Blast geometry.** Range and cost are measured to the *target cell*, not the enemy
-  that is hit. Aiming 1 cell away at an enemy 1 cell away costs the same as a shot at range
-  6 that hits that enemy. Blast time also peaks at 2, though the comment intends 3. Options:
-  measure to the hit enemy; adjust `BLAST_TIME_*`. **Recommend measuring to the hit enemy**,
-  and letting Q-2's fix decide whether the time matters.
-- **Q-12 One result shape for every command?** Failures today are `distance: 0`,
-  `success: false`, or a bare `error`, and the scan's failure omits `state`. **Recommend
-  `{ok, error?, events, state, …}` everywhere.**
-- **Q-13 Enemy advance with few enemies.** `int(n × ENEMY_ADVANCE_FRACTION)` is 0 for 1 or
-  2 enemies, so small groups never close in. **Recommend:** each enemy advances with
-  probability `ENEMY_ADVANCE_FRACTION`.
+- **Q-8 What does the browser show?** The browser view isn't served by the new layers yet.
+  **Recommend:** each adapter serves `public/` as static files (with the asset links
+  fixed), and `/state` shows the caller's most recent game (single player, then the
+  owner's games once auth exists).
 - **Q-15 Can claude.ai and Claude Desktop connectors sign in to auth/ without dynamic
   client registration?** auth/ clients are created by an admin, with exact redirect URIs and
   no RFC 7591 registration (auth/ D-22). Options: (a) a pre-registered public PKCE client
   with the claude.ai callback; (b) add RFC 7591 registration and the RFC 8414 alias to auth/
   first. **Recommend testing (a)** with a stub Worker at `starreach.yuwakisa.com`, which
-  serves RFC 9728 metadata and a `/mcp` that returns 401 or echoes `sub`, before porting
-  anything. This gates D-20.
-- **Q-14 Can you warp away from a fight for free?** Warping never triggers an enemy turn,
-  so every fight can be abandoned at no risk. Options: (a) enemies get a turn before the
-  warp; (b) warp is blocked while enemies are present; (c) allow it. **Recommend (a).**
-
+  serves RFC 9728 metadata and a `/mcp` that returns 401 or echoes `sub`. This gates
+  deploying D-20.
 ---
 
 ## Deliberately left out

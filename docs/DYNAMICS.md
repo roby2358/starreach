@@ -30,7 +30,7 @@ where you come back to resupply.
 |---|---|---|
 | Readable Consequences | Every action returns its events as messages, and the LLM narrates them in naval voice | [D] built |
 | Information as Currency | Sectors stay hidden until you scan (`LRS_ENERGY`) or warp in | [D] built |
-| Scarcity of Agency | With enemies present, subwarp is capped at `SUBWARP_MAX_STEPS_HOSTILE`, and enemies answer as stardates pass | [D] built, but enemies rarely answer (Q-2) |
+| Scarcity of Agency | With enemies present, subwarp is capped at `SUBWARP_MAX_STEPS_HOSTILE`, and enemies answer as stardates add up | [D, unbuilt] (the accumulating clock, D-10) |
 
 ## Secondary mechanics and what they feed
 
@@ -41,7 +41,10 @@ where you come back to resupply.
 | Blast: limited range, energy cost rising with √range | Weapon choice | Scarcity of Agency |
 | Torpedo: unlimited range, limited ammo | Weapon choice; the long shot | Scarcity of Agency |
 | Enemy density rises with distance from home | Venturing out is a commitment | Escalating Commitment |
-| Rare starbases; docking only in a cleared sector | Resupply as a goal you earn | Landmarks, Loss Aversion |
+| Rare starbases; docking only in a cleared sector; docking repairs the hull | Resupply as a goal you earn | Landmarks, Loss Aversion |
+| Shields recharge from energy | Fighting drains the tank twice | Scarcity of Agency |
+| Every action must be paid for | Running dry far from home is a real danger | Loss Aversion, Escalating Commitment |
+| Hull 0 or being stranded away from a starbase loses; clearing the galaxy wins; a starbase rescues a stranded ship | Stakes, a reason to push outward, and starbases as refuges | Loss Aversion, Escalating Commitment, Landmarks |
 | Starbase hail on arrival | A reason to clear a sector ("needs assistance") | Guardianship (weak) |
 | Stardate display, naval decorum | Flavor | Readable Consequences (voice) |
 
@@ -49,12 +52,12 @@ where you come back to resupply.
 
 - *Stars block shots and movement.* Intuitive.
 - *You can't dock while enemies are in the sector.* Intuitive.
-- *Enemies don't react to being shot.* Counter-intuitive. A blast or torpedo takes ≤
-  `EVENT_INTERVAL` time, so firing never draws return fire, while moving 3 cells does (Q-2).
-  This reads as a bug.
-- *Running out of energy still lets you fire once more for free.* Reads as a bug (Q-3).
-- *Coming back to a sector re-rolls where everything is.* Surprising; it breaks map memory (Q-5).
-- *Hull 0 and nothing happens.* There are no stakes (Q-1).
+- *Enemies answer when time passes, whatever you did with it.* Intuitive.
+- *You can't fire or fly on an empty tank.* Intuitive.
+- *Enemies get a parting shot when you warp out.* Intuitive.
+- *Coming back to a sector, the stars are where you left them, but enemies are back at
+  their posts.* Mostly intuitive; the reset of enemy positions may surprise.
+- *Docking repairs the hull.* Intuitive.
 
 ## Strategies
 
@@ -74,22 +77,21 @@ and retreat to resupply.
 
 | Anti-strategy | Mechanical prevention | Status |
 |---|---|---|
-| Stand still and shoot. Enemies never respond to blasts or torpedoes | None. The clock resets each action and shots take < `EVENT_INTERVAL` | **Unprevented → Q-2** |
-| Move 1–2 cells at a time so the enemy clock never fills | None, for the same reason | **Unprevented → Q-2** |
-| Fire the last shot with no energy | None. Energy is clamped at 0 and the shot succeeds | **Unprevented → Q-3** |
-| Warp out of any losing fight | None. Warping never triggers an enemy turn | **Unprevented → Q-14** |
-| Warp out and back to re-roll a bad board | None. Layouts aren't stored | **Unprevented → Q-5** |
-| Ignore the hull | None. Hull 0 has no effect | **Unprevented → Q-1** |
-| Dock-camp at Star Central | Docking needs a cleared sector, and enemies don't spread between sectors, so camping is safe but wins nothing | Prevented only once Q-1 adds a goal |
+| Stand still and shoot. Enemies never respond to blasts or torpedoes | The enemy clock accumulates (D-10), so shots bring the next enemy turn closer | Prevented [unbuilt] |
+| Move 1–2 cells at a time so the enemy clock never fills | Same: time adds up across actions (D-10) | Prevented [unbuilt] |
+| Fire the last shot with no energy | An action you can't afford is refused (D-24) | Prevented [unbuilt] |
+| Warp out of any losing fight | Enemies get a turn before the warp (D-25) | Prevented [unbuilt]; escape is costly, not blocked |
+| Warp out and back to re-roll a bad board | Sector layouts regenerate from the seed (D-26) | Prevented [unbuilt] |
+| Ignore the hull | Hull 0 loses the game (D-23) | Prevented [unbuilt] |
+| Dock-camp at Star Central | Docking needs a cleared sector; camping wins nothing, because winning means clearing the galaxy (D-23) | Prevented [unbuilt] |
 | Scan everything | `LRS_ENERGY` per scan; the scan is small next to `SHIP_MAX_ENERGY` | Weak |
 
 ## Strategy ↔ mechanic cross-check
 
-- **Mechanics no strategy uses:** ShieldReplenish (a stub, Q-6). The hull can't be repaired
-  (Q-7), so preserving it is purely defensive. Enemy advance barely matters with fewer
-  than 3 enemies (Q-13).
-- **Strategies that rely on missing rules:** "retreat to resupply" assumes a resupply that
-  matters (hull repair, Q-7). Every strategy assumes there is a goal to work toward (Q-1).
+- **Mechanics no strategy uses:** none known. Shield recharge (D-27) and hull repair
+  (D-7) feed "retreat to resupply"; per-enemy advance (D-10) lets small groups close in.
+- **Strategies that rely on missing rules:** none known. Running dry far from a starbase
+  loses the game (D-30), so "plan a return to a starbase" is enforced.
 
 ## Untapped
 

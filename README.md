@@ -44,12 +44,11 @@ Provide the full path to the venv python and the launcher
      ```
 
 2. **Start the Servers:**
-   - Run the following command in the root directory to start both the HTTP and MCP servers:
+   - Run the following command in the root directory:
      ```bash
      python starreach.py
      ```
-   - The HTTP server will be available at `http://localhost:8000`, and the MCP server at `http://localhost:8001`.
+   - One process serves both: MCP over stdio, with HTTP on `http://localhost:8000`
+     (`--stream` serves streamable-HTTP MCP at `http://localhost:8000/mcp` instead).
 
-3. **View the Game UI:**
-   - Open your web browser and navigate to `http://localhost:8000/static/index.html`.
-   - The game state will be displayed on the page.
+3. **View the Game UI:** not served yet (RATIONALE Q-8).
