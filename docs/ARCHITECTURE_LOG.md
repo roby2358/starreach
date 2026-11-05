@@ -3,6 +3,20 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-05 — Python server retired; balance harness ported to Rust
+A full game in Claude Desktop, played through the Node adapter over stdio, passed the
+play-test D-21 set as the gate. Deleted the Python server and its setup: `src/`,
+`starreach.py`, the requirements files, `pytest.ini`, `test/unit/`, the `Vagrantfile`, and
+the `cc-test` recipe. `tools/model_balance.py` became `core/examples/model_balance.rs`, which
+draws galaxies from seeds through the real generation and calls the core's own `fire_damage`,
+`blast_energy` and `blast_time`. The last two were split out of `blast` for this. The
+`cc-model-balance` recipe runs it and now requires the galaxy count. RATIONALE D-3, D-4, D-9
+and D-10 now cite it. The combat numbers are identical. The generation means match the Python's
+(mean 198 enemies against 199, about 3 starbases, 13% Star Central only, 40 enemy-free
+sectors); the enemy range is 123–281 against 140–265, from different samples.
+`public/instructions.txt` now tells the crew to start with `new_game` and pass `game_id`.
+CRITERIA Status no longer says the Python is behind the docs.
+
 ### 2026-11-05 — App layer and Node adapter built; the core runs as WASM
 Added `app/` (`@starreach/app`), which works on any platform:
 - `loadCore` wraps the wasm-bindgen output (`--target web`, so each platform hands in its

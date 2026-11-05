@@ -36,10 +36,6 @@ cc-test-app: cc-build-wasm
 cc-typecheck: cc-build-wasm
     npx tsc -p tsconfig.json
 
-# Run the Python server's test suite
-cc-test *args:
-    venv_linux/bin/python -m pytest {{args}}
-
 # Model generation and combat numbers cited as Evidence in docs/RATIONALE.md
-cc-model-balance galaxies="2000":
-    venv_linux/bin/python tools/model_balance.py {{galaxies}}
+cc-model-balance galaxies:
+    cargo run --quiet --release --manifest-path core/Cargo.toml --example model_balance -- {{galaxies}}

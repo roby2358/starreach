@@ -107,11 +107,21 @@ pub fn blast(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Re
     if range > BLAST_RANGE {
         return Err(format!("Enemy at {} is out of blast range ({range:.2} > {BLAST_RANGE})", format_yx(hit_yx)));
     }
-    let energy_cost = (BLAST_ENERGY_BASE * range.sqrt()) as i32;
+    let energy_cost = blast_energy(range);
     afford(game, energy_cost, "this blast")?;
-    let time = (BLAST_TIME_A + BLAST_TIME_B * range.sqrt()).trunc();
+    let time = blast_time(range);
     fire(game, hit_yx, energy_cost, time, events);
     Ok(Report::Shot { hit_yx, path, energy_cost, time })
+}
+
+/// Blast energy cost at a range: rises with its square root (D-9).
+pub fn blast_energy(range: f64) -> i32 {
+    (BLAST_ENERGY_BASE * range.sqrt()) as i32
+}
+
+/// Blast time at a range, in whole stardates.
+pub fn blast_time(range: f64) -> f64 {
+    (BLAST_TIME_A + BLAST_TIME_B * range.sqrt()).trunc()
 }
 
 pub fn torpedo(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {

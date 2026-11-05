@@ -82,5 +82,3 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
   - R-4: the StarbaseHail clause is tested under R-16, not R-4.
   - R-5: the `SUBWARP_MAX_STEPS` cap isn't tested, because no ray on a 10×10 board is longer
     than 9 steps.
-- **Python is behind the docs.** `src/` doesn't implement D-7's hull repair, D-9's blast
-  geometry, D-10, or D-23 – D-30. It stays until the new layers play end to end (D-21).

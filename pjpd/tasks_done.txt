@@ -40,6 +40,14 @@ Q-14 (docs/RATIONALE.md): Warping out of a sector with enemies never triggers an
 ----
 Priority:   60
 Status: Done
+ID: pythonretire-9m4x
+Created: 2026-11-05T02:05:04Z
+Updated: 2026-11-05T08:07:01Z
+
+Retire the Python server once the new layers play end to end (D-21). Gate: a play-test in Claude Desktop through the Node adapter (just cc-build-wasm, then the README config with adapters/node/src/main.ts stdio) passes. Delete: src/, starreach.py, requirements.txt, requirements-dev.txt, pytest.ini, test/unit/, Vagrantfile and starreach.iml if unused, the venv/ and venv_linux/ directories, the `cc-test` just recipe and its line in .claude/skills/starreach-recipes/SKILL.md, and the "old Python server" section of README.md. Decide on tools/model_balance.py: RATIONALE cites its output as Evidence, so port it to a Rust example in core/ (preferred, it would then use the real rules) or keep it as standalone Python with its own note. Also update public/instructions.txt to say "Start with new_game and pass its game_id to every tool" (the Python's create_game/session_id no longer matters then). Update CRITERIA Status (drop "Python is behind the docs"), ARCHITECTURE_LOG entry, and any doc that still mentions src/ or the Python server (grep for starreach.py, src/models, venv).
+----
+Priority:   60
+Status: Done
 ID: hullrepair-e76s
 Created: 2026-11-04T23:53:48Z
 Updated: 2026-11-05T01:44:39Z

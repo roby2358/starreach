@@ -1,6 +1,6 @@
 ---
 name: starreach-recipes
-description: Project-local just recipes for Starreach (build WASM, serve locally, run Rust/app/Python tests, model balance numbers). Use before running tests or regenerating RATIONALE evidence in this repo.
+description: Project-local just recipes for Starreach (build WASM, serve locally, run Rust/app tests, model balance numbers). Use before running tests or regenerating RATIONALE evidence in this repo.
 ---
 
 # Starreach recipes
@@ -17,8 +17,7 @@ Invoke these recipes; don't call the scripts directly.
 | `just cc-test-core [cargo test args]` | Runs the Rust core's rule tests (`core/tests/R-n/`) and the CRITERIA coverage test (e.g. `just cc-test-core --test rules r_9`) |
 | `just cc-test-app` | Runs the app tests (`app/test/**/*.test.ts`, Node's test runner) against the WASM core |
 | `just cc-typecheck` | Runs `tsc --noEmit` over `app/` and `adapters/node/` |
-| `just cc-test [pytest args]` | Runs the old Python server's pytest suite in `test/` with `venv_linux` |
-| `just cc-model-balance [galaxies]` | Prints the modeled generation and combat numbers cited as Evidence in `docs/RATIONALE.md` (default 2000 galaxies) |
+| `just cc-model-balance <galaxies>` | Runs `core/examples/model_balance.rs`: prints the modeled generation and combat numbers cited as Evidence in `docs/RATIONALE.md` (RATIONALE cites 2000 galaxies) |
 
 The TypeScript runs directly under Node 26 (type stripping), so it has no build step. Imports
 use `.ts` extensions.
@@ -26,5 +25,3 @@ use `.ts` extensions.
 A new core rule test goes in `core/tests/R-n/<what_it_checks>.rs` and gets a `#[path]` module
 line in `core/tests/rules.rs`. An app rule test goes in `app/test/R-n/<what>.test.ts`. Either
 way, its CRITERIA row becomes `automated`. The coverage test fails if any of these is missing.
-
-Setup: `python3 -m venv venv_linux && venv_linux/bin/pip install -r requirements-dev.txt`.

@@ -119,14 +119,14 @@ inferences, waiting for review.
 - **Alternatives:** uniform density; hand-placed enemies.
 - **Why:** Danger grows the farther you venture from home (escalating commitment). Stars
   give every board some cover.
-- **Evidence:** Modeled by: `python tools/model_balance.py` (2000 galaxies; unverified
-  in play): about 199 enemies per galaxy (range 140–265), about 40 of 100 sectors have no
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (unverified
+  in play): about 198 enemies per galaxy (range 123–281), about 40 of 100 sectors have no
   enemies. The negative part of `ENEMY_BASE_ROLL` is what produces those empty sectors.
 
 ### D-4 Starbases are rare — *Decided, tuned by none yet*
 - **Alternatives:** a fixed number of starbases; one per galaxy region.
 - **Why:** Resupply should be a destination (G-4).
-- **Evidence:** Modeled by: `python tools/model_balance.py` (unverified in play): about 3 starbases
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (unverified in play): about 3 starbases
   per galaxy including Star Central. In about 13% of galaxies Star Central is the only one.
 
 ### D-16 Fog of war over the galaxy — *Decided*
@@ -178,7 +178,7 @@ inferences, waiting for review.
   rises with √range, measured to the enemy it hits, not to the aimed cell (so aiming past
   a near enemy costs what hitting it costs). The torpedo is cheap in energy but scarce (`SHIP_MAX_QUANTORPEDOES`)
   and reaches anything on the ray.
-- **Evidence:** Modeled by: `python tools/model_balance.py` — a blast costs 1000 energy at range 1, 1414 at
+- **Evidence:** Modeled by: `just cc-model-balance 2000` — a blast costs 1000 energy at range 1, 1414 at
   range 2, and 2449 at range 6. That is roughly 20–50 blasts per full tank. Blast time is
   1 up to range 2 and 2 from range 3 to 6.
 
@@ -191,7 +191,7 @@ inferences, waiting for review.
   takes time brings the next enemy turn closer. Faster actions still buy more shots before
   the reply. A per-enemy roll lets small groups advance too. Damage falls off steeply with
   distance, so range is protection.
-- **Evidence:** Modeled by: `python tools/model_balance.py` — 2000 damage at range 1, 674 at 2, 356 at 3, 120
+- **Evidence:** Modeled by: `just cc-model-balance 2000` — 2000 damage at range 1, 674 at 2, 356 at 3, 120
   at 6. With 5000 shields plus hull, about 2.5 point-blank hits destroy the ship.
 
 ### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided*

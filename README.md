@@ -6,7 +6,7 @@ The game is in three layers (D-21):
 - `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
 - `adapters/node/`: runs the app on Node, over stdio or HTTP, with games kept in memory.
 
-A Cloudflare adapter comes next. The old Python server in `src/` stays until the new layers play end to end.
+A Cloudflare adapter comes next.
 
 ## Design docs
 
@@ -45,11 +45,5 @@ Build once with `just cc-build-wasm`, then point Claude Desktop at the Node adap
   }
 
 Start with the `new_game` tool and pass its `game_id` to every other tool. The `instructions` prompt sets the crew's voice.
-
-## The old Python server
-
-    python -m venv venv && venv/bin/pip install -r requirements.txt
-    python starreach.py            # MCP over stdio, with HTTP on localhost:8000
-    python starreach.py --stream   # streamable-HTTP MCP at localhost:8000/mcp
 
 The browser view isn't served yet (RATIONALE Q-8).
