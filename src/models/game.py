@@ -183,7 +183,7 @@ class Game:
         """
         Perform a long range scan of the 3x3 area around the current sector.
         Returns the scan result from Galaxy's long_range_scan method.
-        Energy cost: 100
+        Energy cost: 500
         """
         # Check if ship has enough energy
         if self.ship.energy < self._long_range_scan_energy_cost():

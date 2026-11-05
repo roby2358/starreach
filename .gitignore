@@ -2,3 +2,7 @@
 starreach.iml 
 /venv/
 /.vagrant/
+__pycache__/
+/venv_linux/
+.pytest_cache/
+/pjpd/bak/

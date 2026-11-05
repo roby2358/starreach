@@ -8,18 +8,17 @@ from starlette.applications import Starlette
 from src.models.game import Game, GameState
 import uvicorn
 import argparse
+import sys
 import threading
 from pathlib import Path
 from typing import Dict, Optional, List, Tuple
+from dataclasses import dataclass
 import uuid
-from datetime import datetime
 
 class GameSession:
     def __init__(self, session_id: str):
         self.session_id = session_id
         self.game = Game()
-        self.players = set()  # Track connected players
-        self.created_at = datetime.now()
 
 class GameManager:
     def __init__(self):
@@ -49,6 +48,15 @@ game_manager = GameManager()
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 PUBLIC_DIR = PROJECT_ROOT / 'public'
 
+@dataclass(frozen=True)
+class ServerOptions:
+    """Command-line options for running the server"""
+    stream: bool
+    host: str
+    port: int
+    log_level: str
+
+
 class StarreachServer:
     def __init__(self, mcp_instance: FastMCP):
         self.mcp = mcp_instance
@@ -74,7 +82,6 @@ class StarreachServer:
             """Start a new single-player game session and join it automatically"""
             session_id = self.game_manager.create_session()
             session = self.game_manager.get_session(session_id)
-            session.players.add(session_id)
             return {
                 "message": "Single player game started successfully",
                 "session_id": session_id,
@@ -223,32 +230,37 @@ class StarreachServer:
         return JSONResponse(session.game.state)
 
     @staticmethod
-    def _print_endpoints():
+    def _print_endpoints(options: ServerOptions):
         """Print available HTTP endpoints"""
-        print("HTTP endpoints available at: http://localhost:8000")
-        print("Health check: http://localhost:8000/health")
-        print("Config: http://localhost:8000/config")
-        print("State: http://localhost:8000/state")
+        base_url = f"http://localhost:{options.port}"
+        print(f"HTTP endpoints available at: {base_url}")
+        print(f"Health check: {base_url}/health")
+        print(f"Config: {base_url}/config")
+        print(f"State: {base_url}/state")
 
-    def run_http_server(self):
+    @staticmethod
+    def _serve(app, options: ServerOptions):
+        """Run an ASGI app with uvicorn on the configured host, port and log level"""
+        uvicorn.run(app, host=options.host, port=options.port, log_level=options.log_level)
+
+    def run_http_server(self, options: ServerOptions):
         """Run the HTTP server in the current thread"""
-        self._print_endpoints()
-        uvicorn.run(self.http_app, host="0.0.0.0", port=8000, log_level="info")
+        self._print_endpoints(options)
+        self._serve(self.http_app, options)
 
-    def start_http_server_thread(self):
+    def start_http_server_thread(self, options: ServerOptions):
         """Start the HTTP server in a background thread"""
-        self._print_endpoints()
-        self.http_thread = threading.Thread(target=self.run_http_server, daemon=True)
+        self.http_thread = threading.Thread(target=self.run_http_server, args=(options,), daemon=True)
         self.http_thread.start()
 
-    def run_streamable(self):
+    def run_streamable(self, options: ServerOptions):
         """Run the MCP server in streamable HTTP mode"""
         print("Starting MCP server in HTTP mode...")
         app = self.mcp.streamable_http_app()
-        
+
         for route in self.http_app.routes:
             app.router.routes.insert(0, route)
-        
+
         app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
@@ -256,33 +268,37 @@ class StarreachServer:
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        
-        uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
 
-    def run_stdio(self):
+        self._serve(app, options)
+
+    def run_stdio(self, options: ServerOptions):
         """Run the MCP server in stdio mode with HTTP endpoints"""
         print("Starting MCP server in stdio mode with HTTP endpoints...")
-        self.start_http_server_thread()
+        self.start_http_server_thread(options)
         self.mcp.run()
+
+
+def parse_options(argv: List[str]) -> ServerOptions:
+    """Parse command-line arguments into ServerOptions"""
+    parser = argparse.ArgumentParser(description='Run the Starreach MCP server')
+    parser.add_argument('--stream', action='store_true', help='Run in streamable HTTP mode instead of stdio')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind the server to')
+    parser.add_argument('--port', type=int, default=8000, help='Port to bind the server to')
+    parser.add_argument('--log-level', default='info', choices=['debug', 'info', 'warning', 'error'], help='Logging level')
+    args = parser.parse_args(argv)
+    return ServerOptions(stream=args.stream, host=args.host, port=args.port, log_level=args.log_level)
 
 # Create the MCP server using the OFFICIAL SDK
 # Remove stateless_http=True to enable session-based communication
 mcp = FastMCP("Starreach")
 
 def run_app():
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Run the Starreach MCP server')
-    parser.add_argument('--stream', action='store_true', help='Run in streamable HTTP mode instead of stdio')
-    parser.add_argument('--host', default='0.0.0.0', help='Host to bind the server to')
-    parser.add_argument('--port', type=int, default=8000, help='Port to bind the server to')
-    parser.add_argument('--log-level', default='info', choices=['debug', 'info', 'warning', 'error'], help='Logging level')
-    args = parser.parse_args()
-
+    options = parse_options(sys.argv[1:])
     server = StarreachServer(mcp)
-    if args.stream:
-        server.run_streamable()
+    if options.stream:
+        server.run_streamable(options)
     else:
-        server.run_stdio()
+        server.run_stdio(options)
 
 if __name__ == "__main__":
     run_app()
