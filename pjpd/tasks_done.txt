@@ -1,0 +1,7 @@
+Priority:   25
+Status: Done
+ID: deadcode-gn5w
+Created: 2026-11-04T23:54:17Z
+Updated: 2026-11-05T00:01:34Z
+
+Code cleanup with no design impact: (1) Delete src/server/mcp_connector.py — it imports the 'fastmcp' package (not in requirements.txt), uses a nonexistent mcp.route API, and nothing imports it. (2) In src/server/app.py run_app, the --host, --port and --log-level CLI args are parsed but ignored (uvicorn is hard-coded to 0.0.0.0:8000, log_level 'info'); wire them through to run_streamable/run_http_server or remove them. (3) Fix the stale Game.long_range_scan docstring (says energy cost 100; actual is 500). (4) Remove unused GameSession.created_at / players if multiplayer stays set aside, or leave with a comment. Add an ARCHITECTURE_LOG entry if anything structural changes.

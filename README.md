@@ -1,11 +1,14 @@
 This game takes the form of a web server that supports both an HTTP API using Starlette as well as an Model Context Protocol (MCP) API using FastMCP. A browser UI built on HTML, css, and jquery provides a view into the state of the game, while the MCP API allows a Large Language Model (LLM) to interact with the game to retrive state and take actions. The intent is the player interacts with the came through the LLM rather than through the web UI.
 
-## Game Mechanics
+## Design docs
 
-The game is a galaxy search and battle game. The Universe is divided into 10x10 sectors, each represented by a 10x10 grid. The player controls a ship that can warp between sectors and use impulse to move within a sector. Each sector contains 0-7 stars, which are intraversable; navigating into a star ends the player's game. The player begins their journey at Star Central, located at point [4,4:5,5].
+The game design lives in `docs/`:
 
-Rev 1
-Displaying the current sector and surrounding sector, and providing the initial connection through the MCP server is all we need.
+- `docs/ONTOLOGY.md`: what exists, the rules, the numbers, and the MCP/HTTP interface (the implementation reference)
+- `docs/CRITERIA.md`: how each rule is checked
+- `docs/RATIONALE.md`: why each choice was made, and open questions
+- `docs/DYNAMICS.md`: why it's fun
+- `docs/ARCHITECTURE_LOG.md`: dated history of design changes
 
 ## Run in Claude Desktop
 

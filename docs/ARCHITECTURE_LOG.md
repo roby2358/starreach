@@ -1,0 +1,58 @@
+# Starreach — Architecture Log
+
+Dated entries, newest first. This is the only doc that records what changed and what it
+replaced.
+
+### 2026-11-05 — Server cleanup: dead connector, CLI options, unused session fields
+Deleted `src/server/mcp_connector.py` (it used the unlisted `fastmcp` package and nothing
+imported it). `--host`, `--port` and `--log-level` now reach uvicorn through a
+`ServerOptions` value; before this they were parsed and ignored, with the server fixed at
+`0.0.0.0:8000`. Removed Session `players` and `created_at`, which nothing read (D-18 still
+sets multiplayer aside). Pinned `mcp < 2`, because mcp 2.x renamed FastMCP and breaks the
+server import. Added the pytest setup (`pytest.ini`, `requirements-dev.txt`, `test/unit/`)
+and `just` recipes. No design IDs changed.
+
+### 2026-11-04 — Ontology doc set created from the code and README
+Added `docs/ONTOLOGY.md`, `CRITERIA.md`, `RATIONALE.md`, `DYNAMICS.md`, this log, and
+`tools/model_balance.py` (the harness behind the modeled Evidence). The README's game-mechanics
+paragraph and "Rev 1" note are replaced by a pointer to these docs. The code was treated as
+the truth. Where the README or the code's own comments disagreed with it:
+
+- README: stars per sector "0–7". Code: `STARS_PER_SECTOR` 2–8. → Q-9
+- README: start at "[4,4:5,5]". Code: `GALAXY_CENTER` (4,4). → Q-9
+- README: navigating into a star ends the game. Code: the ship stops before the star. → Q-4
+- README: MCP server on port 8001 and UI at `/static/index.html`. Code: one server on
+  `HTTP_PORT` (or stdio), and no static route. → Q-8, Q-9
+- README: the browser "provides a view into the state of the game". Code: `/state` shows a
+  separate `"default"` session. → Q-8
+- `index.html` links `styles.css` and `script.js` at the root. The files are in `css/` and `js/`. → Q-8
+- `Game.long_range_scan` docstring: energy cost 100. Code: `LRS_ENERGY` 500. (The docstring is stale.)
+- `ActiveSector.blast` comment: time 3 at range 6. Code gives 2. → Q-11
+- The 0acd0bd commit message ("it still doesn't work") matches the event-clock gap. → Q-2
+- `ShieldReplenish` is a stub with no effect. → Q-6
+- `src/server/mcp_connector.py` imports `fastmcp` (not in requirements) and is never used.
+  The `--host`, `--port` and `--log-level` arguments are parsed but ignored. (Tickets, not design.)
+
+Earlier history, reconstructed from `git log`:
+
+### 2025-07-02 — Galaxy generation reworked
+Enemy count scales with distance from `GALAXY_CENTER`. Event helpers became static methods.
+
+### 2025-06-23/24 — Enemies move and fire; stardate events
+EnemiesTurn added EnemyFire and EnemyAdvance. The stardate event clock was introduced and
+reworked; the author noted it didn't yet work as intended.
+
+### 2025-06-22 — Stardate, warp events, energy limits
+Stardate added. Warp events (StarbaseHail) and stardate events (ShieldReplenish,
+EnemiesTurn) added. Movement range limits and energy costs added for blasts and torpedoes.
+
+### 2025-06-18/20 — Galaxy, warp, scan, dock, weapons
+Galaxy map and long-range scan; warp between sectors; energy costs for movement and scans;
+docking; blaston beams; quantorpedoes.
+
+### 2025-06-15/17 — Game core and sessions
+Game, GameState and the state tool; the active sector; subwarp; (y, x) coordinates;
+instructions became an MCP prompt; session support. Multiplayer set aside (D-18).
+
+### 2025-05-22 – 2025-06-14 — MCP server
+FastMCP server working with the MCP Inspector; stdio mode for Claude Desktop.
