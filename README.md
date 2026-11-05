@@ -1,4 +1,12 @@
-This game takes the form of a web server that supports both an HTTP API using Starlette as well as an Model Context Protocol (MCP) API using FastMCP. A browser UI built on HTML, css, and jquery provides a view into the state of the game, while the MCP API allows a Large Language Model (LLM) to interact with the game to retrive state and take actions. The intent is the player interacts with the came through the LLM rather than through the web UI.
+Starreach is a galaxy search-and-battle game you play by talking to an LLM. The LLM plays the ship's crew and acts on the game through MCP tools.
+
+The game is in three layers (D-21):
+
+- `core/`: the rules, in Rust compiled to WASM.
+- `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
+- `adapters/node/`: runs the app on Node, over stdio or HTTP, with games kept in memory.
+
+A Cloudflare adapter comes next. The old Python server in `src/` stays until the new layers play end to end.
 
 ## Design docs
 
@@ -11,44 +19,37 @@ The game design lives in `docs/`:
 - `docs/ARCHITECTURE_LOG.md`: dated history of design changes
 - `YUWAKISA.md`: recommendation for deploying on yuwakisacloud (D-20)
 
+## Setup
+
+Needs Rust (stable), Node 26 and `just`. Then run:
+
+    just setup        # wasm32 target, wasm-bindgen CLI, npm install
+    just cc-test-all  # Rust rule tests, app tests, typecheck
+
+## Run
+
+    just serve        # MCP at http://127.0.0.1:8000/mcp, health at /health
+    just stdio        # MCP over stdio
+
+Both recipes build the WASM core first.
+
 ## Run in Claude Desktop
 
-Provide the full path to the venv python and the launcher
+Build once with `just cc-build-wasm`, then point Claude Desktop at the Node adapter:
 
   "mcpServers": {
     "starreach": {
-      "command": "C:/work/starreach/venv/Scripts/python.exe",
-      "args": ["C:/work/starreach/starreach.py"]
+      "command": "node",
+      "args": ["/work/starreach/adapters/node/src/main.ts", "stdio"]
     }
   }
 
-## How to Launch and View the Game
+Start with the `new_game` tool and pass its `game_id` to every other tool. The `instructions` prompt sets the crew's voice.
 
-1. **Set Up the Environment:**
-   - Create a virtual environment:
-     ```bash
-     python -m venv venv
-     ```
-   - Activate the virtual environment:
-     - On Windows:
-       ```bash
-       venv\Scripts\activate
-       ```
-     - On macOS/Linux:
-       ```bash
-       source venv/bin/activate
-       ```
-   - Install the dependencies:
-     ```bash
-     pip install -r requirements.txt
-     ```
+## The old Python server
 
-2. **Start the Servers:**
-   - Run the following command in the root directory:
-     ```bash
-     python starreach.py
-     ```
-   - One process serves both: MCP over stdio, with HTTP on `http://localhost:8000`
-     (`--stream` serves streamable-HTTP MCP at `http://localhost:8000/mcp` instead).
+    python -m venv venv && venv/bin/pip install -r requirements.txt
+    python starreach.py            # MCP over stdio, with HTTP on localhost:8000
+    python starreach.py --stream   # streamable-HTTP MCP at localhost:8000/mcp
 
-3. **View the Game UI:** not served yet (RATIONALE Q-8).
+The browser view isn't served yet (RATIONALE Q-8).

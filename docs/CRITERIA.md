@@ -36,7 +36,7 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 | R-15 | ShieldReplenish fires | Shields rise by `min(SHIELD_REPLENISH, max_shields − shields, energy ÷ SHIELD_ENERGY_PER_POINT)` and energy drops by that amount × `SHIELD_ENERGY_PER_POINT`. It doesn't fire at full shields or with energy below `SHIELD_ENERGY_PER_POINT` | automated |
 | R-16 | Warp into a sector with a starbase | One hail message: "all clear" iff `enemies == 0`, otherwise "under attack" | automated |
 | R-17 | Stardate display | `int(stardate)`, zero-padded and truncated to 8 digits, shown as `99-9999-99` | automated |
-| R-18 | MCP tools across games | An unknown `game_id` returns `ok: false`, error "Game not found". A command on game A leaves game B unchanged | not yet covered |
+| R-18 | MCP tools across games | An unknown `game_id` returns `ok: false`, error "Game not found". A command on game A leaves game B unchanged | automated |
 | R-19 | Any sequence of commands | ONTOLOGY's invariants hold after every command (one `S`; `enemies_yx` matches `E` cells and the galaxy record; resource bounds including energy ≥ 0; stardate never decreases; visibility never reverts; status leaves `playing` at most once) | automated |
 | R-20 | The same seed and the same commands | The same final GameState | automated |
 | R-21 | The browser while an LLM plays | The page's state source returns the game the LLM is playing | not yet covered |
@@ -74,15 +74,13 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 
 - **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26.
   The coverage test runs with them.
-- **Not yet covered:** R-18 (game isolation through the MCP tools) waits for the app layer.
-  R-21 waits for the browser view (Q-8).
+- **Automated in the app layer** (`just cc-test-app`): R-18, and R-25's not-found result.
+- **Not yet covered:** R-21 waits for the browser view (Q-8).
 - **Manual only:** U-1 – U-7. U-1 and U-2 are blocked until the page is served (Q-8).
 - **X-1 – X-5** need play sessions on the new layers.
 - **Partial coverage:**
   - R-4: the StarbaseHail clause is tested under R-16, not R-4.
   - R-5: the `SUBWARP_MAX_STEPS` cap isn't tested, because no ray on a 10×10 board is longer
     than 9 steps.
-  - R-25: covers the core's results only. The app layer's "Game not found" result comes
-    with R-18.
 - **Python is behind the docs.** `src/` doesn't implement D-7's hull repair, D-9's blast
   geometry, D-10, or D-23 – D-30. It stays until the new layers play end to end (D-21).

@@ -3,6 +3,33 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-05 — App layer and Node adapter built; the core runs as WASM
+Added `app/` (`@starreach/app`), which works on any platform:
+- `loadCore` wraps the wasm-bindgen output (`--target web`, so each platform hands in its
+  own `WebAssembly.Module`).
+- The GameStore interface comes with a `MemoryStore`.
+- Game lookup stores a game only when a command is accepted.
+- The MCP tools come from one table of commands, plus `new_game` and the `instructions`
+  prompt.
+- `handleHttp` serves `/mcp` and `/health` as a single fetch handler. MCP over HTTP is
+  stateless, using the SDK's web-standard transport ([P]).
+
+Added `adapters/node/`, which serves `stdio` or `http --host --port` through
+`@hono/node-server` and logs to stderr, so stdout carries only MCP. The TypeScript runs
+under Node 26's type stripping, with no build step. `tsc` typechecks only. New just recipes:
+`setup`, `serve`, `stdio`, `cc-build-wasm`, `cc-test-app`, `cc-typecheck`, `cc-test-all`. The
+generated `app/src/wasm/` is gitignored.
+
+Docs:
+- ONTOLOGY: GameStore, Game lookup, the MCP tools, HTTP and the app contract are [D]. The
+  Cloudflare adapter stays [D, unbuilt]. Two additions: other paths return 404, and tool
+  arguments that don't fit the schema come back as MCP tool errors without reaching the
+  game ([P]).
+- CRITERIA: R-18 is `automated` in `app/test/R-18/`. `app/test/R-25/` covers the not-found
+  result, which closes R-25's partial coverage.
+- RATIONALE: D-22 is built.
+- README: the launch steps now describe the new layers.
+
 ### 2026-11-05 — Rust core built: every rule, seeded, with tests per R-row
 Added `core/`, a Rust crate with `new_game(seed)` and `apply(game, command)`, plus JSON
 versions of both for the WASM boundary. It implements every rule in ONTOLOGY, including

@@ -12,6 +12,8 @@ pub mod game;
 pub mod geometry;
 pub mod rng;
 pub mod sector;
+#[cfg(target_arch = "wasm32")]
+mod wasm;
 
 use serde::{Deserialize, Serialize};
 

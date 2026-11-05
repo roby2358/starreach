@@ -6,3 +6,5 @@ __pycache__/
 /venv_linux/
 .pytest_cache/
 /pjpd/bak/
+node_modules/
+/app/src/wasm/

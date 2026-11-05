@@ -50,7 +50,7 @@ inferences, waiting for review.
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 
-### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core built, app and adapters unbuilt*
+### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter unbuilt*
 - **Choice:** `core/` is the Rust crate (rules only, compiled to WASM). `app/` is a
   TypeScript package with no platform imports: it defines the MCP tools and the
   `instructions` prompt, loads the core, and talks to storage through a `GameStore`
@@ -66,7 +66,7 @@ inferences, waiting for review.
   adapter keeps Claude Desktop (stdio) working without Cloudflare tooling.
 - **Evidence:** none yet.
 
-### D-22 Games are addressed by an explicit `game_id` — *Decided, unbuilt*
+### D-22 Games are addressed by an explicit `game_id` — *Decided*
 - **Alternatives:** bind the game to the MCP connection (a reconnect loses the game unless
   auth ties it to a user).
 - **Why:** G-1: the LLM holds the id and can resume. It maps directly onto one Durable

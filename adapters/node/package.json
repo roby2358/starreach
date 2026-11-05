@@ -1,0 +1,12 @@
+{
+  "name": "@starreach/node",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Starreach on Node: MCP over stdio or streamable HTTP, games in memory (D-21)",
+  "type": "module",
+  "dependencies": {
+    "@hono/node-server": "^2.1.6",
+    "@starreach/app": "0.1.0"
+  }
+}

@@ -155,7 +155,7 @@ and **EnemiesTurn** (stardate events, in that order). EnemiesTurn is made up of
 per-enemy **EnemyFire** and **EnemyAdvance**.
 
 ### GameStore
-*Serves: G-1.* [D, unbuilt] Where the app layer keeps games between commands. The core
+*Serves: G-1.* [D] Where the app layer keeps games between commands. The core
 never sees it.
 
 | Field | Type | Notes |
@@ -164,7 +164,7 @@ never sees it.
 | `game` | Game | Stored as the core returned it |
 
 The Node adapter keeps games in process memory. The Cloudflare adapter keeps one Durable
-Object per `game_id`.
+Object per `game_id`. [D, unbuilt]
 
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
@@ -382,12 +382,12 @@ message: "all clear, approach for docking" if no enemies else "under attack, nee
 s = int(stardate) zero-padded to 8 digits, first 8 kept;  shown as s[0:2]-s[2:6]-s[6:8]
 ```
 
-### Game lookup — *Serves: G-1* [D, unbuilt]
+### Game lookup — *Serves: G-1* [D]
 In the app layer.
 ```
 new_game: seed = random u32;  game_id = random id;  store new_game(seed) under game_id
 any other tool: load game_id, else error "Game not found"
-apply the command;  store the returned game;  return the result
+apply the command;  if ok: store the returned game;  return the result
 ```
 
 ---
@@ -444,7 +444,7 @@ Referred to by name everywhere else.
 
 ## 8. Interface
 
-### Core API (Rust → WASM) [D]; the WASM build [D, unbuilt]
+### Core API (Rust → WASM) [D]
 Two JSON functions. The core holds no state between calls.
 
 | Function | Input | Output |
@@ -478,7 +478,7 @@ ship_max_shields, ship_energy, ship_max_energy, ship_quantorpedoes,
 ship_max_quantorpedoes, starbase_yx, enemies_yx, star_count, base_count, enemy_count,
 map: string[10], stardate: "99-9999-99"`.
 
-### MCP tools (app layer) [D, unbuilt]
+### MCP tools (app layer) [D]
 One tool per core command, each taking `game_id` plus the command's args, and returning
 the core Result. Plus:
 
@@ -488,15 +488,22 @@ the core Result. Plus:
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM |
 
 An unknown `game_id` returns `{ok: false, error: "Game not found", …}` with `state` null.
+Arguments that don't fit a tool's schema, such as a missing `game_id` or a coordinate that
+isn't an integer, are rejected by MCP as a tool error and never reach the game. An integer
+coordinate outside `0..9` does reach the core, which refuses it with a Result. [P]
 
-### HTTP (adapters) [D, unbuilt]
+### HTTP (adapters) [D]
 
 | Route | Returns |
 |---|---|
 | `POST /mcp` | Streamable-HTTP MCP |
 | `GET /health` | `{status: "ok"}` |
+| any other path | 404 |
 
-The Node adapter also serves MCP over stdio.
+The app layer serves these routes as one fetch handler. MCP over HTTP is stateless: each
+request gets a fresh MCP server, and games live in the GameStore. [P] The Node adapter serves
+either MCP over stdio or these routes. The Cloudflare adapter serves the routes.
+[D, unbuilt]
 
 ### Events (messages)
 Each event is a string in the `events` list of a Result. Only the game's caller sees it. [D]
@@ -504,14 +511,14 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Event | Messages |
 |---|---|
 | StarbaseHail | `Starbase communication: all clear, approach for docking` · `… under attack, needs assistance` |
-| ShieldReplenish | `Shields recharged by n using n energy` [D] |
+| ShieldReplenish | `Shields recharged by n using n energy` |
 | EnemyFire | `Enemy at (y, x) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
 | EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
-| Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` [D] |
-| Emergency energy | `Starbase transfers emergency energy: n` [D] |
+| Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` |
+| Emergency energy | `Starbase transfers emergency energy: n` |
 
 ### Client contract
 - **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`. [D]
 - **Browser:** polls a GameState every `UI_POLL_MS` and renders `map`, `ship_yx` and hull.
   It never changes state. [D, unbuilt]
-- **App layer:** stores and forwards Games; it never reads or edits a Game's fields. [D, unbuilt]
+- **App layer:** stores and forwards Games; it never reads or edits a Game's fields. [D]

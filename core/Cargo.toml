@@ -20,3 +20,6 @@ path = "tests/rules.rs"
 [[test]]
 name = "coverage"
 path = "tests/coverage.rs"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "=0.2.130"

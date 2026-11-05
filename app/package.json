@@ -1,0 +1,16 @@
+{
+  "name": "@starreach/app",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Platform-neutral Starreach app layer: MCP tools over the WASM core and a GameStore (D-21)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./wasm": "./src/wasm/starreach_core_bg.wasm"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
+  }
+}
