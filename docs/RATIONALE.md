@@ -50,7 +50,7 @@ inferences, waiting for review.
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 
-### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided, unbuilt*
+### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core built, app and adapters unbuilt*
 - **Choice:** `core/` is the Rust crate (rules only, compiled to WASM). `app/` is a
   TypeScript package with no platform imports: it defines the MCP tools and the
   `instructions` prompt, loads the core, and talks to storage through a `GameStore`
@@ -73,14 +73,14 @@ inferences, waiting for review.
   Object per game, and it works before auth exists. Once auth exists, the store also
   records the owner's `sub` (D-20).
 
-### D-28 All randomness comes from a seed stored in the game; constants are named — *Decided, unbuilt*
+### D-28 All randomness comes from a seed stored in the game; constants are named — *Decided*
 - **Alternatives:** a global, unseeded RNG; tests that build boards by hand only.
 - **Why:** The core is a pure function of `(game, command)`, so every random draw has to
   come from state carried in the game. This makes R-20 (determinism) testable and lets
   sector layouts persist (D-26). Constants live in one Rust module under the names in
   ONTOLOGY's Numbers table.
 
-### D-29 Every command returns one result shape — *Decided, unbuilt*
+### D-29 Every command returns one result shape — *Decided*
 - **Alternatives:** per-command shapes (`distance: 0`, `success: false`, a bare `error`, a
   scan failure without `state`).
 - **Why:** The LLM and the app layer handle one shape: `{ok, error, events, report,
@@ -161,7 +161,7 @@ inferences, waiting for review.
 - **Why:** In combat you can't simply fly away from enemies within a sector, so each move
   is a tactical step (F-danger).
 
-### D-7 Docking fully resupplies and repairs, but needs a clear sector and an adjacent starbase — *Decided, unbuilt (hull repair)*
+### D-7 Docking fully resupplies and repairs, but needs a clear sector and an adjacent starbase — *Decided*
 - **Alternatives:** partial resupply over time; docking under fire; no hull repair.
 - **Why:** The starbase sector must be cleared first. Docking is the reward. It restores
   the hull too, because otherwise hull damage is a countdown with no counterplay, and
@@ -172,7 +172,7 @@ inferences, waiting for review.
 - **Why:** Information as currency (F-discovery). `LRS_ENERGY` is small next to
   `SHIP_MAX_ENERGY`, so the price is mild.
 
-### D-9 Two weapons: blast (ranged, energy) and torpedo (unlimited range, limited ammo) — *Decided; blast geometry unbuilt*
+### D-9 Two weapons: blast (ranged, energy) and torpedo (unlimited range, limited ammo) — *Decided*
 - **Alternatives:** a single weapon.
 - **Why:** A real choice between them. The blast is limited by `BLAST_RANGE` and its cost
   rises with √range, measured to the enemy it hits, not to the aimed cell (so aiming past
@@ -182,7 +182,7 @@ inferences, waiting for review.
   range 2, and 2449 at range 6. That is roughly 20–50 blasts per full tank. Blast time is
   1 up to range 2 and 2 from range 3 to 6.
 
-### D-10 Enemies act on an accumulating stardate clock; each enemy advances with probability `ENEMY_ADVANCE_FRACTION`, else fires — *Decided, unbuilt, tuned by none yet*
+### D-10 Enemies act on an accumulating stardate clock; each enemy advances with probability `ENEMY_ADVANCE_FRACTION`, else fires — *Decided, tuned by none yet*
 - **Alternatives:** a clock that resets after every action (then no single action but a
   3-step subwarp ever fills it, so shots never draw a reply); enemies act after every
   action; lowering `EVENT_INTERVAL`; a fixed split of `int(n × ENEMY_ADVANCE_FRACTION)`
@@ -194,13 +194,13 @@ inferences, waiting for review.
 - **Evidence:** Modeled by: `python tools/model_balance.py` — 2000 damage at range 1, 674 at 2, 356 at 3, 120
   at 6. With 5000 shields plus hull, about 2.5 point-blank hits destroy the ship.
 
-### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided, unbuilt*
+### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided*
 - **Alternatives:** a stardate deadline; open-ended play.
 - **Why:** G-2 and F-danger need stakes. After the end, actions are refused and queries
   still work, so the LLM can narrate the final state. A deadline can be added later if
   pacing needs it.
 
-### D-30 A stranded ship loses, unless a starbase is in its sector, which transfers emergency energy instead — *Decided, unbuilt; the stranded test and amount are Proposed*
+### D-30 A stranded ship loses, unless a starbase is in its sector, which transfers emergency energy instead — *Decided; the stranded test and amount are Proposed*
 - **Alternatives:** an emergency tow home at a cost; accept a game that neither ends nor
   continues; losing even beside a starbase.
 - **Why:** With no overdraft (D-24), running dry far from a starbase would otherwise leave
@@ -215,18 +215,18 @@ inferences, waiting for review.
   with no other starbase visible, the floor reapplies after each action; Star Central never
   has enemies, so docking is always available there anyway.
 
-### D-24 An action you can't afford is refused — *Decided, unbuilt*
+### D-24 An action you can't afford is refused — *Decided*
 - **Alternatives:** overdraft that damages the hull; clamping energy at 0 so the last shot
   is free.
 - **Why:** G-4: every action is paid for. One rule for every action, as the scan already
   did. Energy never goes below 0.
 
-### D-25 Enemies get a turn before you warp out — *Decided, unbuilt*
+### D-25 Enemies get a turn before you warp out — *Decided*
 - **Alternatives:** warp is blocked while enemies are present; free escape.
 - **Why:** Leaving a fight should cost something, without trapping the player (F-danger,
   Scarcity of Agency). Escape stays possible but risky.
 
-### D-26 Sector layouts regenerate from the seed — *Decided, unbuilt*
+### D-26 Sector layouts regenerate from the seed — *Decided*
 - **Alternatives:** store every layout once seen; re-roll on every visit.
 - **Why:** Leaving and returning shouldn't re-roll the board (map memory, F-discovery).
   Deriving the layout from `(seed, sector)` keeps the game value small. Stars and the
@@ -234,7 +234,7 @@ inferences, waiting for review.
   moved return to their original cells; the ship's arrival cell can shift with the enemy
   count.
 
-### D-27 Shields recharge from energy — *Decided, unbuilt, tuned by none yet*
+### D-27 Shields recharge from energy — *Decided, tuned by none yet*
 - **Alternatives:** restore a fixed amount for free.
 - **Why:** It ties shields to the energy economy (G-4): fighting drains the tank twice.
   `SHIELD_REPLENISH` and `SHIELD_ENERGY_PER_POINT` are starting values.

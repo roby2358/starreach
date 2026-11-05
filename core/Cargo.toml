@@ -1,0 +1,21 @@
+[package]
+name = "starreach-core"
+version = "0.1.0"
+edition = "2021"
+description = "Starreach game rules: a pure function from (game, command) to (game, result). See docs/ONTOLOGY.md."
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[test]]
+name = "rules"
+path = "tests/rules.rs"
+
+[[test]]
+name = "coverage"
+path = "tests/coverage.rs"

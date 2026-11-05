@@ -3,6 +3,21 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-05 — Rust core built: every rule, seeded, with tests per R-row
+Added `core/`, a Rust crate with `new_game(seed)` and `apply(game, command)`, plus JSON
+versions of both for the WASM boundary. It implements every rule in ONTOLOGY, including
+D-7 hull repair, D-9 blast geometry, D-10, and D-23 – D-30. The rules, invariants and Core
+API are now tagged [D]. Still [D, unbuilt]: the WASM build, the app layer (GameStore, game
+lookup, MCP tools), the HTTP adapters and the browser. The RNG is SplitMix64, and its state
+travels as a string. Sector placement now draws among the empty cells, which always
+succeeds, instead of trying up to `PLACEMENT_ATTEMPTS` random cells. The constant is
+removed, and the [P] tag marks the change. CRITERIA: R-1 – R-17, R-19, R-20 and R-22 – R-26
+are `automated` in `core/tests/R-n/`, with the coverage test in `core/tests/coverage.rs`
+(`just cc-test-core`). R-9 is reworded: the hit enemy is never farther than the target cell,
+so the old "target cell is closer" case couldn't happen. R-25 is reworded: `report` is null
+when refused (the `state` query has a null report too). DYNAMICS anti-strategies are now
+"Prevented". pjpd closed the eleven rule tickets.
+
 ### 2026-11-05 — ONTOLOGY and the Python code reconciled: tags corrected
 I checked each [D] claim in ONTOLOGY against the Python code. Some were decided but not
 built, and are now tagged [D, unbuilt]: integer hull and shields, rounded enemy damage,

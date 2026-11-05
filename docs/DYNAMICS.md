@@ -30,7 +30,7 @@ where you come back to resupply.
 |---|---|---|
 | Readable Consequences | Every action returns its events as messages, and the LLM narrates them in naval voice | [D] built |
 | Information as Currency | Sectors stay hidden until you scan (`LRS_ENERGY`) or warp in | [D] built |
-| Scarcity of Agency | With enemies present, subwarp is capped at `SUBWARP_MAX_STEPS_HOSTILE`, and enemies answer as stardates add up | [D, unbuilt] (the accumulating clock, D-10) |
+| Scarcity of Agency | With enemies present, subwarp is capped at `SUBWARP_MAX_STEPS_HOSTILE`, and enemies answer as stardates add up | [D] built in the Rust core |
 
 ## Secondary mechanics and what they feed
 
@@ -77,13 +77,13 @@ and retreat to resupply.
 
 | Anti-strategy | Mechanical prevention | Status |
 |---|---|---|
-| Stand still and shoot. Enemies never respond to blasts or torpedoes | The enemy clock accumulates (D-10), so shots bring the next enemy turn closer | Prevented [unbuilt] |
-| Move 1–2 cells at a time so the enemy clock never fills | Same: time adds up across actions (D-10) | Prevented [unbuilt] |
-| Fire the last shot with no energy | An action you can't afford is refused (D-24) | Prevented [unbuilt] |
-| Warp out of any losing fight | Enemies get a turn before the warp (D-25) | Prevented [unbuilt]; escape is costly, not blocked |
-| Warp out and back to re-roll a bad board | Sector layouts regenerate from the seed (D-26) | Prevented [unbuilt] |
-| Ignore the hull | Hull 0 loses the game (D-23) | Prevented [unbuilt] |
-| Dock-camp at Star Central | Docking needs a cleared sector; camping wins nothing, because winning means clearing the galaxy (D-23) | Prevented [unbuilt] |
+| Stand still and shoot. Enemies never respond to blasts or torpedoes | The enemy clock accumulates (D-10), so shots bring the next enemy turn closer | Prevented |
+| Move 1–2 cells at a time so the enemy clock never fills | Same: time adds up across actions (D-10) | Prevented |
+| Fire the last shot with no energy | An action you can't afford is refused (D-24) | Prevented |
+| Warp out of any losing fight | Enemies get a turn before the warp (D-25) | Prevented; escape is costly, not blocked |
+| Warp out and back to re-roll a bad board | Sector layouts regenerate from the seed (D-26) | Prevented |
+| Ignore the hull | Hull 0 loses the game (D-23) | Prevented |
+| Dock-camp at Star Central | Docking needs a cleared sector; camping wins nothing, because winning means clearing the galaxy (D-23) | Prevented |
 | Scan everything | `LRS_ENERGY` per scan; the scan is small next to `SHIP_MAX_ENERGY` | Weak |
 
 ## Strategy ↔ mechanic cross-check

@@ -1,35 +1,3 @@
-Priority:   90
-Status: ToDo
-ID: enemyclock-nk4r
-Created: 2026-11-04T23:53:35Z
-Updated: 2026-11-04T23:53:35Z
-
-Q-2 (docs/RATIONALE.md): Enemies almost never act. Game._stardate_events fires only when an action advanced the stardate by >= EVENT_INTERVAL (3), and every action resets last_action_stardate, so only a 3-step subwarp triggers EnemiesTurn; blast (time <=2), torpedo (1), scan (0) never draw return fire. RECOMMENDATION: accumulate time since the last enemy turn — only reset last_action_stardate when stardate events actually fire. Keeps the 'faster actions buy more shots' design. Update ONTOLOGY 'Stardate events' rule, CRITERIA R-11, log entry; settles Q-2 as a new D-n.
-----
-Priority:   85
-Status: ToDo
-ID: gameend-gtqy
-Created: 2026-11-04T23:53:38Z
-Updated: 2026-11-04T23:53:38Z
-
-Q-1 (docs/RATIONALE.md): There is no win or loss condition — hull reaching 0 has no effect and destroying every enemy doesn't win. RECOMMENDATION: hull 0 = loss, all enemies in the galaxy destroyed = win; add a game-over/outcome field to Game and GameState, and make commands illegal once the game is over. A stardate deadline can be considered later if pacing needs it. Update ONTOLOGY (Game entity, rules, interface), add CRITERIA R-rows, enables X-4.
-----
-Priority:   80
-Status: ToDo
-ID: seededrng-vbjn
-Created: 2026-11-04T23:53:40Z
-Updated: 2026-11-04T23:53:40Z
-
-Q-10 (docs/RATIONALE.md): All randomness uses the global random module and most numbers are inline literals, so nothing is reproducible or testable deterministically. RECOMMENDATION: Game(seed) owns a random.Random passed to Galaxy/ActiveSector/events; lift every constant into src/models/constants.py using the names in ONTOLOGY's Numbers table (GALAXY_CENTER, EVENT_INTERVAL, BLAST_RANGE, ...). Unblocks CRITERIA R-20 and deterministic tests for all R-rows.
-----
-Priority:   75
-Status: ToDo
-ID: energyfloor-ynw2
-Created: 2026-11-04T23:53:42Z
-Updated: 2026-11-04T23:53:42Z
-
-Q-3 (docs/RATIONALE.md): Warp and subwarp have no energy check and drive ship energy negative; blast and torpedo still succeed when unaffordable and clamp energy to 0 (a free last shot). RECOMMENDATION: refuse any action whose energy cost exceeds current energy, with no state change, matching long_range_scan's existing check. Add the energy >= 0 invariant to ONTOLOGY and a CRITERIA row.
-----
 Priority:   70
 Status: ToDo
 ID: browserview-6psm
@@ -37,62 +5,6 @@ Created: 2026-11-04T23:53:44Z
 Updated: 2026-11-04T23:53:44Z
 
 Q-8 (docs/RATIONALE.md): The browser UI doesn't show the game the LLM is playing. GET /state serves a separate 'default' session, public/ is not mounted as static files, and public/index.html links styles.css and script.js at the root while they live in css/ and js/. RECOMMENDATION: mount public/ as static files, fix the asset links, and have /state return the most recently active session (single player). Meets goal G-3; covers CRITERIA R-21, U-1, U-2.
-----
-Priority:   65
-Status: ToDo
-ID: warpescape-qptc
-Created: 2026-11-04T23:53:46Z
-Updated: 2026-11-04T23:53:46Z
-
-Q-14 (docs/RATIONALE.md): Warping out of a sector with enemies never triggers an enemy turn, so any fight can be abandoned at zero risk. RECOMMENDATION: enemies in the current sector get one EnemiesTurn before the warp completes (results included in the warp events). Alternatives considered: block warp while enemies are present; allow freely. Update ONTOLOGY Warp rule, CRITERIA R-4, DYNAMICS anti-strategy table.
-----
-Priority:   60
-Status: ToDo
-ID: hullrepair-e76s
-Created: 2026-11-04T23:53:48Z
-Updated: 2026-11-04T23:53:48Z
-
-Q-7 (docs/RATIONALE.md): Docking restores shields, energy and quantorpedoes but not hull, and nothing else repairs hull, so hull damage is a permanent countdown. RECOMMENDATION: docking also restores hull to max_hull. Update ONTOLOGY Dock rule and CRITERIA R-6.
-----
-Priority:   55
-Status: ToDo
-ID: shieldregen-amsh
-Created: 2026-11-04T23:53:50Z
-Updated: 2026-11-04T23:53:50Z
-
-Q-6 (docs/RATIONALE.md): ShieldReplenish (src/models/events/shield_replenish.py) is a stub — it reports 'Shields are replenished' but changes nothing. RECOMMENDATION: shields recharge by drawing energy (new tunable constants for amount per firing and energy per shield point), tying shields into the energy economy. Covers CRITERIA R-15.
-----
-Priority:   55
-Status: ToDo
-ID: resultshape-m7nd
-Created: 2026-11-04T23:53:52Z
-Updated: 2026-11-04T23:53:52Z
-
-Q-12 (docs/RATIONALE.md): MCP command results signal failure inconsistently — warp returns distance 0 with no events, dock/blast/torpedo use success:false, long_range_scan returns a bare error without state. RECOMMENDATION: every command returns {ok, error?, events, state, ...result fields}; illegal commands return ok:false with no state change. Update ONTOLOGY Interface section and src/server/app.py tools; consider structured events at the same time.
-----
-Priority:   50
-Status: ToDo
-ID: sectorseed-9xmy
-Created: 2026-11-04T23:54:06Z
-Updated: 2026-11-04T23:54:06Z
-
-Q-5 (docs/RATIONALE.md): Every warp rebuilds the ActiveSector at random, so leaving and returning re-rolls star, starbase, enemy and ship positions — players can re-roll a bad board. RECOMMENDATION: derive a per-sector seed from the game seed and sector coordinates so a sector regenerates identically (requires a seeded RNG). Enemy positions after combat may need storing separately. Update ONTOLOGY Sector instantiation rule.
-----
-Priority:   45
-Status: ToDo
-ID: blastrange-254z
-Created: 2026-11-04T23:53:56Z
-Updated: 2026-11-04T23:53:56Z
-
-Q-11 (docs/RATIONALE.md): Blast range check and energy cost use the distance to the aimed target cell, not to the enemy actually hit, so aiming far past a close enemy costs more than aiming at it. Blast time also peaks at 2 although the code comment intends 3 at range 6. RECOMMENDATION: measure range/cost/time to the hit enemy; revisit BLAST_TIME_A/B after the enemy-clock fix decides whether blast time matters. Update ONTOLOGY Blast rule, CRITERIA R-9.
-----
-Priority:   40
-Status: ToDo
-ID: enemyadvance-95y3
-Created: 2026-11-04T23:53:58Z
-Updated: 2026-11-04T23:53:58Z
-
-Q-13 (docs/RATIONALE.md): EnemiesTurn advances int(n * 1/3) enemies, which is 0 for 1 or 2 enemies, so small groups never close distance. RECOMMENDATION: each enemy independently advances with probability ENEMY_ADVANCE_FRACTION (else fires). Update ONTOLOGY EnemiesTurn rule and CRITERIA R-12 (becomes a seeded distribution check).
 ----
 Priority:   30
 Status: ToDo

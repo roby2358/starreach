@@ -6,7 +6,7 @@ current design only. Reasons and open questions are in RATIONALE.md, checks are 
 CRITERIA.md, history is in ARCHITECTURE_LOG.md, and why it's fun is in DYNAMICS.md.
 
 **Tags.** **[D]** decided by the designer · **[P]** proposed by Claude, pending review ·
-**[T]** tunable (see Numbers) · **[D, unbuilt]** decided but not in the code.
+**[T]** tunable (see Numbers) · **[D, unbuilt]** decided but not yet in the Rust core or the app layers.
 **Serves:** the goal (`G-n`), quality (`F-name`), or DYNAMICS driver an item exists for.
 Stable IDs: goals `G-n`, decisions `D-n`, questions `Q-n`, criteria `R-n`/`U-n`/`X-n`.
 
@@ -72,7 +72,7 @@ One name per concept. These names are used in code, tools and docs.
 ## 2. Entities
 
 ### Game (world)
-*Serves: G-2.* [D, unbuilt] The whole state of one game. It is a plain value: the core
+*Serves: G-2.* [D] The whole state of one game. It is a plain value: the core
 receives it, returns a new one, and never keeps it.
 
 | Field | Type | Notes |
@@ -94,8 +94,8 @@ The event kinds and their order are fixed by the rules, not stored.
 
 | Field | Type | Notes |
 |---|---|---|
-| `hull`, `max_hull` | int [D, unbuilt] | Takes damage after shields are gone |
-| `shields`, `max_shields` | int [D, unbuilt] | Takes damage first |
+| `hull`, `max_hull` | int | Takes damage after shields are gone |
+| `shields`, `max_shields` | int | Takes damage first |
 | `energy`, `max_energy` | int | Spent by actions and by shield recharge |
 | `quantorpedoes`, `max_quantorpedoes` | int | Spent by torpedoes |
 
@@ -122,8 +122,8 @@ The starting sector is `GALAXY_CENTER` ("Star Central").
 
 ### ActiveSector
 *Serves: G-2, F-danger.* [D] The tactical board for the sector the ship is in. It is
-built from the SectorRecord when the ship arrives, and discarded when it leaves. Building
-it from the sector's seed is [D, unbuilt] (see Sector instantiation).
+built from the SectorRecord and the sector's seed when the ship arrives, and discarded
+when it leaves.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -133,7 +133,7 @@ it from the sector's seed is [D, unbuilt] (see Sector instantiation).
 | `enemies_yx` | Coordinate[] | One per live enemy |
 | `stars` | int | Stars placed |
 
-Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx ≠ null)`. [D, unbuilt]
+Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx ≠ null)`.
 
 ### Enemy
 *Serves: F-danger.* [D] An occupant of one cell. Its only property is its position (an
@@ -142,7 +142,7 @@ entry in `enemies_yx`). All enemies are alike, and one hit destroys one.
 ### Starbase
 *Serves: G-4, F-discovery.* [D] An occupant of one cell (`starbase_yx`). It can't be
 destroyed. It is an obstacle and the only source of resupply and of hull repair
-([D, unbuilt], D-7).
+(D-7).
 
 ### Star
 *Serves: F-danger.* [D] An occupant of one cell, recorded only on `map`. It is an
@@ -168,8 +168,8 @@ Object per `game_id`.
 
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
-  same Ray rule as the ship. They have no memory. [D] Each enemy independently fires or
-  advances, chosen at random each turn. [D, unbuilt]
+  same Ray rule as the ship. Each enemy independently fires or advances, chosen at random
+  each turn, with no memory. [D]
 - **The LLM** isn't a game actor. It is the player's interface: it sees what the tools
   return and follows the `instructions` prompt for decorum and rendering. [D]
 
@@ -198,11 +198,11 @@ Object per `game_id`.
 - `visible` only goes from false to true. [D]
 - `stardate` never decreases. [D]
 - `0 ≤ shields ≤ max_shields`, `0 ≤ hull ≤ max_hull`, `0 ≤ energy ≤ max_energy`,
-  `0 ≤ quantorpedoes ≤ max_quantorpedoes`. [D, unbuilt]
-- `status` leaves `playing` at most once, and never returns. [D, unbuilt]
-- A refused command returns the game unchanged. [D, unbuilt]
+  `0 ≤ quantorpedoes ≤ max_quantorpedoes`. [D]
+- `status` leaves `playing` at most once, and never returns. [D]
+- A refused command returns the game unchanged. [D]
 - Games are isolated: a command on one never changes another. [D]
-- Same seed and same commands give the same state. [D, unbuilt]
+- Same seed and same commands give the same state. [D]
 
 ---
 
@@ -227,7 +227,7 @@ when a long-range scan covers it.
 `euclid(a, b)` sets ranges and costs. `chebyshev(a, b) ≤ 1` defines *adjacent*. [D]
 
 ### Random streams
-*Serves: G-2, F-discovery.* [D, unbuilt] Two kinds of stream, both deterministic:
+*Serves: G-2, F-discovery.* [D] Two kinds of stream, both deterministic:
 - **The game stream** `rng`, seeded from `seed` at creation and carried in the Game. Galaxy
   generation, `STARDATE_START` and enemy choices draw from it.
 - **A sector stream** `sector_rng(seed, sector_yx)`, fresh each time a sector is built, so a
@@ -239,9 +239,9 @@ when a long-range scan covers it.
 
 Every action first checks, in this order: `status == playing`; any coordinate argument is
 in `0..9`; then its own legality. A failed check refuses the action: `ok = false`, an
-`error` message, and the game unchanged. [D, unbuilt]
+`error` message, and the game unchanged. [D]
 
-### Game creation — *Serves: G-2* [D, unbuilt]
+### Game creation — *Serves: G-2* [D]
 ```
 rng = seeded(seed);  galaxy = generate(rng);  stardate = uniform(rng, STARDATE_START)
 ship = full;  sector_yx = GALAXY_CENTER;  sector = instantiate(GALAXY_CENTER)
@@ -258,16 +258,17 @@ for each sector s in row order:
               stars     = uniform(STARS_PER_SECTOR);  visible = false
 ```
 
-### Sector instantiation — *Serves: G-2, F-discovery* [D, unbuilt]
+### Sector instantiation — *Serves: G-2, F-discovery* [D]
 ```
 r = sector_rng(seed, sector_yx);  map = all '.'
 place the starbase (if any), then each star, then each live enemy, then the ship,
-each on a random empty cell drawn from r; give up on an item after PLACEMENT_ATTEMPTS tries
+each on a cell drawn from r among the empty cells
 ```
+Drawing among the empty cells always succeeds: a board holds at most 19 occupants. [P]
 Terrain is placed before enemies, so a sector's stars and starbase are the same on every
 visit, and its enemies stand where the first of the original enemies stood.
 
-### Warp — *Serves: G-2, F-discovery* [D, unbuilt]
+### Warp — *Serves: G-2, F-discovery* [D]
 ```
 illegal if target == sector_yx
 distance = int(euclid(sector_yx, target) × WARP_DISTANCE_SCALE);  cost = distance × WARP_ENERGY_PER_DISTANCE
@@ -278,7 +279,7 @@ sector_yx = target;  sector = instantiate(target);  last_event_stardate = starda
 run warp events
 ```
 
-### Subwarp — *Serves: G-2, F-danger* [D, unbuilt]
+### Subwarp — *Serves: G-2, F-danger* [D]
 ```
 limit = SUBWARP_MAX_STEPS_HOSTILE if enemies are present else SUBWARP_MAX_STEPS
 r = ray(ship_yx, dest), dropping a final obstacle;  steps = min(len(r) − 1, limit)
@@ -287,7 +288,7 @@ ship_yx = r[steps];  energy -= steps × SUBWARP_ENERGY_PER_STEP
 stardate += steps × SUBWARP_TIME_PER_STEP;  run stardate events
 ```
 
-### Dock — *Serves: G-4* [D, unbuilt]
+### Dock — *Serves: G-4* [D]
 ```
 illegal if enemies are present, or no starbase, or starbase not adjacent
 hull, shields, energy, quantorpedoes := max;  stardate += DOCK_TIME
@@ -302,7 +303,7 @@ for each sector in the 3×3 block around sector_yx: mark visible, report "E|B|S"
 run stardate events
 ```
 
-### Blast — *Serves: F-danger, G-4* [D, unbuilt]
+### Blast — *Serves: F-danger, G-4* [D]
 ```
 hit = first enemy on ray(ship_yx, target);  illegal if none
 r = euclid(ship_yx, hit);  illegal if r > BLAST_RANGE
@@ -311,7 +312,7 @@ destroy hit;  energy -= cost;  stardate += int(BLAST_TIME_A + BLAST_TIME_B × �
 run stardate events
 ```
 
-### Torpedo — *Serves: F-danger, G-4* [D, unbuilt]
+### Torpedo — *Serves: F-danger, G-4* [D]
 ```
 illegal if quantorpedoes == 0, or energy < TORPEDO_ENERGY
 hit = first enemy on ray(ship_yx, target);  illegal if none
@@ -324,14 +325,14 @@ run stardate events
 remove from enemies_yx and map;  galaxy[sector_yx].enemies = len(enemies_yx)
 ```
 
-### Stardate events — *Serves: F-danger* [D, unbuilt]
+### Stardate events — *Serves: F-danger* [D]
 ```
 if stardate − last_event_stardate < EVENT_INTERVAL: stop
 for e in [ShieldReplenish, EnemiesTurn]: if e.can_occur: messages += e.execute
 last_event_stardate = stardate
 ```
 
-### Game end — *Serves: G-2, F-danger* [D, unbuilt]
+### Game end — *Serves: G-2, F-danger* [D]
 Runs after every accepted action.
 ```
 if hull == 0: status = lost
@@ -343,7 +344,7 @@ else if stranded: status = lost
 than `sector_yx` (infinite if there is none). Outside Star Central, Star Central is always
 that fallback, and `STARBASE_EMERGENCY_ENERGY` covers the longest warp to it.
 
-### EnemiesTurn — *Serves: F-danger* [D, unbuilt]
+### EnemiesTurn — *Serves: F-danger* [D]
 ```
 can_occur: enemies are present
 for each enemy in enemies_yx order:
@@ -356,14 +357,14 @@ r = ray(enemy, ship_yx);  dest = r[min(ENEMY_ADVANCE_STEPS, len(r) − 1)]
 if dest is empty: move enemy to dest   else: stay
 ```
 
-### EnemyFire — *Serves: F-danger* [D]; rounding [D, unbuilt]
+### EnemyFire — *Serves: F-danger* [D]
 ```
 if ray(enemy, ship_yx) doesn't end at ship_yx: no effect
 damage = round(ENEMY_FIRE_BASE × (1 / euclid(enemy, ship_yx)) ^ ENEMY_FIRE_FALLOFF)
 shields absorb up to their value; hull absorbs the rest up to its value
 ```
 
-### ShieldReplenish — *Serves: F-danger, G-4* [D, unbuilt]
+### ShieldReplenish — *Serves: F-danger, G-4* [D]
 ```
 can_occur: shields < max_shields and energy ≥ SHIELD_ENERGY_PER_POINT
 amount = min(SHIELD_REPLENISH, max_shields − shields, energy ÷ SHIELD_ENERGY_PER_POINT)
@@ -408,7 +409,6 @@ Referred to by name everywhere else.
 | `ENEMY_MAX_PER_SECTOR` | 9 | enemies | D-3 |
 | `STARS_PER_SECTOR` | 2..8 | uniform int | D-3 |
 | `STARBASE_CHANCE` | 0.02 | per sector | D-4 |
-| `PLACEMENT_ATTEMPTS` | 100 | tries | — |
 | `WARP_DISTANCE_SCALE` | 10 | distance per sector | D-5 |
 | `WARP_ENERGY_PER_DISTANCE` | 10 | energy | D-5 |
 | `WARP_TIME_PER_DISTANCE` | 0.01 | stardate | D-5 |
@@ -444,7 +444,7 @@ Referred to by name everywhere else.
 
 ## 8. Interface
 
-### Core API (Rust → WASM) [D, unbuilt]
+### Core API (Rust → WASM) [D]; the WASM build [D, unbuilt]
 Two JSON functions. The core holds no state between calls.
 
 | Function | Input | Output |
@@ -458,7 +458,7 @@ JavaScript round trip can't lose precision.
 ### Commands
 Each command is `{type, …args}`. Every command returns the same **Result** shape:
 `{ok: bool, error: string | null, events: string[], report: object | null, state: GameState}`.
-`report` is the command's own data when `ok`, and null when refused. [D, unbuilt]
+`report` is the command's own data when `ok`, and null when refused. [D]
 
 | Command `type` | Args | Kind | Rule | `report` |
 |---|---|---|---|---|
@@ -504,11 +504,11 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Event | Messages |
 |---|---|
 | StarbaseHail | `Starbase communication: all clear, approach for docking` · `… under attack, needs assistance` |
-| ShieldReplenish | `Shields recharged by n using n energy` [D, unbuilt] |
+| ShieldReplenish | `Shields recharged by n using n energy` [D] |
 | EnemyFire | `Enemy at (y, x) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
 | EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
-| Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` [D, unbuilt] |
-| Emergency energy | `Starbase transfers emergency energy: n` [D, unbuilt] |
+| Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` [D] |
+| Emergency energy | `Starbase transfers emergency energy: n` [D] |
 
 ### Client contract
 - **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`. [D]
