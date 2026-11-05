@@ -109,3 +109,11 @@ Created: 2026-11-04T23:54:02Z
 Updated: 2026-11-04T23:54:02Z
 
 Q-4 (docs/RATIONALE.md): README says navigating into a star ends the game; the code stops the ship on the cell before the star. RECOMMENDATION: keep the stop (instant death from one misread coordinate is harsh with an LLM in the loop) and remove the claim from the README. Record as a decision in RATIONALE.
+----
+Priority:   30
+Status: ToDo
+ID: authclient-ze87
+Created: 2026-11-05T00:41:07Z
+Updated: 2026-11-05T00:41:07Z
+
+Publish yuwakisacloud's auth-client and switch Starreach to consume it. Today auth-client is a private workspace package inside /work/yuwakisacloud/jsonsolver/auth-client ("private": true, version 0.0.0, depends on cbor-x 1.6.4); it verifies auth/'s bespoke Ed25519/CBOR access tokens offline (verifyAccessToken, JWKS cache, pins iss/aud/exp). Short-term plan (decided): Starreach COPIES auth-client into this repo (vendored, with a note recording the source path and git commit it was copied from) so the Cloudflare deployment isn't blocked. This task: (1) in yuwakisacloud, make auth-client publishable — give it a real version, move it out of jsonsolver to a shared location or keep it there, and publish as a git dependency or private npm package; update jsonsolver to depend on the published version; (2) in Starreach, replace the vendored copy with the published package and delete the copy; (3) add an ARCHITECTURE_LOG entry. Risk while vendored: the copy silently drifts if auth/ changes its token format — check the source commit before each Starreach deploy.

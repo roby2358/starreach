@@ -3,6 +3,14 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-05 — D-20 revised: stay in this repo, Rust core with a thin TypeScript Worker
+D-20 changed from "a TypeScript port as a `starreach/` project inside yuwakisacloud" to: keep
+Starreach in this repo, write the rules as a Rust crate compiled to WASM behind one JSON
+`apply` call, and keep a thin TypeScript Worker for MCP, the Durable Objects, token checking
+and assets. It still deploys into the yuwakisacloud account and zone. `auth-client` is
+copied in for now; publishing it is pjpd `authclient`. `YUWAKISA.md` updated to match.
+Q-15 still gates the build.
+
 ### 2026-11-05 — Hosting decided: yuwakisacloud, TypeScript Worker, Durable Object per game
 Added `YUWAKISA.md`, a review of yuwakisacloud's auth and server framework with a deployment
 recommendation. Recorded D-20 (a `starreach/` TypeScript Worker on yuwakisacloud, one SQLite

@@ -23,22 +23,29 @@ inferences, waiting for review.
   background thread) and under the MCP Inspector (`--stream`). Persistence is a non-goal.
 - **Evidence:** none recorded.
 
-### D-20 Deploy on yuwakisacloud as a TypeScript Worker with one Durable Object per game — *Decided, unbuilt; gated on Q-15*
-- **Choice:** Starreach becomes a `starreach/` project in yuwakisacloud. It is a TypeScript
-  Worker that serves `public/` as static assets and streamable-HTTP MCP at `/mcp`. Each game
-  is one SQLite-backed Durable Object that stores the game state and the owner's auth/ `sub`.
-  auth/ is the identity provider, and Starreach only verifies tokens. The game core is ported
-  to TypeScript, with a seeded RNG (Q-10) and one result shape (Q-12) built in. The details
-  are in `YUWAKISA.md`.
-- **Alternatives:** Python in Cloudflare Containers; Python Workers with Durable Objects; a
-  Rust core compiled to WASM behind a TypeScript layer; a Cloudflare Tunnel to a home
-  machine; a standalone TypeScript Worker outside yuwakisacloud.
-- **Why:** The platform supplies identity, the domain, and the deploy and CI pattern. Its
-  posture is one language, TypeScript, with no FFI boundaries, and the token verifier
-  (`auth-client`) is TypeScript. A Durable Object per game makes games persist, keeps each
-  game's actions in order, and is the shape multiplayer needs (D-18). An owner check makes a
-  game playable only by the player who created it. A signed-in browser view replaces the
-  shared `"default"` session (Q-8, G-3).
+### D-20 Deploy into yuwakisacloud from this repo: Rust core in WASM, thin TypeScript Worker, one Durable Object per game — *Decided, unbuilt; gated on Q-15*
+- **Choice:** Starreach stays in this repo and deploys into the yuwakisacloud Cloudflare
+  account and zone at `starreach.yuwakisa.com`. A Rust `starreach-core` crate holds the
+  rules. It is deterministic with a seeded RNG (Q-10) and is compiled to WASM behind one
+  JSON function, `apply(state, command) -> result`, with one result shape (Q-12). A thin
+  TypeScript Worker owns everything that touches the platform: streamable-HTTP MCP at
+  `/mcp`, one SQLite Durable Object per game storing the state and the owner's auth/ `sub`,
+  token checking with `auth-client` (copied into this repo for now), the auth service
+  binding, and `public/` as static assets. The details are in `YUWAKISA.md`.
+- **Alternatives:** a TypeScript rewrite as a `starreach/` project inside yuwakisacloud (the
+  platform's single-language posture); a full Rust Worker with `workers-rs` (it would have to
+  re-implement the token check); Python in Cloudflare Containers; Python Workers with Durable
+  Objects; a Cloudflare Tunnel to a home machine.
+- **Why:** The platform supplies identity, the domain and the deploy pattern, and the
+  connection is only account configuration and HTTP, so the repo can stay separate (history,
+  docs, IDs and pjpd stay together). The platform's TypeScript-only, no-FFI posture governs
+  yuwakisacloud's code. Starreach respects it where it touches the platform by keeping that
+  layer TypeScript and using `auth-client`. Rust gives the rules strong types, enum dispatch
+  for commands and events, fast deterministic `cargo test`, and room to grow toward
+  multiplayer and balance simulations. A single JSON call keeps the FFI cost small. A
+  Durable Object per game makes games persist, keeps actions in order, and is the shape
+  multiplayer needs (D-18). The owner check and a signed-in browser view replace the shared
+  `"default"` session (Q-8, G-3).
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 
