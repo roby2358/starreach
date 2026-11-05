@@ -23,6 +23,25 @@ inferences, waiting for review.
   background thread) and under the MCP Inspector (`--stream`). Persistence is a non-goal.
 - **Evidence:** none recorded.
 
+### D-20 Deploy on yuwakisacloud as a TypeScript Worker with one Durable Object per game — *Decided, unbuilt; gated on Q-15*
+- **Choice:** Starreach becomes a `starreach/` project in yuwakisacloud. It is a TypeScript
+  Worker that serves `public/` as static assets and streamable-HTTP MCP at `/mcp`. Each game
+  is one SQLite-backed Durable Object that stores the game state and the owner's auth/ `sub`.
+  auth/ is the identity provider, and Starreach only verifies tokens. The game core is ported
+  to TypeScript, with a seeded RNG (Q-10) and one result shape (Q-12) built in. The details
+  are in `YUWAKISA.md`.
+- **Alternatives:** Python in Cloudflare Containers; Python Workers with Durable Objects; a
+  Rust core compiled to WASM behind a TypeScript layer; a Cloudflare Tunnel to a home
+  machine; a standalone TypeScript Worker outside yuwakisacloud.
+- **Why:** The platform supplies identity, the domain, and the deploy and CI pattern. Its
+  posture is one language, TypeScript, with no FFI boundaries, and the token verifier
+  (`auth-client`) is TypeScript. A Durable Object per game makes games persist, keeps each
+  game's actions in order, and is the shape multiplayer needs (D-18). An owner check makes a
+  game playable only by the player who created it. A signed-in browser view replaces the
+  shared `"default"` session (Q-8, G-3).
+- **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
+  been measured yet.
+
 ### D-17 Events are strings — *Decided*
 - **Alternatives:** structured event records (`{type, from, to, damage}`) that the LLM or
   browser could render.
@@ -185,6 +204,13 @@ Each question lists its options and Claude's recommendation.
 - **Q-13 Enemy advance with few enemies.** `int(n × ENEMY_ADVANCE_FRACTION)` is 0 for 1 or
   2 enemies, so small groups never close in. **Recommend:** each enemy advances with
   probability `ENEMY_ADVANCE_FRACTION`.
+- **Q-15 Can claude.ai and Claude Desktop connectors sign in to auth/ without dynamic
+  client registration?** auth/ clients are created by an admin, with exact redirect URIs and
+  no RFC 7591 registration (auth/ D-22). Options: (a) a pre-registered public PKCE client
+  with the claude.ai callback; (b) add RFC 7591 registration and the RFC 8414 alias to auth/
+  first. **Recommend testing (a)** with a stub Worker at `starreach.yuwakisa.com`, which
+  serves RFC 9728 metadata and a `/mcp` that returns 401 or echoes `sub`, before porting
+  anything. This gates D-20.
 - **Q-14 Can you warp away from a fight for free?** Warping never triggers an enemy turn,
   so every fight can be abandoned at no risk. Options: (a) enemies get a turn before the
   warp; (b) warp is blocked while enemies are present; (c) allow it. **Recommend (a).**

@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-05 — Hosting decided: yuwakisacloud, TypeScript Worker, Durable Object per game
+Added `YUWAKISA.md`, a review of yuwakisacloud's auth and server framework with a deployment
+recommendation. Recorded D-20 (a `starreach/` TypeScript Worker on yuwakisacloud, one SQLite
+Durable Object per game, auth/ as the identity provider) and Q-15 (whether claude.ai
+connectors can sign in without dynamic client registration), which gates D-20. Nothing is
+built yet. The current Python server (D-13) stays the reference until the port's tests pass.
+
 ### 2026-11-05 — Server cleanup: dead connector, CLI options, unused session fields
 Deleted `src/server/mcp_connector.py` (it used the unlisted `fastmcp` package and nothing
 imported it). `--host`, `--port` and `--log-level` now reach uvicorn through a

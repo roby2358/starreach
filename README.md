@@ -9,6 +9,7 @@ The game design lives in `docs/`:
 - `docs/RATIONALE.md`: why each choice was made, and open questions
 - `docs/DYNAMICS.md`: why it's fun
 - `docs/ARCHITECTURE_LOG.md`: dated history of design changes
+- `YUWAKISA.md`: recommendation for deploying on yuwakisacloud (D-20)
 
 ## Run in Claude Desktop
 
