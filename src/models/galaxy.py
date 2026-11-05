@@ -107,8 +107,8 @@ class Galaxy:
     def long_range_scan(self, sector_yx: Tuple[int, int]) -> List[str]:
         """
         Return a 3x3 grid around the current sector position.
-        Each element is (enemy_count, starbase_count, star_count).
-        Marks scanned sectors as visible and returns (0,0,0) for sectors outside the galaxy bounds.
+        Each row is three space-separated "E|B|S" entries (enemies, starbases, stars).
+        Marks scanned sectors as visible and shows "....." for sectors outside the galaxy bounds.
         """
         current_y, current_x = sector_yx
         scan_area = []

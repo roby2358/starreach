@@ -294,7 +294,7 @@ class ActiveSector:
         energy_cost = int(1000 * math.sqrt(euclidean_distance))
         
         # Calculate time: proportional to square root of distance
-        # At range 1: time = 1, at range 6: time = 3
+        # At range 1: time = 1, at range 6: time = 2
         # Formula: time = -0.37840 + 1.37840 * (distance**0.5)
         time = int(-0.37840 + 1.37840 * (euclidean_distance ** 0.5))
         

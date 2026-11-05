@@ -159,7 +159,7 @@ class Game:
         Requirements:
         - Starbase must be in one of the 8 adjacent positions around the ship
         - No enemies in the sector
-        Returns dict with success status and time consumed (0.5)
+        Returns dict with success status and time consumed (5)
         """
         # Get the dock result from the sector
         dock_result = self.sector.dock()

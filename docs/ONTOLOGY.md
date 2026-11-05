@@ -94,8 +94,8 @@ The event kinds and their order are fixed by the rules, not stored.
 
 | Field | Type | Notes |
 |---|---|---|
-| `hull`, `max_hull` | int | Takes damage after shields are gone |
-| `shields`, `max_shields` | int | Takes damage first |
+| `hull`, `max_hull` | int [D, unbuilt] | Takes damage after shields are gone |
+| `shields`, `max_shields` | int [D, unbuilt] | Takes damage first |
 | `energy`, `max_energy` | int | Spent by actions and by shield recharge |
 | `quantorpedoes`, `max_quantorpedoes` | int | Spent by torpedoes |
 
@@ -122,8 +122,8 @@ The starting sector is `GALAXY_CENTER` ("Star Central").
 
 ### ActiveSector
 *Serves: G-2, F-danger.* [D] The tactical board for the sector the ship is in. It is
-built from the SectorRecord and the sector's seed when the ship arrives, and discarded
-when it leaves.
+built from the SectorRecord when the ship arrives, and discarded when it leaves. Building
+it from the sector's seed is [D, unbuilt] (see Sector instantiation).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -133,7 +133,7 @@ when it leaves.
 | `enemies_yx` | Coordinate[] | One per live enemy |
 | `stars` | int | Stars placed |
 
-Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx ≠ null)`.
+Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx ≠ null)`. [D, unbuilt]
 
 ### Enemy
 *Serves: F-danger.* [D] An occupant of one cell. Its only property is its position (an
@@ -141,7 +141,8 @@ entry in `enemies_yx`). All enemies are alike, and one hit destroys one.
 
 ### Starbase
 *Serves: G-4, F-discovery.* [D] An occupant of one cell (`starbase_yx`). It can't be
-destroyed. It is an obstacle and the only source of resupply and repair.
+destroyed. It is an obstacle and the only source of resupply and of hull repair
+([D, unbuilt], D-7).
 
 ### Star
 *Serves: F-danger.* [D] An occupant of one cell, recorded only on `map`. It is an
@@ -167,8 +168,8 @@ Object per `game_id`.
 
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
-  same Ray rule as the ship. Each enemy independently fires or advances, chosen at random
-  each turn, with no memory. [D]
+  same Ray rule as the ship. They have no memory. [D] Each enemy independently fires or
+  advances, chosen at random each turn. [D, unbuilt]
 - **The LLM** isn't a game actor. It is the player's interface: it sees what the tools
   return and follows the `instructions` prompt for decorum and rendering. [D]
 
@@ -250,11 +251,11 @@ last_event_stardate = stardate;  status = playing
 ### Galaxy generation — *Serves: G-2, F-discovery* [D]
 ```
 for each sector s in row order:
-center:     (visible, 0, 1, START_SECTOR_STARS)
-otherwise:  f = ENEMY_DISTANCE_FLOOR + euclid(s, GALAXY_CENTER)/ENEMY_DISTANCE_NORM × ENEMY_DISTANCE_SCALE
-            enemies   = clamp(int(f × uniform(ENEMY_BASE_ROLL)), 0, ENEMY_MAX_PER_SECTOR)
-            starbases = 1 with probability STARBASE_CHANCE, else 0
-            stars     = uniform(STARS_PER_SECTOR);  visible = false
+  center:     (visible, 0, 1, START_SECTOR_STARS)
+  otherwise:  f = ENEMY_DISTANCE_FLOOR + euclid(s, GALAXY_CENTER)/ENEMY_DISTANCE_NORM × ENEMY_DISTANCE_SCALE
+              enemies   = clamp(int(f × uniform(ENEMY_BASE_ROLL)), 0, ENEMY_MAX_PER_SECTOR)
+              starbases = 1 with probability STARBASE_CHANCE, else 0
+              stars     = uniform(STARS_PER_SECTOR);  visible = false
 ```
 
 ### Sector instantiation — *Serves: G-2, F-discovery* [D, unbuilt]
@@ -331,7 +332,7 @@ last_event_stardate = stardate
 ```
 
 ### Game end — *Serves: G-2, F-danger* [D, unbuilt]
-Runs after every action.
+Runs after every accepted action.
 ```
 if hull == 0: status = lost
 else if the sum of galaxy enemies == 0: status = won
@@ -355,7 +356,7 @@ r = ray(enemy, ship_yx);  dest = r[min(ENEMY_ADVANCE_STEPS, len(r) − 1)]
 if dest is empty: move enemy to dest   else: stay
 ```
 
-### EnemyFire — *Serves: F-danger* [D]
+### EnemyFire — *Serves: F-danger* [D]; rounding [D, unbuilt]
 ```
 if ray(enemy, ship_yx) doesn't end at ship_yx: no effect
 damage = round(ENEMY_FIRE_BASE × (1 / euclid(enemy, ship_yx)) ^ ENEMY_FIRE_FALLOFF)
@@ -503,11 +504,11 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Event | Messages |
 |---|---|
 | StarbaseHail | `Starbase communication: all clear, approach for docking` · `… under attack, needs assistance` |
-| ShieldReplenish | `Shields recharged by n using n energy` |
+| ShieldReplenish | `Shields recharged by n using n energy` [D, unbuilt] |
 | EnemyFire | `Enemy at (y, x) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
-| EnemyAdvance | `Enemy advanced from (a) to (b)` · `… path was blocked` |
-| Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` |
-| Emergency energy | `Starbase transfers emergency energy: n` |
+| EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
+| Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` [D, unbuilt] |
+| Emergency energy | `Starbase transfers emergency energy: n` [D, unbuilt] |
 
 ### Client contract
 - **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`. [D]

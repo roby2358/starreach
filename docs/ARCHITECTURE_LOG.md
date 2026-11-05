@@ -3,6 +3,17 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-05 — ONTOLOGY and the Python code reconciled: tags corrected
+I checked each [D] claim in ONTOLOGY against the Python code. Some were decided but not
+built, and are now tagged [D, unbuilt]: integer hull and shields, rounded enemy damage,
+counts derived from the board, seeded sector layouts, hull repair at a starbase, the
+per-enemy fire-or-advance roll, and the ShieldReplenish, game-end and emergency-energy
+messages. The Game end rule runs after accepted actions only. The EnemyAdvance blocked
+message now quotes the code. Code fixes, with no change in behavior: stale docstrings
+(dock time, blast time at range 6, the long-range scan's off-galaxy entries), and dead
+branches removed (EnemyAdvance "already adjacent", EnemyFire at distance 0). D-13 no longer
+says the README describes port 8001. No IDs changed.
+
 ### 2026-11-05 — Port design settled: three layers, game_id, and twelve open questions decided
 Ahead of the Rust port, the designer settled the layering and adopted Claude's
 recommendation on every rule question. New decisions: D-21 (Rust `core/`, neutral TS

@@ -17,9 +17,6 @@ class EnemyAdvance(Event):
         # Calculate path from enemy to ship
         path = game.sector.path(enemy_pos, ship_pos)
         
-        if len(path) <= 1:
-            return ["Enemy is already adjacent to ship"]
-        
         # Move enemy up to 2 spaces along the path
         max_moves = min(2, len(path) - 1)
         new_enemy_pos = path[max_moves]

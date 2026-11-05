@@ -17,8 +17,8 @@ inferences, waiting for review.
 - **Evidence:** none recorded (U-3 – U-5 are manual).
 
 ### D-13 One process serving MCP and HTTP; sessions in memory — *Decided*
-- **Alternatives:** separate MCP and HTTP servers on different ports (the README still
-  describes MCP on 8001); a database-backed session store.
+- **Alternatives:** separate MCP and HTTP servers on different ports; a database-backed
+  session store.
 - **Why:** The simplest thing that runs under Claude Desktop (stdio, with HTTP on a
   background thread) and under the MCP Inspector (`--stream`). Persistence is a non-goal.
 - **Evidence:** none recorded.

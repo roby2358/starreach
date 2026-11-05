@@ -25,10 +25,8 @@ class EnemyFire(Event):
         euclidean_distance = game.sector.euclidean_distance(enemy_pos, ship_pos)
         
         # Calculate damage using the formula: 2000 * (1/distance)^1.57
-        if euclidean_distance > 0:
-            damage = 2000 * (1 / euclidean_distance) ** 1.57
-        else:
-            damage = 2000  # If distance is 0, full damage
+        # The ray ends at the ship, so the enemy is never on the ship's cell
+        damage = 2000 * (1 / euclidean_distance) ** 1.57
         
         # Apply damage to ship (shields first, then hull)
         damage_dealt = self._apply_damage(game, damage)
