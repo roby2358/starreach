@@ -3,6 +3,7 @@ name = "starreach-core"
 version = "0.1.0"
 edition = "2021"
 description = "Starreach game rules: a pure function from (game, command) to (game, result). See docs/ONTOLOGY.md."
+license = "MIT"
 publish = false
 
 [lib]
