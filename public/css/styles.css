@@ -1,241 +1,315 @@
+/* Holotank: the current sector floats as a tilted hologram, with the data on the glass around it. */
+@font-face {
+    font-family: "Oxanium";
+    src: url("../fonts/oxanium.woff2") format("woff2");
+    font-weight: 200 800;
+    font-display: swap;
+}
+
 :root {
-    --space: #070b14;
-    --panel: #0e1524;
-    --panel-edge: #24324d;
-    --text: #d7e3f4;
-    --dim: #7b8ba6;
-    --ship: #ffc145;
-    --enemy: #ff5d5d;
-    --base: #43d9c5;
-    --good: #58d68d;
-    --hidden: #0a101c;
-    --hidden-edge: #141d2f;
-    --charted: #131d31;
+    color-scheme: dark;
+    --space: #021217;
+    --glow: #0d4a5a;
+    --glass: #0a2d3866;
+    --glass-edge: #3fe0ff33;
+    --grid: #3fe0ff30;
+    --text: #d4f8ff;
+    --dim: #7fb6c2;
+    --cyan: #3fe0ff;
+    --ship: #ffffff;
+    --enemy: #ff3f86;
+    --base: #6dffb0;
+    --star: #ffeeb0;
+    --warn: #ffc04d;
+    --tilt: 42deg;
+    --hexagon: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+    --chamfer: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
     --marker-move: 700ms;
 }
 
 * { box-sizing: border-box; }
 
+html { overflow-x: clip; }
+
 body {
-    margin: 0 auto;
+    margin: 0;
     padding: 16px;
-    max-width: 1080px;
     min-height: 100vh;
-    background: var(--space);
+    background: radial-gradient(70vw 55vh at 50% 70%, var(--glow), transparent 72%), var(--space);
+    background-attachment: fixed;
     color: var(--text);
-    font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+    font-family: "Oxanium", "Segoe UI", system-ui, sans-serif;
 }
 
-h1, h2, dl, dd, ul { margin: 0; padding: 0; }
+h1, h2, dl, dd, ul, p { margin: 0; padding: 0; }
+h1, h2 { font-size: inherit; font-weight: inherit; }
 
 .bridge-header {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
-    gap: 8px 24px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--panel-edge);
+    gap: 8px 32px;
+    margin-bottom: 14px;
 }
 
-h1 { font-size: 1.25rem; letter-spacing: 0.2em; text-transform: uppercase; }
-h1 span { color: var(--ship); }
-
-h2 {
-    margin-bottom: 12px;
-    color: var(--dim);
-    font-size: 0.75rem;
-    font-weight: normal;
-    letter-spacing: 0.15em;
+h1 {
+    color: var(--cyan);
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 14px #3fe0ff88;
     text-transform: uppercase;
 }
 
-.readouts { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-.readouts dt, .survey dt { color: var(--dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; }
-.readouts dd { font-variant-numeric: tabular-nums; }
+h1 span {
+    margin-left: 8px;
+    color: var(--text);
+    font-size: 0.875rem;
+    font-weight: 300;
+    letter-spacing: 0.14em;
+    text-shadow: none;
+}
 
-body[data-link="live"] #link { color: var(--good); }
-body[data-link="connecting"] #link { color: var(--ship); }
+h2, .readouts dt, .survey dt {
+    color: var(--dim);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+h2 { margin-bottom: 10px; }
+
+.readouts { display: flex; flex-wrap: wrap; gap: 8px 32px; }
+.readouts dd { color: var(--cyan); font-size: 1.1875rem; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+body[data-link="live"] #link { color: var(--base); }
+body[data-link="connecting"] #link { color: var(--warn); }
 body[data-link="lost"] #link, body[data-link="absent"] #link { color: var(--enemy); }
 body[data-link="lost"] .console { opacity: 0.45; filter: saturate(0.3); }
 body[data-link="absent"] .console, body[data-link="connecting"] .console { display: none; }
 
-.notice, .outcome {
-    margin: 0 0 16px;
+.notice {
     padding: 16px;
-    border: 1px solid var(--panel-edge);
-    background: var(--panel);
+    background: var(--glass);
+    clip-path: var(--chamfer);
     line-height: 1.5;
 }
 
-.outcome { font-size: 1.1rem; letter-spacing: 0.1em; text-align: center; text-transform: uppercase; }
-.outcome.won { border-color: var(--good); color: var(--good); }
-.outcome.lost { border-color: var(--enemy); color: var(--enemy); }
+.outcome {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    width: min(90vw, 560px);
+    padding: 24px;
+    background: #021217e6;
+    clip-path: var(--chamfer);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    pointer-events: none;
+    text-align: center;
+    text-transform: uppercase;
+    transform: translate(-50%, -50%);
+}
+
+.outcome.won { color: var(--base); text-shadow: 0 0 16px var(--base); }
+.outcome.lost { color: var(--enemy); text-shadow: 0 0 16px var(--enemy); }
 
 .console {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
-    gap: 16px;
+    grid-template:
+        "tank" auto
+        "ship" auto
+        "galaxy" auto
+        "survey" auto
+        / minmax(0, 1fr);
+    gap: 14px;
     transition: opacity 300ms, filter 300ms;
 }
 
-.panel { padding: 16px; border: 1px solid var(--panel-edge); background: var(--panel); }
+.tank-section { grid-area: tank; min-width: 0; }
+.ship-panel { grid-area: ship; }
+.survey-panel { grid-area: survey; }
+.galaxy-panel { grid-area: galaxy; }
 
-.tabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid var(--panel-edge);
-}
-
-.tab {
-    margin-bottom: -1px;
-    padding: 8px 16px;
-    border: 1px solid transparent;
-    border-bottom-color: var(--panel-edge);
-    background: none;
-    color: var(--dim);
-    font: inherit;
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-}
-
-.tab:hover { color: var(--text); }
-.tab:focus-visible { outline: 2px solid var(--ship); outline-offset: -2px; }
-
-.tab[aria-selected="true"] {
-    border-color: var(--panel-edge);
-    border-bottom-color: var(--panel);
-    color: var(--ship);
+.panel {
+    padding: 14px;
+    min-width: 0;
+    background: var(--glass);
+    clip-path: var(--chamfer);
+    outline: 1px solid var(--glass-edge);
+    outline-offset: -1px;
 }
 
 /* Equal tracks, no gaps: the marker's position is a plain fraction of the grid. */
 .map {
     position: relative;
-    width: min(100%, max(320px, calc(100vh - 250px)));
-    margin-inline: auto;
     display: grid;
     grid-template-columns: repeat(11, minmax(0, 1fr));
     grid-template-rows: repeat(11, minmax(0, 1fr));
+    width: 100%;
     aspect-ratio: 1;
-    font-size: clamp(0.6rem, 2.1vw, 1.05rem);
 }
 
-.axis { display: grid; place-items: center; color: var(--dim); font-size: 0.8em; }
+.axis { display: grid; place-items: center; color: var(--dim); font-size: 0.75rem; }
 
-.sector, .cell {
+/* The tank. Only opacity on .tank and transforms on the board animate: an opacity or filter on
+   the board itself would flatten the marks standing above it. */
+.tank { padding-block: 1vh; perspective: 1800px; perspective-origin: 50% 20%; }
+
+#board {
+    /* Under 100%: the plane's near edge widens in perspective and must stay inside the tank. */
+    width: min(82%, calc(100vh - 190px));
+    margin: -8% auto -3%;
+    background: radial-gradient(circle, #3fe0ff22, transparent 72%);
+    box-shadow: 0 0 0 1px #3fe0ff66, 0 0 50px #3fe0ff33;
+    transform: rotateX(var(--tilt));
+    transform-style: preserve-3d;
+}
+
+#board .axis { color: var(--cyan); font-size: 0.8125rem; }
+
+.cell {
+    position: relative;
+    border-right: 1px solid var(--grid);
+    border-bottom: 1px solid var(--grid);
+    transform-style: preserve-3d;
+}
+
+/* Each mark stands up from the plane on a thin stem. */
+.cell > * {
+    position: absolute;
+    bottom: 50%;
+    left: 21%;
+    width: 58%;
+    aspect-ratio: 1;
+    transform: rotateX(calc(-1 * var(--tilt))) translateY(-20%);
+    transform-origin: 50% 100%;
+}
+
+.cell > *::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 1px;
+    height: 45%;
+    background: currentColor;
+    opacity: 0.8;
+}
+
+.ship { color: var(--ship); }
+.enemy { color: var(--enemy); }
+.starbase { color: var(--base); }
+.star { color: var(--star); }
+
+.cell > *::before, .legend > li > span::before { content: ""; position: absolute; }
+.ship::before { inset: 0; background: var(--ship); clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%); filter: drop-shadow(0 0 7px var(--ship)); }
+.enemy::before { inset: 8%; background: var(--enemy); clip-path: polygon(50% 100%, 100% 20%, 62% 32%, 50% 0, 38% 32%, 0 20%); filter: drop-shadow(0 0 6px var(--enemy)); }
+.starbase::before { inset: 4%; background: var(--base); clip-path: var(--hexagon); opacity: 0.85; }
+.star::before { inset: 34%; border-radius: 50%; background: var(--star); box-shadow: 0 0 12px 2px var(--star); }
+
+/* A warp brings the new sector up out of nothing. */
+.tank.warping { animation: warp-fade 800ms ease-out; }
+.tank.warping #board { animation: warp-in 800ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes warp-fade { from { opacity: 0; } }
+@keyframes warp-in { from { transform: rotateX(var(--tilt)) scale(0.45) translateZ(-200px); } }
+
+/* An enemy gone from this sector flares the whole plane. A frame doesn't say which enemy died,
+   because the others may have moved in the same turn. */
+.tank.struck #board { animation: struck-plane 900ms ease-out; }
+@keyframes struck-plane { from { box-shadow: 0 0 0 2px var(--enemy), 0 0 90px var(--enemy); background-color: #ff3f8644; } }
+
+body[data-status="won"] #board { box-shadow: 0 0 0 1px var(--base), 0 0 70px var(--base); }
+body[data-status="lost"] #board { box-shadow: 0 0 0 1px var(--enemy), 0 0 70px var(--enemy); }
+
+/* The galaxy chart, flat on the glass */
+.sector {
     position: relative;
     display: grid;
     place-items: center;
     overflow: hidden;
-    margin: 1px;
-    background: var(--charted);
-    outline: 1px solid var(--panel-edge);
-    outline-offset: -1px;
+    border-right: 1px solid #3fe0ff22;
+    border-bottom: 1px solid #3fe0ff22;
+    background: #3fe0ff14;
 }
 
-.cell > * { width: 60%; aspect-ratio: 1; }
-.cell .ship, .legend .ship { background: var(--ship); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.cell .ship { width: 48%; aspect-ratio: 2 / 3; }
-.cell .enemy, .legend .enemy { background: var(--enemy); clip-path: polygon(0 0, 100% 0, 50% 100%); }
-.cell .starbase { background: var(--base); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.cell .star, .legend .star { background: var(--text); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
-
-.sector.hidden {
-    background: repeating-linear-gradient(135deg, var(--hidden), var(--hidden) 3px, var(--hidden-edge) 3px, var(--hidden-edge) 4px);
-    outline-color: var(--hidden-edge);
-}
-
+.sector.hidden { background: none; }
 .sector.revealed { animation: reveal 900ms ease-out; }
-.sector.struck { animation: struck 900ms ease-out; }
+.sector.struck { animation: struck-sector 900ms ease-out; }
+@keyframes reveal { from { background: var(--cyan); } }
+@keyframes struck-sector { from { background: var(--enemy); } }
 
-@keyframes reveal { from { background: var(--base); } }
-@keyframes struck { from { background: var(--enemy); } }
-
-.sector .enemies { position: relative; color: var(--enemy); font-weight: bold; }
-
-.sector .starbase {
-    position: absolute;
-    top: 8%;
-    right: 8%;
-    width: 22%;
-    aspect-ratio: 1;
-    background: var(--base);
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-}
-
-.sector .dot {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    border-radius: 50%;
-    background: var(--dim);
-}
+.sector .enemies, .legend .enemies { position: relative; color: var(--enemy); font-size: 0.8125rem; font-weight: 700; }
+.sector .starbase { position: absolute; right: 8%; bottom: 8%; width: 26%; aspect-ratio: 1; background: var(--base); clip-path: var(--hexagon); }
+.sector .dot { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: var(--text); }
 
 .ship-marker {
     position: absolute;
     width: calc(100% / 11);
     height: calc(100% / 11);
-    border: 2px solid var(--ship);
-    box-shadow: 0 0 12px var(--ship), inset 0 0 8px rgb(255 193 69 / 35%);
+    border: 1px solid var(--ship);
+    background: #3fe0ff44;
+    box-shadow: 0 0 10px var(--cyan);
     pointer-events: none;
     transition: top var(--marker-move) ease-in-out, left var(--marker-move) ease-in-out;
-}
-
-.ship-marker::after {
-    content: "";
-    position: absolute;
-    bottom: 8%;
-    left: 8%;
-    width: 18%;
-    aspect-ratio: 2 / 3;
-    background: var(--ship);
-    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
 .legend {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 16px;
-    margin-top: 12px;
+    justify-content: center;
+    gap: 6px 18px;
+    margin-top: 10px;
     color: var(--dim);
     font-size: 0.75rem;
     list-style: none;
 }
 
 .legend li { display: flex; align-items: center; gap: 6px; }
-.legend .enemies { color: var(--enemy); font-weight: bold; }
-.legend .starbase { width: 10px; height: 10px; background: var(--base); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.legend .ship { width: 8px; height: 12px; }
-.legend .enemy, .legend .star { width: 12px; height: 12px; }
-.legend .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
-.legend .uncharted { width: 12px; height: 12px; background: repeating-linear-gradient(135deg, var(--hidden), var(--hidden) 2px, var(--panel-edge) 2px, var(--panel-edge) 3px); }
+.legend li > span { position: relative; flex: none; width: 14px; aspect-ratio: 1; text-align: center; }
+.legend .dot::before { inset: 40%; border-radius: 50%; background: var(--text); }
+.legend .enemies::before { content: none; }
 
-.gauges { display: grid; gap: 14px; margin-bottom: 24px; }
+/* Gauges: the track's mask cuts the fill into one segment per unit, up to the page's cap. */
+.gauges { display: grid; gap: 10px; }
+.gauge-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; color: var(--dim); font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.gauge-value { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
 
-.gauge-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
-.gauge-value { font-variant-numeric: tabular-nums; }
-.gauge-track { height: 10px; background: var(--hidden); outline: 1px solid var(--panel-edge); }
-.gauge-fill { height: 100%; background: var(--good); transition: width 500ms ease-out, background-color 300ms; }
-.gauge.low .gauge-fill { background: var(--enemy); }
-.gauge.low .gauge-value { color: var(--enemy); }
-.gauge.dropped .gauge-track { animation: dropped 600ms ease-out; }
+.gauge-track {
+    height: 10px;
+    background: #3fe0ff1f;
+    transform: skewX(-24deg);
+    -webkit-mask: repeating-linear-gradient(90deg, #000 0 calc(100% / var(--segments) - 2px), transparent calc(100% / var(--segments) - 2px) calc(100% / var(--segments)));
+    mask: repeating-linear-gradient(90deg, #000 0 calc(100% / var(--segments) - 2px), transparent calc(100% / var(--segments) - 2px) calc(100% / var(--segments)));
+}
 
-@keyframes dropped { from { outline-color: var(--enemy); box-shadow: 0 0 10px var(--enemy); } }
+.gauge-fill { height: 100%; background: var(--cyan); transition: width 500ms ease-out, background-color 300ms; }
+.gauge.low .gauge-fill { background: var(--warn); }
+.gauge.low .gauge-value { color: var(--warn); }
+.gauge.dropped { animation: dropped 600ms ease-out; }
+@keyframes dropped { from { background: #ff3f8655; } }
 
 .survey { display: grid; gap: 8px; }
-.survey div { display: flex; justify-content: space-between; align-items: baseline; }
-.survey dd { font-variant-numeric: tabular-nums; }
+.survey div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.survey dd { color: var(--cyan); font-weight: 500; font-variant-numeric: tabular-nums; }
 
-@media (max-width: 720px) {
-    .console { grid-template-columns: minmax(0, 1fr); }
-    .panel { padding: 8px; }
+@media (min-width: 900px) {
+    .console {
+        grid-template:
+            "ship tank galaxy" auto
+            "survey tank galaxy" 1fr
+            / minmax(220px, 0.8fr) minmax(0, 2.2fr) minmax(250px, 0.9fr);
+        align-items: start;
+        max-width: 1700px;
+        margin-inline: auto;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .ship-marker, .gauge-fill, .console { transition: none; }
-    .sector.revealed, .sector.struck, .gauge.dropped .gauge-track { animation: none; }
+    .sector.revealed, .sector.struck, .gauge.dropped, .tank.warping, .tank.warping #board, .tank.struck #board { animation: none; }
 }

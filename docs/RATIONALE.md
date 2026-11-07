@@ -76,8 +76,8 @@ inferences, waiting for review.
 ### D-31 Dual display: the LLM plays over MCP, a read-only browser page follows over a WebSocket — *Decided; the routes, frame shape and link are Proposed*
 - **Choice:** MCP stays the only way to act, with the LLM as the ship's computer. A browser
   page gets the current sector's board, the galaxy map, ship status and a survey panel for one
-  game, pushed over a per-game socket. The board and the map share one space under Quadrant
-  and Galaxy tabs, opening on Quadrant because that's where the battle is. The
+  game, pushed over a per-game socket. Everything shows on one display, with the board as a
+  tilted hologram in the middle, because the player otherwise doesn't need the mouse at all. The
   core makes the view (`view`, which can't change a game and shows only what's uncovered),
   the app layer makes frames and publishes after each accepted command, and each adapter holds
   the sockets. `new_game` reports the link, and the crew hands it to the captain.

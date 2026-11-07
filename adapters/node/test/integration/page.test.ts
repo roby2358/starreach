@@ -22,6 +22,10 @@ test("the page and the files it links are served with their types", async () => 
     assert.equal(asset.status, 200);
     assert.match(asset.headers.get("content-type")!, type);
   }
+  const font = await fetch(`${running.base}/fonts/oxanium.woff2`);
+  assert.equal(font.status, 200);
+  assert.match(font.headers.get("content-type")!, /font\/woff2/);
+  assert.equal(new TextDecoder().decode((await font.arrayBuffer()).slice(0, 4)), "wOF2", "the font arrives intact");
 });
 
 test("paths outside the page are not served", async () => {

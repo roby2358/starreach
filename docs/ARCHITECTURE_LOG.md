@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-07 — The page becomes one Holotank display; the tabs are gone
+The designer chose Holotank from five mockups (`docs/mockups/viewer_styles.html`) and dropped the
+tabs, because the player otherwise never needs the mouse. U-10 now states the one display, and new
+U-11 covers the warp and enemy-gone animations. The enemy-gone flare covers the whole plane: enemies
+move, so a frame can't say which one died until there are events. The page serves Oxanium itself
+(OFL, `public/fonts/`), so `PAGE_FILES` entries are now bytes.
+
 ### 2026-11-07 — The page shows the current sector, under Quadrant and Galaxy tabs
 The designer asked for the page to feature the current sector, with tabs above the map. GameView
 gains `board`, the ship's sector as map rows, so a running server must restart to serve the new

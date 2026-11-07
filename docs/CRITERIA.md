@@ -56,7 +56,8 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 | U-2 | The browser page shows the ship's hull, shields, energy and quantorpedoes against their maximums, following the game | automated |
 | U-8 | The browser page's survey panel shows sectors charted, enemies sighted and starbases found, totalled from the charted sectors | automated |
 | U-9 | The browser page shows the current sector's board, updated after each warp and then after ship and enemy actions | automated |
-| U-10 | Tabs above the map switch between Quadrant (the current sector's board) and Galaxy (the galaxy map). The page opens on Quadrant, and new frames don't change the chosen tab. Changing tabs replays no flash | automated |
+| U-10 | The browser page is one display: the current sector's board as a tilted hologram, the galaxy map, ship status and survey all show together, with nothing to click, and fit a laptop screen without scrolling | automated |
+| U-11 | The hologram plays one animation on a warp and one when an enemy is gone from the ship's sector, and none on the first frame | automated |
 | U-3 | The LLM shows the sector in the instructions format: column header, row numbers, no legend, no star count | manual — run a session in Claude Desktop and compare with `public/instructions.txt` |
 | U-4 | The LLM opens a session with a greeting and the current state | manual — first reply of a fresh session |
 | U-5 | The LLM keeps naval decorum ("Aye aye, captain") | manual — read a 10-turn session |
@@ -82,7 +83,7 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 - **Automated in the app layer** (`just cc-test-app`): R-18, R-25's not-found result, and
   R-21's publishing.
 - **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets and R-27.
-- **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10. It needs Chromium's system
+- **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11. It needs Chromium's system
   libraries, which `just cc-setup` fetches in a rebuilt container.
 - **Manual only:** U-3 – U-7.
 - **X-1 – X-5** need play sessions on the new layers.

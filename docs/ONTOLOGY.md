@@ -569,6 +569,6 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 - **Browser:** opens the game's socket, draws each frame's GameView as the current sector's
   board, the galaxy map, ship status and a survey panel (sectors charted, enemies sighted and
   starbases found, totalled from the map), and reconnects after losing the socket. It sends
-  nothing and never changes state. [D] Tabs above the map choose between Quadrant (the board,
-  shown first) and Galaxy (the map); the choice stays on the page. [D]
+  nothing and never changes state. [D] It is one display with nothing to click: the board as a
+  tilted hologram (Holotank) in the middle, with the map, ship status and survey around it. [D]
 - **App layer:** stores and forwards Games; it never reads or edits a Game's fields. [D]

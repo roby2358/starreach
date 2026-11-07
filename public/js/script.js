@@ -6,6 +6,9 @@
     const RECONNECT_MAX_MS = 15000;
     const GAME_NOT_FOUND_CLOSE = 4404;
     const LOW_GAUGE_FRACTION = 0.25;
+    const MAX_GAUGE_SEGMENTS = 20;
+    const STAR_RING_RADIUS_PERCENT = 38;
+    const STAR_RING_CENTER_PERCENT = 48;
 
     const GAUGES = [
         { label: "Hull", value: "hull", max: "max_hull" },
@@ -76,29 +79,6 @@
         byId("galaxy").append(drawn.marker);
     }
 
-    /** A browser restarts a CSS animation when its hidden panel reappears, so a flash that's
-     *  still on a cell would replay every time its tab opens. */
-    function clearSectorFlashes() {
-        for (const cell of drawn.sectors.flat()) {
-            cell.classList.remove("revealed", "struck");
-        }
-    }
-
-    function showTab(chosen) {
-        clearSectorFlashes();
-        for (const tab of document.querySelectorAll("[role=tab]")) {
-            const selected = tab === chosen;
-            tab.setAttribute("aria-selected", String(selected));
-            byId(tab.getAttribute("aria-controls")).hidden = !selected;
-        }
-    }
-
-    function buildTabs() {
-        for (const tab of document.querySelectorAll("[role=tab]")) {
-            tab.addEventListener("click", () => showTab(tab));
-        }
-    }
-
     function buildGauges() {
         for (const gauge of GAUGES) {
             const root = element("gauge");
@@ -114,16 +94,17 @@
             track.append(fill);
             root.append(label, track);
             byId("gauges").append(root);
-            drawn.gauges[gauge.value] = { root, value, fill };
+            drawn.gauges[gauge.value] = { root, value, track, fill };
         }
     }
 
-    /** Scatters a sector's stars the same way every time, from its coordinates. */
-    function starAt(y, x, index) {
+    /** Sets a sector's stars the same way every time, from its coordinates. They keep to a ring
+     *  around the cell, so the enemy count in the middle stays readable. */
+    function starAt(y, x, index, count) {
         const star = element("dot");
-        const spread = (salt) => (y * 37 + x * 17 + index * salt) % 89 + 5;
-        star.style.top = `${spread(53)}%`;
-        star.style.left = `${spread(29)}%`;
+        const angle = ((y * 37 + x * 17 + (index * 360) / count) * Math.PI) / 180;
+        star.style.top = `${STAR_RING_CENTER_PERCENT + STAR_RING_RADIUS_PERCENT * Math.sin(angle)}%`;
+        star.style.left = `${STAR_RING_CENTER_PERCENT + STAR_RING_RADIUS_PERCENT * Math.cos(angle)}%`;
         return star;
     }
 
@@ -135,7 +116,7 @@
     }
 
     function drawSectorContents(cell, y, x, sector) {
-        const stars = Array.from({ length: sector.stars }, (_, index) => starAt(y, x, index));
+        const stars = Array.from({ length: sector.stars }, (_, index) => starAt(y, x, index, sector.stars));
         cell.replaceChildren(...stars);
         if (sector.starbases > 0) {
             cell.append(element("starbase"));
@@ -195,10 +176,11 @@
 
     function drawGauges(ship, previous) {
         for (const gauge of GAUGES) {
-            const { root, value, fill } = drawn.gauges[gauge.value];
+            const { root, value, track, fill } = drawn.gauges[gauge.value];
             const fraction = ship[gauge.value] / ship[gauge.max];
             value.textContent = `${ship[gauge.value]} / ${ship[gauge.max]}`;
             fill.style.width = `${fraction * 100}%`;
+            track.style.setProperty("--segments", Math.min(ship[gauge.max], MAX_GAUGE_SEGMENTS));
             root.classList.toggle("low", fraction < LOW_GAUGE_FRACTION);
             if (previous !== null && ship[gauge.value] < previous.ship[gauge.value]) {
                 flash(root, "dropped");
@@ -219,12 +201,27 @@
         outcome.hidden = OUTCOMES[status] === null;
         outcome.textContent = OUTCOMES[status];
         outcome.className = `outcome ${status}`;
+        document.body.dataset.status = status;
+    }
+
+    /** A warp and an enemy gone from this sector each play once on the hologram. */
+    function animateTank(view, previous) {
+        if (previous === null) {
+            return;
+        }
+        const [y, x] = view.sector_yx;
+        if (y !== previous.sector_yx[0] || x !== previous.sector_yx[1]) {
+            flash(byId("tank"), "warping");
+        } else if (view.galaxy[y][x].enemies < previous.galaxy[y][x].enemies) {
+            flash(byId("tank"), "struck");
+        }
     }
 
     function drawView(view) {
         byId("stardate").textContent = view.stardate;
         byId("sector").textContent = `(${view.sector_yx[0]}, ${view.sector_yx[1]})`;
         drawBoard(view.board);
+        animateTank(view, drawn.previous);
         drawGalaxy(view, drawn.previous);
         drawGauges(view.ship, drawn.previous);
         drawSurvey(view);
@@ -265,7 +262,6 @@
 
     function start() {
         buildMaps();
-        buildTabs();
         buildGauges();
         const gameId = new URLSearchParams(location.search).get("game");
         if (gameId === null) {

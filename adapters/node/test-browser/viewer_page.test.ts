@@ -1,4 +1,4 @@
-// U-1, U-2, U-8, U-9, U-10: the real page in a real browser, against the real server, while commands run.
+// U-1, U-2, U-8, U-9, U-10, U-11: the real page in a real browser, against the real server, while commands run.
 // A screenshot of the page goes to test-browser/out/ to look at.
 
 import assert from "node:assert/strict";
@@ -58,9 +58,8 @@ test("U-1: the map is a labelled 10x10 grid: charted sectors filled, the rest hi
 
   await runCommand(running.deps, id, { type: "galaxy_warp", y: 3, x: 3 });
   await page.waitForFunction(() => document.querySelector("#sector")!.textContent === "(3, 3)");
-  await page.click("#tab-galaxy");
   await page.waitForTimeout(800);
-  await page.screenshot({ path: `${OUT}desktop-galaxy.png` });
+  await page.screenshot({ path: `${OUT}desktop-after-warp.png` });
   await page.close();
 });
 
@@ -73,7 +72,6 @@ test("U-2: the ship's status follows the game, and nothing goes back up the sock
   await page.waitForSelector("body[data-link=live]");
   const energy = page.locator("[data-gauge=energy] .gauge-value");
   assert.match((await energy.textContent())!, /^(\d+) \/ \1$/);
-  await page.click("#tab-galaxy");
 
   const { state } = await runCommand(running.deps, id, { type: "long_range_scan" });
   await page.waitForFunction(
@@ -129,53 +127,65 @@ test("U-9: the board shows the ship's sector, following warps and moves", async 
 
   const { state: warped } = await runCommand(running.deps, id, { type: "galaxy_warp", y: 3, x: 3 });
   await waitForBoard(page, warped!.map as string[]);
+  await page.waitForTimeout(900);
   await page.screenshot({ path: `${OUT}desktop-quadrant.png` });
   await page.close();
 });
 
-test("U-10: the tabs swap the Quadrant and Galaxy maps, opening on Quadrant and staying through new frames", async () => {
-  const id = await gameId();
-  const page = await openGame(id, { width: 1100, height: 800 });
-  const selected = page.locator("[role=tab][aria-selected=true]");
-  assert.equal(await selected.textContent(), "Quadrant");
-  assert.equal(await page.locator("#board").isVisible(), true);
-  assert.equal(await page.locator("#galaxy").isVisible(), false);
-
-  await page.click("#tab-galaxy");
-  assert.equal(await selected.textContent(), "Galaxy");
-  assert.equal(await page.locator("#board").isVisible(), false);
-  assert.equal(await page.locator("#galaxy").isVisible(), true);
-
-  await runCommand(running.deps, id, { type: "long_range_scan" });
-  await page.waitForFunction(() => document.querySelector("#charted")!.textContent === "9 / 100");
-  assert.equal(await selected.textContent(), "Galaxy");
-
-  await page.click("#tab-quadrant");
-  assert.equal(await page.locator("#board").isVisible(), true);
-  assert.equal(await page.locator("#galaxy").isVisible(), false);
+test("U-10: one display: both maps, the gauges and the survey show together, with nothing to click", async () => {
+  const page = await openGame(await gameId(), { width: 1100, height: 800 });
+  for (const selector of ["#board", "#galaxy", "#gauges", ".survey"]) {
+    assert.equal(await page.locator(selector).isVisible(), true, selector);
+  }
+  assert.equal(await page.locator("#console button, #console [role=tab], #console a").count(), 0);
   await page.close();
 });
 
-async function scanAndWait(page: Page, id: string, charted: string): Promise<void> {
-  await runCommand(running.deps, id, { type: "long_range_scan" });
-  await page.waitForFunction((expected) => document.querySelector("#charted")!.textContent === expected, charted);
+/** How many animations are running on the tank or inside it. */
+function tankAnimations(page: Page): Promise<number> {
+  return page.evaluate(() => document.getAnimations().filter((animation) => animation instanceof CSSAnimation && (animation.effect as KeyframeEffect).target?.closest("#tank")).length);
 }
 
-test("U-10: changing tabs replays no sector flash, whether it happened on or off screen", async () => {
+test("U-11: a warp plays on the hologram, and the first frame doesn't", async () => {
   const id = await gameId();
   const page = await openGame(id, { width: 1100, height: 800 });
-  const flashes = () => page.evaluate(() => document.getAnimations().filter((animation) => animation instanceof CSSAnimation && (animation.effect as KeyframeEffect).target?.closest("#galaxy")).length);
-
-  await scanAndWait(page, id, "9 / 100");
-  await page.click("#tab-galaxy");
-  assert.equal(await flashes(), 0, "a flash from while Galaxy was hidden played on opening it");
-
+  assert.equal(await tankAnimations(page), 0);
   await runCommand(running.deps, id, { type: "galaxy_warp", y: 3, x: 3 });
-  await scanAndWait(page, id, "14 / 100");
-  assert.ok((await flashes()) > 0, "a flash should play while Galaxy is showing");
-  await page.click("#tab-quadrant");
-  await page.click("#tab-galaxy");
-  assert.equal(await flashes(), 0, "a flash replayed on returning to Galaxy");
+  await page.waitForSelector("#tank.warping");
+  assert.ok((await tankAnimations(page)) > 0);
+  await page.close();
+});
+
+test("U-11: an enemy gone from the ship's sector flares the hologram", async () => {
+  const { deps } = running;
+  const id = await gameId();
+  const page = await openGame(id, { width: 1100, height: 800 });
+  const setEnemies = async (enemies: number) => {
+    const game = JSON.parse((await deps.store.get(id))!);
+    const [y, x] = game.sector_yx;
+    game.galaxy.sectors[y][x].enemies = enemies;
+    await deps.store.put(id, JSON.stringify(game));
+    await runCommand(deps, id, { type: "state" });
+  };
+  await setEnemies(2);
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator("#tank.struck").count(), 0, "more enemies isn't a kill");
+  await setEnemies(1);
+  await page.waitForSelector("#tank.struck");
+  assert.ok((await tankAnimations(page)) > 0);
+  await page.close();
+});
+
+test("the marks stand up from the tilted plane", async () => {
+  const page = await openGame(await gameId(), { width: 1100, height: 800 });
+  const box = (selector: string) => page.locator(selector).first().evaluate((node) => {
+    const { width, height } = node.getBoundingClientRect();
+    return { width, height };
+  });
+  const cell = await box("#board .cell");
+  const ship = await box("#board .ship");
+  assert.ok(cell.height < cell.width * 0.9, "the plane is tilted");
+  assert.ok(ship.height > ship.width * 0.9, "the ship faces the viewer");
   await page.close();
 });
 
@@ -190,18 +200,33 @@ test("the page announces how the game ended", async () => {
     await runCommand(deps, id, { type: "state" });
     await page.waitForSelector(`#outcome.${status}`);
     assert.match((await page.locator("#outcome").textContent())!, text);
+    await page.screenshot({ path: `${OUT}outcome-${status}.png` });
     await page.close();
   }
 });
 
-test("either whole map fits a laptop screen", async () => {
+test("the whole display fits a laptop screen, with no scrolling", async () => {
   const page = await openGame(await gameId(), { width: 1100, height: 800 });
-  const bottomOf = (selector: string) => page.locator(selector).evaluate((map) => map.getBoundingClientRect().bottom);
-  const quadrant = await bottomOf("#board");
-  assert.ok(quadrant > 0 && quadrant <= 800, `the quadrant map ends at ${quadrant}`);
-  await page.click("#tab-galaxy");
-  const galaxy = await bottomOf("#galaxy");
-  assert.ok(galaxy > 0 && galaxy <= 800, `the galaxy map ends at ${galaxy}`);
+  const bottomOf = (selector: string) => page.locator(selector).evaluate((node) => node.getBoundingClientRect().bottom);
+  for (const selector of ["#board", "#galaxy", ".tank-section .legend", ".galaxy-panel"]) {
+    const bottom = await bottomOf(selector);
+    assert.ok(bottom > 0 && bottom <= 800, `${selector} ends at ${bottom}`);
+  }
+  assert.ok(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight), "the page scrolls");
+  const plane = await page.locator("#board").evaluate((node) => node.getBoundingClientRect().toJSON());
+  const section = await page.locator(".tank-section").evaluate((node) => node.getBoundingClientRect().toJSON());
+  const legend = await page.locator(".tank-section .legend").evaluate((node) => node.getBoundingClientRect().top);
+  assert.ok(plane.left >= section.left && plane.right <= section.right, "the plane stays clear of the side panels");
+  assert.ok(plane.bottom <= legend, "the plane stays clear of its legend");
+  await page.screenshot({ path: `${OUT}desktop.png` });
+  await page.close();
+});
+
+test("the display uses a wider screen", async () => {
+  const page = await openGame(await gameId(), { width: 1600, height: 900 });
+  await page.screenshot({ path: `${OUT}desktop-wide.png` });
+  const width = await page.locator("#board").evaluate((node) => node.getBoundingClientRect().width);
+  assert.ok(width > 600, `the plane is only ${width} wide`);
   await page.close();
 });
 

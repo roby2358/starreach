@@ -1,0 +1,407 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Starreach Viewer Styles</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@200;300;500&family=Hanken+Grotesk:wght@100;200;400&family=Lexend:wght@300;400;600&family=Marcellus&family=Jura:wght@400;600&family=Oxanium:wght@300;500;700&display=swap">
+<style>
+/* One screen's markup, five treatments. Each style sets its tokens, its layout and its marks,
+   and picks one gauge drawing in the STYLES table. */
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); transition: background-color 200ms; }
+h1, h2, dl, dd, p, ul { margin: 0; padding: 0; }
+ul { list-style: none; }
+h1, h2 { font-weight: inherit; font-size: inherit; }
+
+/* The mockup's own switcher, not part of any design */
+#bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; display: flex; align-items: center; gap: 16px; padding-block: 8px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: #15171b; color: #e8eaed; font: 13px/1.3 system-ui, sans-serif; color-scheme: dark; }
+#bar .note { flex: 1 1 auto; min-width: 0; color: #a0a6b0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#bar .picks { display: flex; gap: 4px; overflow-x: auto; flex: 0 1 auto; min-width: 0; }
+#bar button { flex: none; padding: 6px 10px; border: 1px solid #343840; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+#bar button:hover { background: #24272d; }
+#bar button:focus-visible { outline: 2px solid #8ab4f8; outline-offset: 1px; }
+#bar button[aria-pressed="true"] { background: #e8eaed; border-color: #e8eaed; color: #15171b; }
+@media (max-width: 760px) { #bar .note { display: none; } }
+
+/* Shared skeleton */
+#view { display: flex; flex-direction: column; gap: var(--gap); padding-block: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#view > * { min-width: 0; }
+.top { grid-area: top; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 32px; }
+.readouts { display: flex; flex-wrap: wrap; gap: 8px 32px; font-variant-numeric: tabular-nums; }
+.quad { grid-area: quad; } .gal { grid-area: gal; } .ship { grid-area: ship; } .survey { grid-area: survey; }
+.scope { position: relative; width: min(100%, var(--quad-size)); margin-inline: auto; }
+.gal .map { width: min(100%, var(--gal-size)); margin-inline: auto; }
+.map { position: relative; display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); aspect-ratio: 1; width: 100%; max-width: 100%; }
+.map > div { position: relative; display: grid; place-items: center; min-width: 0; aspect-ratio: 1; }
+.ax { font-size: clamp(9px, 1.1vw, 12px); color: var(--dim); font-variant-numeric: tabular-nums; }
+.mark { display: block; width: 58%; aspect-ratio: 1; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 18px; margin-top: 12px; font-size: 12px; color: var(--dim); }
+.legend li { display: flex; align-items: center; gap: 6px; }
+#view .legend .mark { width: 13px; flex: none; }
+#view .legend .m-star { width: var(--legend-star, 6px); }
+.s .n { position: relative; font-weight: 600; font-size: clamp(10px, 1.2vw, 14px); z-index: 1; }
+.s .dot { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: var(--star); }
+#view .s .home { position: absolute; right: 10%; bottom: 10%; width: 26%; aspect-ratio: 1; border-width: 1.5px; }
+.survey dl { display: grid; gap: 8px; }
+.survey dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.survey dd { font-variant-numeric: tabular-nums; }
+.low-tag { display: none; }
+.low .low-tag { display: inline; }
+svg { display: block; }
+
+/* ---------- 1. AURORA GLASS: frosted panes over a slow polar light ---------- */
+[data-style=aurora] { --bg: #06151b; --fg: #eef8f7; --dim: #a5c3c6; --star: #ffe9b8; --gap: 16px; --quad-size: calc(100vh - 240px); --gal-size: calc(50vh - 130px);
+  --body: "Sora", "Segoe UI", system-ui, sans-serif; --hi: #7df3d3; --warn: #ffb37a; --foe: #ff7d9a; --home: #8fd6ff;
+  background: radial-gradient(70vw 50vh at 12% 8%, #15786a88, transparent 70%), radial-gradient(60vw 60vh at 88% 18%, #a13c6e66, transparent 70%), radial-gradient(70vw 50vh at 62% 100%, #1f6f9a66, transparent 70%), #06151b; background-attachment: fixed; font-weight: 300; }
+[data-style=aurora] .pane { padding: 20px; border: 1px solid #ffffff24; border-radius: 22px; background: #ffffff0e; backdrop-filter: blur(22px) saturate(140%); box-shadow: inset 0 1px 0 #ffffff26, 0 18px 50px #00000040; }
+[data-style=aurora] h1 { font-size: 24px; font-weight: 200; letter-spacing: 0.02em; }
+[data-style=aurora] h1 span { color: var(--hi); }
+[data-style=aurora] .readouts dt, [data-style=aurora] .pane h2, [data-style=aurora] .survey dt { color: var(--dim); font-size: 12px; }
+[data-style=aurora] .pane h2 { margin-bottom: 14px; font-size: 13px; font-weight: 500; color: var(--fg); }
+[data-style=aurora] .readouts dd { font-size: 18px; font-weight: 300; }
+[data-style=aurora] .c, [data-style=aurora] .s { border-radius: 28%; background: #ffffff09; margin: 1.5px; }
+[data-style=aurora] .s.hidden { background: #ffffff03; }
+[data-style=aurora] .s.here { box-shadow: 0 0 0 1.5px var(--hi), 0 0 14px #7df3d366; }
+[data-style=aurora] .s .n { color: var(--foe); }
+[data-style=aurora] .m-ship { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, var(--hi)); box-shadow: 0 0 16px var(--hi); }
+[data-style=aurora] .m-enemy { border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd5de, var(--foe)); box-shadow: 0 0 14px var(--foe); width: 46%; }
+[data-style=aurora] .m-base { border-radius: 50%; border: 2px solid var(--home); box-shadow: 0 0 10px var(--home); }
+[data-style=aurora] .m-star { width: 16%; border-radius: 50%; background: var(--star); box-shadow: 0 0 8px var(--star); }
+[data-style=aurora] .dials { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+[data-style=aurora] .dial { position: relative; text-align: center; font-size: 12px; color: var(--dim); }
+[data-style=aurora] .dial circle { fill: none; stroke-width: 7; stroke-linecap: round; }
+[data-style=aurora] .dial .track { stroke: #ffffff18; }
+[data-style=aurora] .dial .fill { stroke: var(--hi); filter: drop-shadow(0 0 5px #7df3d399); }
+[data-style=aurora] .dial.low .fill { stroke: var(--warn); filter: drop-shadow(0 0 5px #ffb37a99); }
+[data-style=aurora] .dial.low .val { color: var(--warn); }
+[data-style=aurora] .dial .val { position: absolute; inset: 0 0 22px; display: grid; place-content: center; color: var(--fg); font-size: 15px; font-variant-numeric: tabular-nums; }
+@media (min-width: 900px) { [data-style=aurora] #view { display: grid; grid-template: "top top top" auto "gal quad ship" auto "survey quad ship" 1fr / minmax(220px, 1fr) minmax(0, 1.7fr) minmax(220px, 1fr); max-width: 1500px; margin-inline: auto; } }
+
+/* ---------- 2. MONOLITH: ultra-thin numerals, marks told apart by form alone ---------- */
+[data-style=monolith] { --bg: #040506; --fg: #f4f6f8; --dim: #8b929b; --star: #c6ccd3; --gap: 24px; --quad-size: calc(100vh - 290px); --gal-size: 100%;
+  --body: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif; --warn: #ffb648; font-weight: 200; }
+[data-style=monolith] .top { align-items: flex-end; border-bottom: 1px solid #2b2f35; padding-bottom: 12px; }
+[data-style=monolith] h1 { font-size: 13px; font-weight: 400; letter-spacing: 0.34em; text-transform: uppercase; }
+[data-style=monolith] h1 span { display: block; color: var(--dim); }
+[data-style=monolith] .readouts dt, [data-style=monolith] .pane h2, [data-style=monolith] .survey dt { color: var(--dim); font-size: 11px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; }
+[data-style=monolith] .readouts dd { font-weight: 100; font-size: clamp(30px, 5.6vw, 76px); line-height: 1; letter-spacing: -0.02em; }
+[data-style=monolith] .pane h2 { margin-bottom: 14px; }
+[data-style=monolith] .c, [data-style=monolith] .s { background: linear-gradient(#333a42, #333a42) center/9px 1px no-repeat, linear-gradient(#333a42, #333a42) center/1px 9px no-repeat; }
+[data-style=monolith] .c:has(.mark) { background: none; }
+[data-style=monolith] .s { background: none; border: 1px solid #1d2126; margin: -0.5px; }
+[data-style=monolith] .s.hidden { border-color: transparent; background: radial-gradient(circle, #2b3037 1px, transparent 1.5px); }
+[data-style=monolith] .s.here { border-color: var(--fg); z-index: 1; }
+[data-style=monolith] .s .n { font-weight: 400; }
+[data-style=monolith] .m-ship { width: 62%; border-radius: 50%; border: 1.5px solid var(--fg); background: radial-gradient(circle, var(--fg) 24%, transparent 26%); }
+[data-style=monolith] .m-enemy { width: 44%; background: var(--fg); transform: rotate(45deg); }
+[data-style=monolith] .m-base { width: 48%; border: 1.5px solid var(--fg); }
+[data-style=monolith] .m-star { width: 10%; border-radius: 50%; background: var(--star); }
+[data-style=monolith] .legend { justify-content: flex-start; }
+[data-style=monolith] .numerals { display: grid; gap: 16px; }
+[data-style=monolith] .num .label { display: flex; justify-content: space-between; color: var(--dim); font-size: 11px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; }
+[data-style=monolith] .num .big { font-size: clamp(38px, 3.8vw, 56px); font-weight: 100; line-height: 1.1; font-variant-numeric: tabular-nums; }
+[data-style=monolith] .num .rail { height: 1px; background: #2b2f35; }
+[data-style=monolith] .num .rail div { height: 1px; background: var(--fg); }
+[data-style=monolith] .num.low .big, [data-style=monolith] .num.low .label .low-tag { color: var(--warn); }
+[data-style=monolith] .num.low .rail div { background: var(--warn); }
+[data-style=monolith] .survey dd { font-weight: 400; }
+@media (min-width: 900px) { [data-style=monolith] #view { display: grid; grid-template: "top top top" auto "gal quad ship" auto "survey quad ship" 1fr / minmax(200px, 1fr) minmax(0, 2fr) minmax(200px, 0.9fr); gap: 24px 40px; max-width: 1560px; margin-inline: auto; } }
+
+/* ---------- 3. PORCELAIN: a light ceramic instrument, pressed wells and a lit signal ---------- */
+[data-style=porcelain] { color-scheme: light; --bg: #dfe4e7; --fg: #1d2529; --dim: #5e6b72; --star: #8a979e; --gap: 18px; --quad-size: calc(100vh - 290px); --gal-size: calc(100vh - 480px);
+  --body: "Lexend", "Segoe UI", system-ui, sans-serif; --sig: #e8500a; --foe: #1d2529; --home: #06807c; --slab: #eff2f4; font-weight: 300; }
+[data-style=porcelain] #view { background: var(--slab); margin: 12px; border-radius: 32px; box-shadow: 0 30px 60px #76868f55, inset 0 2px 1px #fff, inset 0 -3px 4px #b9c4ca88; padding-block: 24px; }
+[data-style=porcelain] h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+[data-style=porcelain] h1 span { font-weight: 300; color: var(--dim); }
+[data-style=porcelain] .readouts dt, [data-style=porcelain] .pane h2, [data-style=porcelain] .survey dt { color: var(--dim); font-size: 12px; }
+[data-style=porcelain] .pane h2 { margin-bottom: 12px; font-weight: 400; }
+[data-style=porcelain] .readouts dd { font-weight: 400; font-size: 17px; }
+[data-style=porcelain] .link-state::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 7px; border-radius: 50%; background: var(--sig); box-shadow: 0 0 8px var(--sig); }
+[data-style=porcelain] .c, [data-style=porcelain] .s { margin: 12%; border-radius: 50%; background: #e4e8eb; box-shadow: inset 1px 1px 3px #a9b5bc, inset -1px -1px 2px #fff; }
+[data-style=porcelain] .s { margin: 3px; border-radius: 26%; background: #f6f8f9; box-shadow: 0 1px 2px #a9b5bc88, inset 0 1px 0 #fff; color: var(--fg); }
+[data-style=porcelain] .s.hidden { background: #e4e8eb; box-shadow: inset 1px 1px 2px #b9c4ca, inset -1px -1px 1px #fff; }
+[data-style=porcelain] .s.here { outline: 2px solid var(--sig); outline-offset: 1px; }
+[data-style=porcelain] .m-ship { width: 74%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff9a5c, var(--sig) 70%); box-shadow: 0 2px 8px #e8500a88; }
+[data-style=porcelain] .m-enemy { width: 72%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #5c6a72, var(--foe) 70%); box-shadow: 0 2px 4px #1d252988; }
+[data-style=porcelain] .m-base { width: 72%; border-radius: 50%; border: 4px solid var(--home); background: #f6f8f9; }
+[data-style=porcelain] .m-star { width: 24%; border-radius: 50%; background: #8a979e; }
+[data-style=porcelain] .legend .m-base { border-width: 2px; }
+[data-style=porcelain] .tubes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+[data-style=porcelain] .tube { display: grid; gap: 8px; justify-items: center; text-align: center; font-size: 11px; color: var(--dim); min-width: 0; }
+[data-style=porcelain] .tube .well { position: relative; width: 26px; height: 120px; overflow: hidden; border-radius: 13px; background: #dbe0e4; box-shadow: inset 2px 2px 4px #a4b0b8, inset -1px -1px 2px #fff; }
+[data-style=porcelain] .tube .level { position: absolute; inset: auto 3px 3px; border-radius: 10px; background: linear-gradient(90deg, #39a7a2, var(--home)); }
+[data-style=porcelain] .tube.low .level { background: linear-gradient(90deg, #ff8a4a, var(--sig)); }
+[data-style=porcelain] .tube .v { color: var(--fg); font-size: 14px; font-weight: 400; font-variant-numeric: tabular-nums; }
+[data-style=porcelain] .tube.low .v { color: var(--sig); }
+[data-style=porcelain] .survey dd { font-weight: 400; }
+[data-style=porcelain] .ship { padding-bottom: 4px; }
+@media (min-width: 900px) { [data-style=porcelain] #view { display: grid; grid-template: "top top top" auto "quad ship ship" auto "quad gal survey" 1fr / minmax(0, 1.5fr) minmax(0, 0.8fr) minmax(170px, 0.5fr); gap: 18px 32px; width: calc(100% - 32px); max-width: 1440px; margin: 16px auto; padding-inline: 32px; } }
+@media (max-width: 899px) { [data-style=porcelain] #view { margin: 8px 0; border-radius: 22px; } }
+
+/* ---------- 4. ORRERY: a navigator's brass instrument; the ship's reserves ring the chart ---------- */
+[data-style=orrery] { --bg: #0a1228; --fg: #f1e7d3; --dim: #a59b84; --star: #e9dcb9; --gap: 20px; --quad-size: calc(100vh - 170px); --gal-size: 100%;
+  --body: "Jura", "Segoe UI", sans-serif; --display: "Marcellus", Georgia, serif; --brass: #d0ad6a; --legend-star: 14px; --foe: #e96a50; --home: #7fd0c6; font-weight: 400;
+  background: radial-gradient(circle at 50% 56%, #1a2a52 0, #0a1228 62%); background-attachment: fixed; }
+[data-style=orrery] .top { justify-content: space-between; border-bottom: 1px solid #d0ad6a55; padding-bottom: 10px; }
+[data-style=orrery] h1 { font-family: var(--display); font-size: 24px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass); }
+[data-style=orrery] h1 span { color: var(--fg); letter-spacing: 0.1em; font-size: 15px; text-transform: none; margin-left: 8px; }
+[data-style=orrery] .readouts dt, [data-style=orrery] .survey dt { color: var(--dim); font-size: 12px; letter-spacing: 0.08em; }
+[data-style=orrery] .readouts dd { font-family: var(--display); font-size: 19px; color: var(--fg); }
+[data-style=orrery] .pane h2 { font-family: var(--display); font-size: 16px; letter-spacing: 0.14em; color: var(--brass); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #d0ad6a44; }
+[data-style=orrery] .quad h2 { display: none; }
+[data-style=orrery] .scope { aspect-ratio: 1; }
+[data-style=orrery] .scope .map { position: absolute; left: 18%; top: 18%; width: 64%; }
+[data-style=orrery] .scope svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+[data-style=orrery] .scope text { font: 600 25px var(--body); fill: var(--brass); letter-spacing: 3px; }
+[data-style=orrery] .scope .rail { fill: none; stroke: #d0ad6a30; stroke-width: 15; }
+[data-style=orrery] .scope .level { fill: none; stroke: var(--brass); stroke-width: 15; }
+[data-style=orrery] .scope .low .level { stroke: var(--foe); } [data-style=orrery] .scope .low text { fill: var(--foe); }
+[data-style=orrery] .scope .ticks { fill: none; stroke: #d0ad6a88; stroke-width: 7; stroke-dasharray: 1.5 18.5; }
+[data-style=orrery] .c, [data-style=orrery] .s { border-right: 1px solid #d0ad6a2c; border-bottom: 1px solid #d0ad6a2c; }
+[data-style=orrery] .s.hidden { background: #05091a88; }
+[data-style=orrery] .s.here { box-shadow: inset 0 0 0 2px var(--brass); }
+[data-style=orrery] .s .n { color: var(--foe); }
+[data-style=orrery] .m-ship { width: 82%; background: var(--fg); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); filter: drop-shadow(0 0 4px var(--fg)); }
+[data-style=orrery] .m-enemy { width: 56%; background: var(--foe); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+[data-style=orrery] .m-base { width: 60%; border-radius: 50%; border: 2px solid var(--home); background: radial-gradient(circle, var(--home) 22%, transparent 25%); }
+[data-style=orrery] .m-star { width: 30%; background: var(--star); clip-path: polygon(50% 0, 56% 44%, 100% 50%, 56% 56%, 50% 100%, 44% 56%, 0 50%, 44% 44%); }
+[data-style=orrery] .ledger { display: grid; gap: 10px; font-variant-numeric: tabular-nums; }
+[data-style=orrery] .ledger > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-bottom: 1px dotted #d0ad6a44; padding-bottom: 8px; }
+[data-style=orrery] .ledger span:first-child { color: var(--dim); font-size: 13px; }
+[data-style=orrery] .ledger span:last-child { font-family: var(--display); font-size: 21px; }
+[data-style=orrery] .ledger small { font-size: 12px; color: var(--dim); font-family: var(--body); }
+[data-style=orrery] .ledger .low span:last-child { color: var(--foe); }
+[data-style=orrery] .survey dd { font-family: var(--display); font-size: 19px; }
+@media (min-width: 900px) { [data-style=orrery] #view { display: grid; grid-template: "top top top" auto "gal quad ship" auto "survey quad ship" 1fr / minmax(220px, 1fr) minmax(0, 2.1fr) minmax(220px, 1fr); gap: 16px 32px; max-width: 1500px; margin-inline: auto; } }
+
+/* ---------- 5. HOLOTANK: the tactical plane floats in a dark tank; the data sits on the glass ---------- */
+[data-style=holotank] { --bg: #021217; --fg: #d4f8ff; --dim: #7fb6c2; --star: #d4f8ff; --gap: 14px; --quad-size: min(100%, 72vh); --gal-size: 100%;
+  --body: "Oxanium", "Segoe UI", system-ui, sans-serif; --cy: #3fe0ff; --legend-star: 14px; --foe: #ff3f86; --home: #6dffb0; --warn: #ffc04d;
+  background: radial-gradient(70vw 55vh at 50% 70%, #0d4a5a, transparent 72%), #021217; background-attachment: fixed; }
+[data-style=holotank] h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: var(--cy); text-shadow: 0 0 14px #3fe0ff88; }
+[data-style=holotank] h1 span { font-weight: 300; letter-spacing: 0.14em; color: var(--fg); font-size: 14px; margin-left: 8px; }
+[data-style=holotank] .readouts dt, [data-style=holotank] .pane h2, [data-style=holotank] .survey dt { color: var(--dim); font-size: 11px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; }
+[data-style=holotank] .readouts dd { font-size: 19px; font-weight: 500; color: var(--cy); }
+[data-style=holotank] .pane h2 { margin-bottom: 10px; }
+[data-style=holotank] .gal, [data-style=holotank] .survey, [data-style=holotank] .ship { padding: 14px; background: #0a2d3866; border: 1px solid #3fe0ff33; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); }
+[data-style=holotank] .quad h2 { position: relative; z-index: 1; }
+[data-style=holotank] .tank { perspective: 1300px; perspective-origin: 50% 20%; padding-block: 2vh; overflow-x: clip; }
+[data-style=holotank] .scope { transform-style: preserve-3d; transform: rotateX(50deg); margin-block: -9%; }
+[data-style=holotank] .scope .map { transform-style: preserve-3d; background: radial-gradient(circle, #3fe0ff22, transparent 72%); box-shadow: 0 0 0 1px #3fe0ff66, 0 0 50px #3fe0ff33; }
+[data-style=holotank] .scope .map > div { transform-style: preserve-3d; }
+[data-style=holotank] .c { border-right: 1px solid #3fe0ff30; border-bottom: 1px solid #3fe0ff30; }
+[data-style=holotank] .scope .ax { color: var(--cy); font-size: 13px; }
+[data-style=holotank] .scope .mark { position: absolute; left: 50%; bottom: 50%; margin-left: -29%; transform-origin: 50% 100%; transform: rotateX(-50deg) translateY(-20%); }
+[data-style=holotank] .scope .mark::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 45%; background: currentColor; opacity: 0.8; }
+[data-style=holotank] .m-ship { color: #fff; }
+[data-style=holotank] .m-ship::before { content: ""; position: absolute; inset: 0; background: #fff; clip-path: polygon(50% 0, 100% 100%, 50% 74%, 0 100%); filter: drop-shadow(0 0 7px #fff); }
+[data-style=holotank] .m-enemy { color: var(--foe); }
+[data-style=holotank] .m-enemy::before { content: ""; position: absolute; inset: 8%; background: var(--foe); clip-path: polygon(50% 100%, 100% 20%, 62% 32%, 50% 0, 38% 32%, 0 20%); filter: drop-shadow(0 0 6px var(--foe)); }
+[data-style=holotank] .m-base { color: var(--home); }
+[data-style=holotank] .m-base::before { content: ""; position: absolute; inset: 4%; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--home); opacity: 0.85; }
+[data-style=holotank] .m-star { color: #ffeeb0; }
+[data-style=holotank] .m-star::before { content: ""; position: absolute; inset: 34%; border-radius: 50%; background: #ffeeb0; box-shadow: 0 0 12px 2px #ffdf80; }
+[data-style=holotank] .legend .mark { position: relative; width: 14px; }
+[data-style=holotank] .s { border-right: 1px solid #3fe0ff22; border-bottom: 1px solid #3fe0ff22; background: #3fe0ff14; }
+[data-style=holotank] .s.hidden { background: none; }
+[data-style=holotank] .s.here { background: #3fe0ff55; box-shadow: inset 0 0 0 1px #fff; }
+[data-style=holotank] .s .n { color: var(--foe); }
+[data-style=holotank] .s .home { background: var(--home); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-style=holotank] .segs { display: grid; gap: 10px; }
+[data-style=holotank] .seg .label { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+[data-style=holotank] .seg .label b { color: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+[data-style=holotank] .seg .cells { display: flex; gap: 2px; }
+[data-style=holotank] .seg .cells i { flex: 1; height: 10px; background: #3fe0ff1f; transform: skewX(-24deg); }
+[data-style=holotank] .seg .cells i.on { background: var(--cy); box-shadow: 0 0 6px #3fe0ff88; }
+[data-style=holotank] .seg.low .cells i.on { background: var(--warn); box-shadow: 0 0 6px #ffc04d88; }
+[data-style=holotank] .seg.low .label b { color: var(--warn); }
+[data-style=holotank] .survey dd { color: var(--cy); font-weight: 500; }
+@media (min-width: 900px) { [data-style=holotank] #view { display: grid; grid-template: "top top top" auto "ship quad gal" auto "survey quad gal" 1fr / minmax(220px, 0.8fr) minmax(0, 2.2fr) minmax(220px, 0.8fr); align-items: start; max-width: 1600px; margin-inline: auto; } }
+@media (max-width: 899px) { [data-style=holotank] .scope { margin-block: -6%; } }
+</style>
+
+<nav id="bar" aria-label="Choose a style">
+  <span id="note" class="note"></span>
+  <div id="picks" class="picks"></div>
+</nav>
+<main id="view"></main>
+
+<script>
+(function () {
+  // Sample state in the real GameView shape. A mockup only: nothing here connects to a game.
+  const VIEW = {
+    stardate: "24-2507-31",
+    sector_yx: [4, 6],
+    ship: { hull: 1430, max_hull: 2000, shields: 720, max_shields: 3000, energy: 38250, max_energy: 50000, quantorpedoes: 5, max_quantorpedoes: 7 },
+    board: [".....*....", "..E.......", "......*...", "..........", "....*.....", ".......E..", "..S.......", "*.........", ".....B....", ".........*"],
+    // Enemies, starbases, stars. "---" is an uncharted sector.
+    galaxy: [
+      "--- --- --- --- --- --- --- --- --- ---",
+      "--- --- 003 104 002 --- --- --- --- ---",
+      "--- --- 012 001 205 003 --- --- --- ---",
+      "--- --- --- 104 002 006 101 003 --- ---",
+      "--- --- --- --- 014 004 215 302 001 ---",
+      "--- --- --- --- 013 102 003 001 --- ---",
+      "--- --- --- --- --- 004 --- --- --- ---",
+      "--- --- --- --- --- --- --- --- --- ---",
+      "--- --- --- --- --- --- --- --- --- ---",
+      "--- --- --- --- --- --- --- --- --- ---",
+    ].map((row) => row.split(" ")),
+  };
+
+  const LOW_FRACTION = 0.25;
+  const RANGE = [...Array(10).keys()];
+  const MARKS = { S: "m-ship", E: "m-enemy", B: "m-base", "*": "m-star" };
+  const number = (value) => value.toLocaleString("en-US");
+
+  const GAUGES = [
+    { label: "Hull", short: "HULL", value: VIEW.ship.hull, max: VIEW.ship.max_hull },
+    { label: "Shields", short: "SHIELDS", value: VIEW.ship.shields, max: VIEW.ship.max_shields },
+    { label: "Energy", short: "ENERGY", value: VIEW.ship.energy, max: VIEW.ship.max_energy },
+    { label: "Quantorpedoes", short: "TORPEDOES", value: VIEW.ship.quantorpedoes, max: VIEW.ship.max_quantorpedoes },
+  ].map((gauge) => ({ ...gauge, percent: (gauge.value / gauge.max) * 100, low: gauge.value / gauge.max < LOW_FRACTION }));
+  const lowClass = (gauge) => (gauge.low ? "low" : "");
+
+  function map(label, drawCell) {
+    const head = ['<div class="ax"></div>', ...RANGE.map((x) => `<div class="ax">${x}</div>`)];
+    const rows = RANGE.flatMap((y) => [`<div class="ax">${y}</div>`, ...RANGE.map((x) => drawCell(y, x))]);
+    return `<div class="map" role="img" aria-label="${label}">${[...head, ...rows].join("")}</div>`;
+  }
+
+  function boardCell(y, x) {
+    const mark = MARKS[VIEW.board[y][x]];
+    return `<div class="c">${mark === undefined ? "" : `<span class="mark ${mark}"></span>`}</div>`;
+  }
+
+  function sectorCell(y, x) {
+    const code = VIEW.galaxy[y][x];
+    if (code === "---") return '<div class="s hidden"></div>';
+    const [enemies, bases, stars] = [...code].map(Number);
+    const dots = Array.from({ length: stars }, (_, i) => {
+      // Stars keep to a ring around the cell, so the enemy count in the middle stays readable.
+      const angle = ((y * 37 + x * 17 + (i * 360) / stars) * Math.PI) / 180;
+      return `<span class="dot" style="top:${(48 + 38 * Math.sin(angle)).toFixed(1)}%;left:${(48 + 38 * Math.cos(angle)).toFixed(1)}%"></span>`;
+    });
+    const here = y === VIEW.sector_yx[0] && x === VIEW.sector_yx[1] ? "here" : "";
+    return `<div class="s ${here}">${dots.join("")}${bases > 0 ? '<span class="home m-base"></span>' : ""}${enemies > 0 ? `<span class="n">${enemies}</span>` : ""}</div>`;
+  }
+
+  // Gauge drawings: each style names one in STYLES.
+  const dials = () => `<div class="dials">${GAUGES.map((g) => `
+    <div class="dial ${lowClass(g)}"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="fill" cx="50" cy="50" r="42" pathLength="100" stroke-dasharray="${g.percent} 100" transform="rotate(-90 50 50)"/></svg>
+    <div class="val">${number(g.value)}</div>${g.label}</div>`).join("")}</div>`;
+
+  const numerals = () => `<div class="numerals">${GAUGES.map((g) => `
+    <div class="num ${lowClass(g)}"><div class="label"><span>${g.label}</span><span class="low-tag">Low</span></div>
+    <div class="big">${number(g.value)}</div><div class="rail"><div style="width:${g.percent}%"></div></div></div>`).join("")}</div>`;
+
+  const tubes = () => `<div class="tubes">${GAUGES.map((g) => `
+    <div class="tube ${lowClass(g)}"><div class="well"><div class="level" style="height:calc(${g.percent}% - 6px)"></div></div>
+    <div class="v">${number(g.value)}</div><div>${g.label === "Quantorpedoes" ? "Torpedoes" : g.label}</div></div>`).join("")}</div>`;
+
+  const ledger = () => `<div class="ledger">${GAUGES.map((g) => `
+    <div class="${lowClass(g)}"><span>${g.label}</span><span>${number(g.value)} <small>/ ${number(g.max)}</small></span></div>`).join("")}</div>`;
+
+  const segments = () => `<div class="segs">${GAUGES.map((g) => {
+    const count = g.max <= 10 ? g.max : 20;
+    const lit = Math.round((g.value / g.max) * count);
+    const cells = Array.from({ length: count }, (_, i) => `<i class="${i < lit ? "on" : ""}"></i>`).join("");
+    return `<div class="seg ${lowClass(g)}"><div class="label"><span>${g.label}</span><b>${number(g.value)} / ${number(g.max)}</b></div><div class="cells">${cells}</div></div>`;
+  }).join("")}</div>`;
+
+  // Orrery's bezel: one ring around the chart, split into four arcs of reserves.
+  function polar(radius, degrees) {
+    const angle = (degrees * Math.PI) / 180;
+    return `${(500 + radius * Math.sin(angle)).toFixed(1)} ${(500 - radius * Math.cos(angle)).toFixed(1)}`;
+  }
+
+  function arc(radius, from, to) {
+    return `M ${polar(radius, from)} A ${radius} ${radius} 0 0 ${to > from ? 1 : 0} ${polar(radius, to)}`;
+  }
+
+  function bezel() {
+    const HALF_SPAN = 37;
+    const arcs = GAUGES.map((g, i) => {
+      const centre = i * 90;
+      const flipped = centre === 180;
+      const [from, to] = flipped ? [centre + HALF_SPAN, centre - HALF_SPAN] : [centre - HALF_SPAN, centre + HALF_SPAN];
+      const textRadius = flipped ? 458 : 438;
+      return `<g class="${lowClass(g)}"><path class="rail" d="${arc(476, from, to)}"/><path class="level" d="${arc(476, from, to)}" pathLength="100" stroke-dasharray="${g.percent} 100"/>
+        <path id="label-${i}" d="${arc(textRadius, from, to)}" fill="none"/><text text-anchor="middle"><textPath href="#label-${i}" startOffset="50%">${g.short} ${Math.round(g.percent)}%</textPath></text></g>`;
+    });
+    return `<svg viewBox="0 0 1000 1000" aria-hidden="true"><circle class="ticks" cx="500" cy="500" r="495"/>${arcs.join("")}</svg>`;
+  }
+
+  const noBezel = () => "";
+
+  const STYLES = [
+    { id: "aurora", name: "Aurora Glass", note: "Frosted panes over polar light. Soft, calm, luminous.", gauges: dials, bezel: noBezel },
+    { id: "monolith", name: "Monolith", note: "Black, white and very thin numerals. Marks differ by shape alone.", gauges: numerals, bezel: noBezel },
+    { id: "porcelain", name: "Porcelain", note: "A light ceramic instrument with pressed wells and one lit signal.", gauges: tubes, bezel: noBezel },
+    { id: "orrery", name: "Orrery", note: "A navigator's brass instrument. The ship's reserves ring the chart.", gauges: ledger, bezel: bezel },
+    { id: "holotank", name: "Holotank", note: "The sector floats in 3D as a hologram, with data on the glass around it.", gauges: segments, bezel: noBezel },
+  ];
+
+  const LEGEND_BOARD = '<ul class="legend"><li><span class="mark m-ship"></span>Ship</li><li><span class="mark m-enemy"></span>Enemy</li><li><span class="mark m-base"></span>Starbase</li><li><span class="mark m-star"></span>Star</li></ul>';
+
+  function survey() {
+    const charted = VIEW.galaxy.flat().filter((code) => code !== "---");
+    const total = (digit) => charted.reduce((sum, code) => sum + Number(code[digit]), 0);
+    return { charted: charted.length, enemies: total(0), bases: total(1) };
+  }
+
+  function page(style) {
+    const found = survey();
+    const [y, x] = VIEW.sector_yx;
+    return `
+      <header class="top">
+        <h1>Starreach <span>Main Viewer</span></h1>
+        <dl class="readouts">
+          <div><dt>Stardate</dt><dd>${VIEW.stardate}</dd></div>
+          <div><dt>Sector</dt><dd>${y}, ${x}</dd></div>
+          <div><dt>Link</dt><dd class="link-state">Live</dd></div>
+        </dl>
+      </header>
+      <section class="quad pane"><h2>Quadrant ${y}, ${x}</h2>
+        <div class="tank"><div class="scope">${map(`Sector ${y}, ${x} board`, boardCell)}${style.bezel()}</div></div>${LEGEND_BOARD}</section>
+      <section class="gal pane"><h2>Galaxy</h2>${map("Galaxy chart", sectorCell)}</section>
+      <section class="ship pane"><h2>Ship status</h2>${style.gauges()}</section>
+      <section class="survey pane"><h2>Survey</h2><dl>
+        <div><dt>Sectors charted</dt><dd>${found.charted} / 100</dd></div>
+        <div><dt>Enemies sighted</dt><dd>${found.enemies}</dd></div>
+        <div><dt>Starbases found</dt><dd>${found.bases}</dd></div>
+      </dl></section>`;
+  }
+
+  function show(id) {
+    const style = STYLES.find((candidate) => candidate.id === id) || STYLES[0];
+    document.body.dataset.style = style.id;
+    document.getElementById("view").innerHTML = page(style);
+    document.getElementById("note").textContent = `${style.note} Sample data, not a live game.`;
+    for (const button of document.querySelectorAll("#picks button")) {
+      button.setAttribute("aria-pressed", String(button.dataset.id === style.id));
+    }
+  }
+
+  function start() {
+    document.getElementById("picks").innerHTML = STYLES.map((style, index) => `<button type="button" id="pick-${style.id}" data-id="${style.id}" aria-pressed="false">${index + 1} ${style.name}</button>`).join("");
+    document.getElementById("picks").addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (button !== null) location.hash = button.dataset.id;
+    });
+    document.addEventListener("keydown", (event) => {
+      const style = STYLES[Number(event.key) - 1];
+      if (style !== undefined) location.hash = style.id;
+    });
+    addEventListener("hashchange", () => show(location.hash.slice(1)));
+    show(location.hash.slice(1));
+  }
+
+  start();
+})();
+</script>

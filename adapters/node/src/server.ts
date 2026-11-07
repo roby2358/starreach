@@ -26,11 +26,12 @@ const PAGE_FILES = [
   { path: "/", file: "index.html", type: "text/html; charset=utf-8" },
   { path: "/css/styles.css", file: "css/styles.css", type: "text/css; charset=utf-8" },
   { path: "/js/script.js", file: "js/script.js", type: "text/javascript; charset=utf-8" },
+  { path: "/fonts/oxanium.woff2", file: "fonts/oxanium.woff2", type: "font/woff2" },
 ];
 
-function loadPage(): Map<string, { body: string; type: string }> {
+function loadPage(): Map<string, { body: Uint8Array<ArrayBuffer>; type: string }> {
   return new Map(
-    PAGE_FILES.map(({ path, file, type }) => [path, { body: readFileSync(new URL(file, PUBLIC_DIR), "utf8"), type }]),
+    PAGE_FILES.map(({ path, file, type }) => [path, { body: new Uint8Array(readFileSync(new URL(file, PUBLIC_DIR))), type }]),
   );
 }
 
