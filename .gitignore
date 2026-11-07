@@ -4,3 +4,4 @@ starreach.iml
 /pjpd/bak/
 node_modules/
 /app/src/wasm/
+/adapters/node/test-browser/out/

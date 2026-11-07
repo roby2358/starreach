@@ -73,3 +73,6 @@ mod r_25_result_shape;
 
 #[path = "R-26/emergency_energy.rs"]
 mod r_26_emergency_energy;
+
+#[path = "R-28/view.rs"]
+mod r_28_view;

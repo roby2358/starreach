@@ -1,7 +1,7 @@
 // The Rust core behind its JSON boundary (ONTOLOGY "Core API").
 // The app never reads a Game's fields: a Game travels as the JSON text the core produced.
 
-import { initSync, new_game, apply } from "./wasm/starreach_core.js";
+import { initSync, new_game, apply, view } from "./wasm/starreach_core.js";
 
 /** A Game as JSON text, opaque to the app layer. */
 export type GameJson = string;
@@ -21,9 +21,19 @@ export interface Command {
   [arg: string]: unknown;
 }
 
+/** What a read-only display may see of a Game (ONTOLOGY GameView). A hidden sector is null. */
+export interface GameView {
+  status: string;
+  stardate: string;
+  sector_yx: [number, number];
+  ship: Record<string, number>;
+  galaxy: ({ enemies: number; starbases: number; stars: number } | null)[][];
+}
+
 export interface Core {
   newGame(seed: number): GameJson;
   apply(game: GameJson, command: Command): { game: GameJson; result: CommandResult };
+  view(game: GameJson): GameView;
 }
 
 /** Instantiates the core from its compiled WASM module. Each platform loads the module its own way. */
@@ -35,5 +45,6 @@ export function loadCore(module: WebAssembly.Module): Core {
       const applied = JSON.parse(apply(game, JSON.stringify(command)));
       return { game: JSON.stringify(applied.game), result: applied.result };
     },
+    view: (game) => JSON.parse(view(game)),
   };
 }

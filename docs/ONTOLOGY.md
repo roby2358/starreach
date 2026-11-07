@@ -30,8 +30,8 @@ page is a read-only view of the game.
   LLM to narrate. [D]
 - **G-2 Search and battle across a galaxy.** Warp between sectors, maneuver within one,
   destroy enemies, resupply at starbases, and win or lose. [D]
-- **G-3 The browser shows the game being played.** The page shows the game the LLM
-  is playing. [D, unbuilt]
+- **G-3 The browser shows the game being played.** A read-only page shows the galaxy map
+  and ship status of the game the LLM is playing, and follows it live. [D]
 - **G-4 Resources force choices.** Energy, quantorpedoes, shields and hull are finite and
   every action must be paid for. Starbases are rare. [D]
 
@@ -66,6 +66,8 @@ One name per concept. These names are used in code, tools and docs.
 | **Query** | A command that only reads state | |
 | **Event** | Something the game does in response to an action, reported as a message | |
 | **Game id** | The name a client uses for one stored game (`game_id`) | |
+| **Viewer** | A browser page watching one game over its socket | main viewer |
+| **Frame** | One message on a viewer's socket, `{type, …}` | |
 
 ---
 
@@ -166,6 +168,24 @@ never sees it.
 The Node adapter keeps games in process memory. The Cloudflare adapter keeps one Durable
 Object per `game_id`. [D, unbuilt]
 
+### GameView
+*Serves: G-3, F-discovery.* [D] What a read-only display may see of a Game. The core makes
+it from a Game and it holds only what the player has uncovered.
+
+| Field | Type | Notes |
+|---|---|---|
+| `status` | playing \| won \| lost | |
+| `stardate` | str | The Stardate display form |
+| `sector_yx` | Coordinate | The ship's sector |
+| `ship` | Ship | Every Ship field |
+| `galaxy` | 10×10 of `{enemies, starbases, stars}` or null | Null while the sector is hidden |
+
+### Viewers
+*Serves: G-3.* [D] The sockets watching each game. The app layer makes frames and calls
+`publish(game_id, frame)`. Each adapter holds the sockets, because upgrading a request and
+keeping a socket open belong to the platform. The Node adapter keeps a list per game in
+process memory. The Cloudflare adapter keeps them on the game's Durable Object. [D, unbuilt]
+
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
   same Ray rule as the ship. Each enemy independently fires or advances, chosen at random
@@ -186,6 +206,7 @@ Object per `game_id`. [D, unbuilt]
 | ActiveSector *is the live form of* the SectorRecord at `sector_yx` | 1 : 1 |
 | ActiveSector *contains* Ship, Starbase, Enemy, Star | ship 1; starbase 0..1; enemies 0..`ENEMY_MAX_PER_SECTOR`; stars per record |
 | Cell *holds* occupant | 0..1 |
+| Game *is watched by* Viewer | 1 → 0..n |
 
 ## 4. Invariants
 
@@ -203,6 +224,8 @@ Object per `game_id`. [D, unbuilt]
 - A refused command returns the game unchanged. [D]
 - Games are isolated: a command on one never changes another. [D]
 - Same seed and same commands give the same state. [D]
+- A viewer never changes a game: nothing it sends reaches the store or the core. [D]
+- A GameView never shows a hidden sector, the seed or the RNG. [D]
 
 ---
 
@@ -387,7 +410,8 @@ In the app layer.
 ```
 new_game: seed = random u32;  game_id = random id;  store new_game(seed) under game_id
 any other tool: load game_id, else error "Game not found"
-apply the command;  if ok: store the returned game;  return the result
+apply the command;  if ok: store the returned game, publish its view frame to the viewers
+return the result
 ```
 
 ---
@@ -437,20 +461,24 @@ Referred to by name everywhere else.
 | `SHIELD_REPLENISH` | 500 | hp per firing | D-27 |
 | `SHIELD_ENERGY_PER_POINT` | 1 | energy per hp | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
-| `HTTP_PORT` | 8000 | port the `just` recipes pass to the local servers | D-21 |
-| `UI_POLL_MS` | 2000 | ms | D-13 |
+| `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
+| `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
+| `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |
+| `VIEWER_MAX_FRAME_BYTES` | 1024 | largest frame a viewer may send before its socket closes | D-31 |
+| `LOW_GAUGE_FRACTION` | 0.25 | share of its maximum below which a page gauge turns red | D-31 |
 
 ---
 
 ## 8. Interface
 
 ### Core API (Rust → WASM) [D]
-Two JSON functions. The core holds no state between calls.
+Three JSON functions. The core holds no state between calls.
 
 | Function | Input | Output |
 |---|---|---|
 | `new_game` | `seed: u32` | Game |
 | `apply` | `game: Game`, `command: Command` | `{game: Game, result: Result}` |
+| `view` | `game: Game` | GameView |
 
 `Game` is opaque to the app layer. 64-bit fields inside it are serialized as strings so a
 JavaScript round trip can't lose precision.
@@ -484,7 +512,7 @@ the core Result. Plus:
 
 | Tool / prompt | Args | Returns |
 |---|---|---|
-| `new_game` | — | Result with `report: {game_id}` |
+| `new_game` | — | Result with `report: {game_id, view_url}`. `view_url` is the viewer's link, `<origin>/?game=<game_id>` [P] |
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM |
 
 An unknown `game_id` returns `{ok: false, error: "Game not found", …}` with `state` null.
@@ -498,12 +526,30 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 |---|---|
 | `POST /mcp` | Streamable-HTTP MCP |
 | `GET /health` | `{status: "ok"}` |
+| `GET /` | The viewer page. `?game=<game_id>` chooses the game |
+| `GET /css/styles.css`, `GET /js/script.js` | The page's files |
+| WebSocket `/live/<game_id>` | The game's frames, read-only [P] |
 | any other path | 404 |
 
-The app layer serves these routes as one fetch handler. MCP over HTTP is stateless: each
-request gets a fresh MCP server, and games live in the GameStore. [P] The Node adapter serves
-either MCP over stdio or these routes. The Cloudflare adapter serves the routes.
-[D, unbuilt]
+The app layer serves `/mcp` and `/health` as one fetch handler. MCP over HTTP is stateless:
+each request gets a fresh MCP server, and games live in the GameStore. [P] Adapters serve the
+page and the socket. The Node adapter serves all of these in both modes, and in stdio mode
+also serves MCP over stdio, from one process that holds the games. It takes `--host` and
+`--port` to bind and `--origin` for where browsers reach it. A stdio process that finds the
+port held by a Starreach server forwards its MCP messages there instead, so one process still
+holds every client's games, and refuses to start if anything else holds it. A stdio process
+exits when its client closes stdin, which ends the games it holds. [P] The Cloudflare adapter serves the routes, and the page as static
+assets. [D, unbuilt]
+
+### Viewer socket [D]
+```
+on connect to /live/<game_id>:
+    unknown game: close with code 4404
+    otherwise: add to the game's viewers, send {type: "view", view: GameView}
+on an accepted command: send {type: "view", view: GameView} to the game's viewers
+on any frame from a viewer: ignore it; one over VIEWER_MAX_FRAME_BYTES closes that socket
+```
+Every frame carries a `type`, so other kinds can join the same socket. [P]
 
 ### Events (messages)
 Each event is a string in the `events` list of a Result. Only the game's caller sees it. [D]
@@ -519,6 +565,9 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 
 ### Client contract
 - **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`. [D]
-- **Browser:** polls a GameState every `UI_POLL_MS` and renders `map`, `ship_yx` and hull.
-  It never changes state. [D, unbuilt]
+- **Browser:** opens the game's socket, draws each frame's GameView as the galaxy map, ship
+  status and a survey panel (sectors charted, enemies sighted and starbases found, totalled
+  from the map), and reconnects after losing the socket. It sends nothing and never changes
+  state. [D] It also draws the current sector's board, updated after each warp and then after
+  ship and enemy actions. [D, unbuilt]
 - **App layer:** stores and forwards Games; it never reads or edits a Game's fields. [D]

@@ -39,19 +39,23 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 | R-18 | MCP tools across games | An unknown `game_id` returns `ok: false`, error "Game not found". A command on game A leaves game B unchanged | automated |
 | R-19 | Any sequence of commands | ONTOLOGY's invariants hold after every command (one `S`; `enemies_yx` matches `E` cells and the galaxy record; resource bounds including energy ≥ 0; stardate never decreases; visibility never reverts; status leaves `playing` at most once) | automated |
 | R-20 | The same seed and the same commands | The same final GameState | automated |
-| R-21 | The browser while an LLM plays | The page's state source returns the game the LLM is playing | not yet covered |
+| R-21 | A viewer connected to a game | It gets the game's view on connecting and after every accepted command, and no frame for a refused command or another game. An unknown game closes the socket with 4404. `new_game` reports the viewer's link | automated |
 | R-22 | A successful blast or torpedo | The galaxy record for `sector_yx` has `enemies == len(enemies_yx)` | automated |
 | R-23 | Hull reaches 0; the last enemy in the galaxy is destroyed; or the ship is stranded (energy below the warp cost to the nearest other visible starbase sector) with no starbase in its sector | `status` becomes `lost`, `won`, or `lost` and an end message is in `events`. Every later action is refused with no change; queries still answer | automated |
 | R-24 | Warp out of a sector and back | Stars and the starbase are on the same cells. Enemies stand on the first `len(enemies_yx)` of the cells first generated for them | automated |
 | R-25 | Every command, accepted or refused | The Result has exactly `ok, error, events, report, state`. `error` is null iff `ok`; `report` is null when refused. A refused action returns the game unchanged. A coordinate outside `0..9` is refused | automated |
 | R-26 | The ship is stranded in a sector with a starbase | The game goes on; energy becomes `max(energy, STARBASE_EMERGENCY_ENERGY)` and the transfer message is in `events` | automated |
+| R-27 | A viewer sends frames down its socket, including commands | The game doesn't change. A frame over `VIEWER_MAX_FRAME_BYTES` closes that socket | automated |
+| R-28 | The view of any game | A hidden sector is null and a visible one matches its record. Ship, status, stardate and sector match the game. It has only the GameView fields | automated |
 
 ## U — UI / readability
 
 | ID | Criterion | Instrument |
 |---|---|---|
-| U-1 | The browser page renders the sector as a 10×10 grid with `0..9` row and column headers, using the `map` characters | manual — open the page while a game is running and compare the grid with `state().map` |
-| U-2 | The browser page shows the ship's position and `hull/max_hull` | manual — check the Ship Status panel against `state()` |
+| U-1 | The browser page renders the galaxy as a 10×10 grid with `0..9` row and column headers. Charted sectors show their contents, hidden ones are blank, and the ship's sector is marked | automated |
+| U-2 | The browser page shows the ship's hull, shields, energy and quantorpedoes against their maximums, following the game | automated |
+| U-8 | The browser page's survey panel shows sectors charted, enemies sighted and starbases found, totalled from the charted sectors | automated |
+| U-9 | The browser page shows the current sector's board, updated after each warp and then after ship and enemy actions | not yet covered |
 | U-3 | The LLM shows the sector in the instructions format: column header, row numbers, no legend, no star count | manual — run a session in Claude Desktop and compare with `public/instructions.txt` |
 | U-4 | The LLM opens a session with a greeting and the current state | manual — first reply of a fresh session |
 | U-5 | The LLM keeps naval decorum ("Aye aye, captain") | manual — read a 10-turn session |
@@ -70,13 +74,17 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 
 ---
 
-## Status — 2026-11-05
+## Status — 2026-11-07
 
 - **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26.
   The coverage test runs with them.
-- **Automated in the app layer** (`just cc-test-app`): R-18, and R-25's not-found result.
-- **Not yet covered:** R-21 waits for the browser view (Q-8).
-- **Manual only:** U-1 – U-7. U-1 and U-2 are blocked until the page is served (Q-8).
+- **Automated in the app layer** (`just cc-test-app`): R-18, R-25's not-found result, and
+  R-21's publishing.
+- **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets and R-27.
+- **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8. It needs Chromium's system
+  libraries, which `just cc-setup` fetches in a rebuilt container.
+- **Not yet covered:** U-9 waits for the sector board on the page.
+- **Manual only:** U-3 – U-7.
 - **X-1 – X-5** need play sessions on the new layers.
 - **Partial coverage:**
   - R-4: the StarbaseHail clause is tested under R-16, not R-4.

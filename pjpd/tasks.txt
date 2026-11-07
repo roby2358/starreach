@@ -2,9 +2,17 @@ Priority:   90
 Status: ToDo
 ID: cfadapter-2p5f
 Created: 2026-11-05T08:07:06Z
-Updated: 2026-11-05T08:07:06Z
+Updated: 2026-11-07T02:15:51Z
 
-Build adapters/cloudflare (D-21, slice 4): a Worker that serves the app layer's handleHttp (/mcp stateless streamable HTTP, /health) with the WASM core imported as a WebAssembly.Module and passed to loadCore. Store: one SQLite-backed Durable Object per game_id implementing app's GameStore (get/put the game JSON). wrangler.jsonc with the DO binding and migration; wrangler 4.90.0 as an npm dev dependency in the adapters/cloudflare workspace. Leave an auth seam (a function the Worker calls before /mcp that currently allows all) for the later yuwakisacloud token check (Q-15, D-20); do not implement auth. Add just recipes (e.g. `cf-dev` running `wrangler dev` after cc-build-wasm) and document them in .claude/skills/starreach-recipes/SKILL.md. Tests: a store test for the DO GameStore and an HTTP integration test like app/test/integration/http.test.ts, run under the normal test command. Update ONTOLOGY (Cloudflare adapter [D, unbuilt] -> [D]), RATIONALE D-21, CRITERIA Status, README, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+Build adapters/cloudflare (D-21, slice 4): a Worker that serves the app layer's handleHttp (/mcp stateless streamable HTTP, /health) with the WASM core imported as a WebAssembly.Module and passed to loadCore. Store: one SQLite-backed Durable Object per game_id implementing app's GameStore (get/put the game JSON). Viewers (D-31): that same Durable Object holds the game's `/live/<game_id>` WebSockets with the hibernation API; the Worker uses the app's liveGameId to route the upgrade to it; connecting uses currentFrame, closes with GAME_NOT_FOUND_CLOSE for an unknown game and ignores incoming frames (webSocketMessage does nothing); `publish` is an RPC that broadcasts to ctx.getWebSockets(). Set viewOrigin from the request's origin. Serve the page as static assets, and keep public/instructions.txt out of them or accept it as public. wrangler.jsonc with the DO binding and migration; wrangler 4.90.0 as an npm dev dependency in the adapters/cloudflare workspace. Leave an auth seam (a function the Worker calls before /mcp and before the socket upgrade that currently allows all) for the later yuwakisacloud token check (Q-15, D-20); do not implement auth. Add just recipes (e.g. `cf-dev` running `wrangler dev` after cc-build-wasm) and document them in .claude/skills/starreach-recipes/SKILL.md. Tests: a store test for the DO GameStore, a viewer socket test, and an HTTP integration test like app/test/integration/http.test.ts, run under the normal test command. Update ONTOLOGY (Cloudflare adapter [D, unbuilt] -> [D]), RATIONALE D-21, CRITERIA Status, README, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
+Priority:   85
+Status: ToDo
+ID: sectorview-7u36
+Created: 2026-11-07T02:23:22Z
+Updated: 2026-11-07T02:23:22Z
+
+Show the current sector's board on the main viewer page (decided by the designer, RATIONALE D-31; CRITERIA U-9). It updates after each warp, and then after ship and enemy actions. Add the board to the core's GameView (ship, enemies, starbase and stars for the sector the ship is in, nothing about other sectors), keeping R-28's rule that hidden information stays out, and draw it on the page beside the galaxy map as a labelled 10x10 grid. Open point to raise with the designer: one `apply` runs the ship's action and the enemy turn together, so today one command makes one frame. Showing the ship's move and then the enemy's response as two visible steps needs the core to capture the board between them, for example a list of board snapshots per command that the app publishes as separate frames. Recommend two steps, because watching the enemy respond is the point. This touches the same ground as the event architecture work, so keep the frame shape compatible with it. Tests: R-28 (the view has the board and only the current sector's), R-21 (frames after warp and actions), U-9 in the browser test. Update ONTOLOGY (GameView, Client contract, the GameView invariant), CRITERIA, the log, and core/src/view.rs's header comment. Ask the user before committing.
 ----
 Priority:   70
 Status: ToDo
@@ -13,6 +21,38 @@ Created: 2026-11-04T23:53:44Z
 Updated: 2026-11-04T23:53:44Z
 
 Q-8 (docs/RATIONALE.md): The browser UI doesn't show the game the LLM is playing. GET /state serves a separate 'default' session, public/ is not mounted as static files, and public/index.html links styles.css and script.js at the root while they live in css/ and js/. RECOMMENDATION: mount public/ as static files, fix the asset links, and have /state return the most recently active session (single player). Meets goal G-3; covers CRITERIA R-21, U-1, U-2.
+----
+Priority:   60
+Status: ToDo
+ID: viewhash-5p9i
+Created: 2026-11-07T02:23:17Z
+Updated: 2026-11-07T02:23:17Z
+
+Hash the game_id for the viewer link, so sharing the link shares the view but not the controls (RATIONALE Q-17). Today `view_url` and the `/live/<game_id>` socket contain the game_id, and anyone holding a game_id can send MCP commands to that game. Direction from the designer: the link holds a hash of the game_id, which the server can resolve but another player can't turn back into the game_id. Suggested design, which needs no mapping table: view_id = SHA-256(game_id) via Web Crypto (available on Node and Workers), and the GameStore and Viewers are keyed by view_id. An MCP call hashes its game_id to find the game; a viewer presents the view_id directly. The stored key then can't play either. game_id comes from crypto.randomUUID, so it has too much entropy to guess from the hash. Change: app/src/view.ts (viewerUrl, liveGameId and its path pattern), app/src/games.ts, the page's `?game=` parameter, and the Cloudflare adapter's Durable Object naming if it is built by then. Tests: the link and socket never contain the game_id; a view_id passed as game_id to an MCP tool returns Game not found; a viewer connecting by view_id gets the game. Settle Q-17 as a decision in RATIONALE and update ONTOLOGY (GameStore, HTTP, Viewer socket), CRITERIA (R-21), and the log. Ask the user before committing.
+----
+Priority:   50
+Status: ToDo
+ID: starcentral-br7j
+Created: 2026-11-07T01:53:08Z
+Updated: 2026-11-07T01:53:08Z
+
+Message from Star Central. Details to be supplied by the designer.
+----
+Priority:   50
+Status: ToDo
+ID: eventarch-rm5g
+Created: 2026-11-07T02:15:40Z
+Updated: 2026-11-07T02:15:40Z
+
+Event architecture: push what happens in a game, not only what it now looks like, to viewers. Today a viewer's socket carries `{type: "view", view: GameView}` frames after each accepted command, while events are plain strings in the MCP Result that only the caller sees (D-17). Design structured events (for example `{type, from, to, damage}`) in the Rust core, with the strings still derived for the LLM, and send them as a new frame type on the same socket, so the page can animate beams, torpedoes, hits, warps and hails. Decide: event visibility per player for multiplayer (see RATIONALE Q-19); an ordering sequence number; replay or catch-up when a viewer reconnects; and how it maps onto one Durable Object per game, which would be the natural sequencer. Colour such as messages from Star Central could travel this way. Update ONTOLOGY (Event, Viewer socket), RATIONALE D-17, and CRITERIA. Ask the user before committing.
+----
+Priority:   50
+Status: ToDo
+ID: loginflow-96sy
+Created: 2026-11-07T02:15:45Z
+Updated: 2026-11-07T02:23:25Z
+
+Login flow, in this order: (1) the player opens the web page, (2) signs in, (3) connects with MCP. The page comes first and waits ("awaiting ship's computer"), then picks up the signed-in player's game by itself as soon as MCP starts one, so `view_url` and the `?game=` link stop being how a player finds their own game (a hashed link may remain for sharing a view). Needs: sign-in through auth/ on the page (PKCE redirect, HttpOnly cookie, per YUWAKISA.md); the owner's `sub` stored with each game; an owner check on every MCP tool and at the socket upgrade; an Origin check on the socket upgrade, needed once a cookie authenticates it; a per-player channel or lookup so the page learns of a new game; how a page shows the MCP connection instructions after sign-in; and what the local Node adapter does with no auth (a single implicit player). Depends on the open question RATIONALE Q-15 (can claude.ai and Claude Desktop connectors sign in to auth/ without dynamic client registration). Update ONTOLOGY, RATIONALE, CRITERIA, README, the log. Ask the user before committing or deploying.
 ----
 Priority:   30
 Status: ToDo

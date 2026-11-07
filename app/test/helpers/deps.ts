@@ -7,13 +7,28 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { createMcpServer, loadCore, MemoryStore, type CommandResult, type McpDeps } from "../../src/index.ts";
+import { createMcpServer, loadCore, MemoryStore, type CommandResult, type McpDeps, type Viewers } from "../../src/index.ts";
 
 const WASM = new URL("../../src/wasm/starreach_core_bg.wasm", import.meta.url);
 const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(WASM))));
 
-export function testDeps(): McpDeps {
-  return { core, store: new MemoryStore(), instructions: "Test instructions" };
+/** Keeps every frame published, as [gameId, frame] pairs. */
+export class RecordingViewers implements Viewers {
+  readonly published: [string, string][] = [];
+
+  async publish(gameId: string, frame: string): Promise<void> {
+    this.published.push([gameId, frame]);
+  }
+}
+
+export function testDeps(): McpDeps & { viewers: RecordingViewers } {
+  return {
+    core,
+    store: new MemoryStore(),
+    viewers: new RecordingViewers(),
+    viewOrigin: "http://viewer.test",
+    instructions: "Test instructions",
+  };
 }
 
 export async function connectClient(deps: McpDeps): Promise<Client> {

@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 /// Packages that own `R-n/` test directories, relative to the repo root.
-const TEST_ROOTS: [&str; 2] = ["core/tests", "app/test"];
+const TEST_ROOTS: [&str; 3] = ["core/tests", "app/test", "adapters/node/test"];
 
 fn repo_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()

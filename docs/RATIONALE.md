@@ -19,8 +19,8 @@ inferences, waiting for review.
 ### D-13 One process serving MCP and HTTP; sessions in memory — *Decided*
 - **Alternatives:** separate MCP and HTTP servers on different ports; a database-backed
   session store.
-- **Why:** The simplest thing that runs under Claude Desktop (stdio, with HTTP on a
-  background thread) and under the MCP Inspector (`--stream`). Persistence is a non-goal.
+- **Why:** The simplest thing that runs under Claude Desktop and the MCP Inspector, and the
+  viewer can only see the LLM's game if one process holds both. Persistence is a non-goal.
 - **Evidence:** none recorded.
 
 ### D-20 Deploy into yuwakisacloud from this repo: Rust core in WASM, thin TypeScript Worker, one Durable Object per game — *Decided, unbuilt; gated on Q-15*
@@ -72,6 +72,25 @@ inferences, waiting for review.
 - **Why:** G-1: the LLM holds the id and can resume. It maps directly onto one Durable
   Object per game, and it works before auth exists. Once auth exists, the store also
   records the owner's `sub` (D-20).
+
+### D-31 Dual display: the LLM plays over MCP, a read-only browser page follows over a WebSocket — *Decided; the routes, frame shape and link are Proposed; the sector board is unbuilt*
+- **Choice:** MCP stays the only way to act, with the LLM as the ship's computer. A browser
+  page gets the galaxy map, ship status and a survey panel for one game, pushed over a
+  per-game socket. It will also show the current sector's board, updated after each warp and
+  then after ship and enemy actions. The
+  core makes the view (`view`, which can't change a game and shows only what's uncovered),
+  the app layer makes frames and publishes after each accepted command, and each adapter holds
+  the sockets. `new_game` reports the link, and the crew hands it to the captain.
+- **Alternatives:** polling a `/state` route (delay, and load that grows with viewers);
+  building the view in TypeScript from the Game (the app layer would have to read Game
+  fields, and the hidden-sector rule would live outside the core); showing the most recent
+  game with no id (works for one local player, but not on a shared server or in multiplayer);
+  a separate port for the view (a Worker has one origin).
+- **Why:** G-3. The split fits Cloudflare: a per-game socket list maps onto one Durable Object
+  per game, which can hold hibernating sockets. Several viewers per game already work, which
+  multiplayer will need (D-18). Typed frames leave room for events on the same socket.
+- **Evidence:** `just cc-test-page` drives the page in Chromium against the real server.
+  Not yet watched alongside a real LLM session.
 
 ### D-28 All randomness comes from a seed stored in the game; constants are named — *Decided*
 - **Alternatives:** a global, unseeded RNG; tests that build boards by hand only.
@@ -252,10 +271,16 @@ inferences, waiting for review.
 
 Each question lists its options and Claude's recommendation.
 
-- **Q-8 What does the browser show?** The browser view isn't served by the new layers yet.
-  **Recommend:** each adapter serves `public/` as static files (with the asset links
-  fixed), and `/state` shows the caller's most recent game (single player, then the
-  owner's games once auth exists).
+- **Q-17 How does the viewer's link stop being able to play?** The link holds the `game_id`,
+  and anyone with a `game_id` can send MCP commands to that game, so sharing the link shares
+  the controls. The designer's direction is for the link to hold a hash of the `game_id`, which
+  the server can resolve and another player can't reverse. **Recommend** SHA-256 of the
+  `game_id` as the store key, so MCP hashes the id it's given, a viewer presents the hash, and
+  no mapping table is needed.
+- **Q-19 Do players in one game see one view?** A frame is per game today. Multiplayer could
+  share what any ship uncovers, or give each player their own fog, which would make the view
+  per player. Deferred by the designer to multiplayer design, where what is shared is a central
+  question. The frame and `view` are the places that would change.
 - **Q-15 Can claude.ai and Claude Desktop connectors sign in to auth/ without dynamic
   client registration?** auth/ clients are created by an admin, with exact redirect URIs and
   no RFC 7591 registration (auth/ D-22). Options: (a) a pre-registered public PKCE client

@@ -3,6 +3,33 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-07 — A second stdio client forwards to the first; default port 8572
+The Claude desktop app launches one stdio server for chat and another for Cowork and Code
+sessions with the same arguments, so whichever came second crashed on `EADDRINUSE`. That process
+now forwards its MCP messages to the server holding the port (`adapters/node/src/bridge.ts`), and
+still refuses a port held by anything else. `HTTP_PORT` moved from 8000 to 8572.
+
+### 2026-11-07 — Viewer decisions: survey panel kept, sector board decided, link to be hashed
+The designer kept the survey panel (new U-8), decided the page will show the current sector's
+board (settles Q-18 under D-31; new U-9, not yet covered), set the direction for Q-17 (a hash of
+the `game_id` in the link) and deferred Q-19 to multiplayer design. The GameView invariant no
+longer rules out a sector board. Added `tools/container_tools.py` and `just cc-setup`,
+because rebuilding the dev container removes the C linker and Chromium's libraries.
+
+### 2026-11-07 — Dual display: a read-only browser viewer over a WebSocket
+The designer set the shape: MCP for the LLM as ship's computer, plus an HTTP page and WebSocket
+that show the game read-only, starting with the galaxy map and ship status (D-31). This
+replaces the polling design, settles Q-8 and raises Q-17 – Q-19. New: the core's `view`
+(GameView), the app layer's `Viewers` and frames, `adapters/node/src/server.ts` and
+`viewers.ts`, a rewritten `public/` page with jQuery gone, and `view_url` in `new_game`'s
+report. `UI_POLL_MS` is gone; `RECONNECT_MIN_MS`, `RECONNECT_MAX_MS`, `VIEWER_MAX_FRAME_BYTES`
+and `LOW_GAUGE_FRACTION` are new. The Node adapter now serves HTTP in both modes and
+requires `--host`, `--port` and `--origin`, so an existing Claude Desktop config has to add
+them. A stdio process now exits when stdin closes, since the listener would otherwise keep
+it alive holding the port. CRITERIA: R-21 and U-1 – U-2 rewritten and automated, R-27 and
+R-28 added. `playwright-core` drives the page test and `ws` holds the Node sockets. The Cloudflare
+adapter's socket side is still to come.
+
 ### 2026-11-05 — Python server retired; balance harness ported to Rust
 A full game in Claude Desktop, played through the Node adapter over stdio, passed the
 play-test D-21 set as the gate. Deleted the Python server and its setup: `src/`,

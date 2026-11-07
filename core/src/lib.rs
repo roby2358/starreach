@@ -1,8 +1,9 @@
 //! Starreach core: the game rules as a pure function (ONTOLOGY "Core API", D-21).
 //!
 //! `new_game(seed)` builds a Game. `apply(game, command)` returns the next Game and a
-//! Result. The core keeps nothing between calls. The `*_json` functions are the same calls
-//! over JSON text, for the WASM boundary.
+//! Result. `view(game)` returns what a read-only display may see. The core keeps nothing
+//! between calls. The `*_json` functions are the same calls over JSON text, for the WASM
+//! boundary.
 
 pub mod actions;
 pub mod constants;
@@ -12,6 +13,7 @@ pub mod game;
 pub mod geometry;
 pub mod rng;
 pub mod sector;
+pub mod view;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
@@ -20,6 +22,7 @@ use serde::{Deserialize, Serialize};
 use actions::{Refusal, Report};
 pub use game::{Game, GameState, Status};
 use geometry::{in_bounds, Yx};
+pub use view::{view, GameView};
 
 /// A request to the core: `{type, …args}`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -124,4 +127,10 @@ pub fn apply_json(game: &str, command: &str) -> Result<String, String> {
         Err(e) => refused(&game, format!("Bad command: {e}")),
     };
     Ok(serde_json::to_string(&applied).expect("a result always serializes"))
+}
+
+/// `view` over JSON: returns the GameView as JSON text. A game that doesn't parse is an error.
+pub fn view_json(game: &str) -> Result<String, String> {
+    let game: Game = serde_json::from_str(game).map_err(|e| format!("Bad game: {e}"))?;
+    Ok(serde_json::to_string(&view(&game)).expect("a view always serializes"))
 }

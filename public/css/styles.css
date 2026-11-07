@@ -1,18 +1,202 @@
+:root {
+    --space: #070b14;
+    --panel: #0e1524;
+    --panel-edge: #24324d;
+    --text: #d7e3f4;
+    --dim: #7b8ba6;
+    --ship: #ffc145;
+    --enemy: #ff5d5d;
+    --base: #43d9c5;
+    --good: #58d68d;
+    --hidden: #0a101c;
+    --hidden-edge: #141d2f;
+    --charted: #131d31;
+    --marker-move: 700ms;
+}
+
+* { box-sizing: border-box; }
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 20px;
-    background-color: #f4f4f4;
+    margin: 0 auto;
+    padding: 16px;
+    max-width: 1080px;
+    min-height: 100vh;
+    background: var(--space);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
 
-h1 {
-    color: #333;
+h1, h2, dl, dd, ul { margin: 0; padding: 0; }
+
+.bridge-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 24px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--panel-edge);
 }
 
-#game-state {
-    margin-top: 20px;
-    padding: 10px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-} 
+h1 { font-size: 1.25rem; letter-spacing: 0.2em; text-transform: uppercase; }
+h1 span { color: var(--ship); }
+
+h2 {
+    margin-bottom: 12px;
+    color: var(--dim);
+    font-size: 0.75rem;
+    font-weight: normal;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+}
+
+.readouts { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.readouts dt, .survey dt { color: var(--dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.readouts dd { font-variant-numeric: tabular-nums; }
+
+body[data-link="live"] #link { color: var(--good); }
+body[data-link="connecting"] #link { color: var(--ship); }
+body[data-link="lost"] #link, body[data-link="absent"] #link { color: var(--enemy); }
+body[data-link="lost"] .console { opacity: 0.45; filter: saturate(0.3); }
+body[data-link="absent"] .console, body[data-link="connecting"] .console { display: none; }
+
+.notice, .outcome {
+    margin: 0 0 16px;
+    padding: 16px;
+    border: 1px solid var(--panel-edge);
+    background: var(--panel);
+    line-height: 1.5;
+}
+
+.outcome { font-size: 1.1rem; letter-spacing: 0.1em; text-align: center; text-transform: uppercase; }
+.outcome.won { border-color: var(--good); color: var(--good); }
+.outcome.lost { border-color: var(--enemy); color: var(--enemy); }
+
+.console {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+    gap: 16px;
+    transition: opacity 300ms, filter 300ms;
+}
+
+.panel { padding: 16px; border: 1px solid var(--panel-edge); background: var(--panel); }
+
+/* Equal tracks, no gaps: the marker's position is a plain fraction of the grid. */
+.galaxy {
+    position: relative;
+    width: min(100%, max(320px, calc(100vh - 230px)));
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: repeat(11, minmax(0, 1fr));
+    grid-template-rows: repeat(11, minmax(0, 1fr));
+    aspect-ratio: 1;
+    font-size: clamp(0.6rem, 2.1vw, 1.05rem);
+}
+
+.axis { display: grid; place-items: center; color: var(--dim); font-size: 0.8em; }
+
+.sector {
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    margin: 1px;
+    background: var(--charted);
+    outline: 1px solid var(--panel-edge);
+    outline-offset: -1px;
+}
+
+.sector.hidden {
+    background: repeating-linear-gradient(135deg, var(--hidden), var(--hidden) 3px, var(--hidden-edge) 3px, var(--hidden-edge) 4px);
+    outline-color: var(--hidden-edge);
+}
+
+.sector.revealed { animation: reveal 900ms ease-out; }
+.sector.struck { animation: struck 900ms ease-out; }
+
+@keyframes reveal { from { background: var(--base); } }
+@keyframes struck { from { background: var(--enemy); } }
+
+.sector .enemies { position: relative; color: var(--enemy); font-weight: bold; }
+
+.sector .starbase {
+    position: absolute;
+    top: 8%;
+    right: 8%;
+    width: 22%;
+    aspect-ratio: 1;
+    background: var(--base);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.sector .star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: var(--dim);
+}
+
+.ship-marker {
+    position: absolute;
+    width: calc(100% / 11);
+    height: calc(100% / 11);
+    border: 2px solid var(--ship);
+    box-shadow: 0 0 12px var(--ship), inset 0 0 8px rgb(255 193 69 / 35%);
+    pointer-events: none;
+    transition: top var(--marker-move) ease-in-out, left var(--marker-move) ease-in-out;
+}
+
+.ship-marker::after {
+    content: "";
+    position: absolute;
+    bottom: 8%;
+    left: 8%;
+    width: 22%;
+    aspect-ratio: 1;
+    background: var(--ship);
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 12px;
+    color: var(--dim);
+    font-size: 0.75rem;
+    list-style: none;
+}
+
+.legend li { display: flex; align-items: center; gap: 6px; }
+.legend .enemies { color: var(--enemy); font-weight: bold; }
+.legend .starbase { width: 10px; height: 10px; background: var(--base); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.legend .star { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
+.legend .uncharted { width: 12px; height: 12px; background: repeating-linear-gradient(135deg, var(--hidden), var(--hidden) 2px, var(--panel-edge) 2px, var(--panel-edge) 3px); }
+
+.gauges { display: grid; gap: 14px; margin-bottom: 24px; }
+
+.gauge-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.85rem; }
+.gauge-value { font-variant-numeric: tabular-nums; }
+.gauge-track { height: 10px; background: var(--hidden); outline: 1px solid var(--panel-edge); }
+.gauge-fill { height: 100%; background: var(--good); transition: width 500ms ease-out, background-color 300ms; }
+.gauge.low .gauge-fill { background: var(--enemy); }
+.gauge.low .gauge-value { color: var(--enemy); }
+.gauge.dropped .gauge-track { animation: dropped 600ms ease-out; }
+
+@keyframes dropped { from { outline-color: var(--enemy); box-shadow: 0 0 10px var(--enemy); } }
+
+.survey { display: grid; gap: 8px; }
+.survey div { display: flex; justify-content: space-between; align-items: baseline; }
+.survey dd { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 720px) {
+    .console { grid-template-columns: minmax(0, 1fr); }
+    .panel { padding: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ship-marker, .gauge-fill, .console { transition: none; }
+    .sector.revealed, .sector.struck, .gauge.dropped .gauge-track { animation: none; }
+}

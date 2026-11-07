@@ -3,14 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starreach Game</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Starreach Main Viewer</title>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
-    <h1>Starreach Game</h1>
-    <div id="sector-display"></div>
-    <div id="game-state" style="display: none;"></div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="script.js"></script>
+<body data-link="connecting">
+    <header class="bridge-header">
+        <h1>Starreach <span>Main Viewer</span></h1>
+        <dl class="readouts">
+            <div><dt>Stardate</dt><dd id="stardate">--</dd></div>
+            <div><dt>Sector</dt><dd id="sector">--</dd></div>
+            <div><dt>Link</dt><dd id="link">--</dd></div>
+        </dl>
+    </header>
+
+    <p id="notice" class="notice" hidden></p>
+    <p id="outcome" class="outcome" hidden></p>
+
+    <main id="console" class="console">
+        <section class="panel" aria-labelledby="map-title">
+            <h2 id="map-title">Galaxy map</h2>
+            <div id="galaxy" class="galaxy"></div>
+            <ul class="legend">
+                <li><span class="enemies">3</span> Enemies</li>
+                <li><span class="starbase"></span> Starbase</li>
+                <li><span class="star"></span> Stars</li>
+                <li><span class="uncharted"></span> Uncharted</li>
+            </ul>
+        </section>
+
+        <section class="panel" aria-labelledby="ship-title">
+            <h2 id="ship-title">Ship status</h2>
+            <div id="gauges" class="gauges"></div>
+            <h2>Survey</h2>
+            <dl class="survey">
+                <div><dt>Sectors charted</dt><dd id="charted">--</dd></div>
+                <div><dt>Enemies sighted</dt><dd id="sighted">--</dd></div>
+                <div><dt>Starbases found</dt><dd id="bases">--</dd></div>
+            </dl>
+        </section>
+    </main>
+
+    <script src="js/script.js"></script>
 </body>
-</html> 
+</html>
