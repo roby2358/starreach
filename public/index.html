@@ -20,15 +20,29 @@
     <p id="outcome" class="outcome" hidden></p>
 
     <main id="console" class="console">
-        <section class="panel" aria-labelledby="map-title">
-            <h2 id="map-title">Galaxy map</h2>
-            <div id="galaxy" class="galaxy"></div>
-            <ul class="legend">
-                <li><span class="enemies">3</span> Enemies</li>
-                <li><span class="starbase"></span> Starbase</li>
-                <li><span class="star"></span> Stars</li>
-                <li><span class="uncharted"></span> Uncharted</li>
-            </ul>
+        <section class="panel">
+            <div class="tabs" role="tablist" aria-label="Map">
+                <button id="tab-quadrant" class="tab" type="button" role="tab" aria-controls="panel-quadrant" aria-selected="true">Quadrant</button>
+                <button id="tab-galaxy" class="tab" type="button" role="tab" aria-controls="panel-galaxy" aria-selected="false">Galaxy</button>
+            </div>
+            <div id="panel-quadrant" role="tabpanel" aria-labelledby="tab-quadrant">
+                <div id="board" class="map"></div>
+                <ul class="legend">
+                    <li><span class="ship"></span> Ship</li>
+                    <li><span class="enemy"></span> Enemy</li>
+                    <li><span class="starbase"></span> Starbase</li>
+                    <li><span class="star"></span> Star</li>
+                </ul>
+            </div>
+            <div id="panel-galaxy" role="tabpanel" aria-labelledby="tab-galaxy" hidden>
+                <div id="galaxy" class="map"></div>
+                <ul class="legend">
+                    <li><span class="enemies">3</span> Enemies</li>
+                    <li><span class="starbase"></span> Starbase</li>
+                    <li><span class="dot"></span> Stars</li>
+                    <li><span class="uncharted"></span> Uncharted</li>
+                </ul>
+            </div>
         </section>
 
         <section class="panel" aria-labelledby="ship-title">

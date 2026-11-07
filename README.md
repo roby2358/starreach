@@ -1,4 +1,4 @@
-Starreach is a galaxy search-and-battle game you play by talking to an LLM. The LLM plays the ship's crew and acts on the game through MCP tools, while a read-only browser page shows the galaxy map and ship status live.
+Starreach is a galaxy search-and-battle game you play by talking to an LLM. The LLM plays the ship's crew and acts on the game through MCP tools, while a read-only browser page shows the current sector, the galaxy map and ship status live.
 
 The game is in three layers (D-21):
 
@@ -49,6 +49,6 @@ Start with the `new_game` tool and pass its `game_id` to every other tool. The `
 
 ## The main viewer
 
-`new_game` reports a `view_url`, and the crew gives you the link. Open it for a live, read-only galaxy map and ship status. Only one server can hold the port. A stdio server that finds another Starreach server there forwards to it and shares its games, and those games end when the server holding the port exits.
+`new_game` reports a `view_url`, and the crew gives you the link. Open it for a live, read-only view of the current sector, the galaxy map and ship status. Only one server can hold the port. A stdio server that finds another Starreach server there forwards to it and shares its games, and those games end when the server holding the port exits.
 
 In a container, bind every interface, publish the port, and tell the server where browsers reach it: `--host 0.0.0.0 --port 8572 --origin http://localhost:8572`.

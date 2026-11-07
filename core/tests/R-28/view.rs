@@ -30,6 +30,7 @@ fn the_ship_status_and_position_come_from_the_game() {
     assert_eq!(seen.sector_yx, game.sector_yx);
     assert_eq!(seen.status, game.status);
     assert_eq!(seen.stardate, game.state().stardate);
+    assert_eq!(seen.board, game.state().map);
 }
 
 #[test]
@@ -38,7 +39,7 @@ fn the_json_has_only_the_view_fields() {
     let seen: serde_json::Value = serde_json::from_str(&view_json(&text).unwrap()).unwrap();
     let mut keys: Vec<&String> = seen.as_object().unwrap().keys().collect();
     keys.sort();
-    assert_eq!(keys, ["galaxy", "sector_yx", "ship", "stardate", "status"]);
+    assert_eq!(keys, ["board", "galaxy", "sector_yx", "ship", "stardate", "status"]);
 }
 
 #[test]

@@ -82,10 +82,40 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
 
 .panel { padding: 16px; border: 1px solid var(--panel-edge); background: var(--panel); }
 
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--panel-edge);
+}
+
+.tab {
+    margin-bottom: -1px;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-bottom-color: var(--panel-edge);
+    background: none;
+    color: var(--dim);
+    font: inherit;
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.tab:hover { color: var(--text); }
+.tab:focus-visible { outline: 2px solid var(--ship); outline-offset: -2px; }
+
+.tab[aria-selected="true"] {
+    border-color: var(--panel-edge);
+    border-bottom-color: var(--panel);
+    color: var(--ship);
+}
+
 /* Equal tracks, no gaps: the marker's position is a plain fraction of the grid. */
-.galaxy {
+.map {
     position: relative;
-    width: min(100%, max(320px, calc(100vh - 230px)));
+    width: min(100%, max(320px, calc(100vh - 250px)));
     margin-inline: auto;
     display: grid;
     grid-template-columns: repeat(11, minmax(0, 1fr));
@@ -96,7 +126,7 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
 
 .axis { display: grid; place-items: center; color: var(--dim); font-size: 0.8em; }
 
-.sector {
+.sector, .cell {
     position: relative;
     display: grid;
     place-items: center;
@@ -106,6 +136,13 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
     outline: 1px solid var(--panel-edge);
     outline-offset: -1px;
 }
+
+.cell > * { width: 60%; aspect-ratio: 1; }
+.cell .ship, .legend .ship { background: var(--ship); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.cell .ship { width: 48%; aspect-ratio: 2 / 3; }
+.cell .enemy, .legend .enemy { background: var(--enemy); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+.cell .starbase { background: var(--base); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.cell .star, .legend .star { background: var(--text); clip-path: polygon(50% 0, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0 50%, 40% 40%); }
 
 .sector.hidden {
     background: repeating-linear-gradient(135deg, var(--hidden), var(--hidden) 3px, var(--hidden-edge) 3px, var(--hidden-edge) 4px);
@@ -130,7 +167,7 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
     clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
-.sector .star {
+.sector .dot {
     position: absolute;
     width: 2px;
     height: 2px;
@@ -153,10 +190,10 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
     position: absolute;
     bottom: 8%;
     left: 8%;
-    width: 22%;
-    aspect-ratio: 1;
+    width: 18%;
+    aspect-ratio: 2 / 3;
     background: var(--ship);
-    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 
 .legend {
@@ -172,7 +209,9 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
 .legend li { display: flex; align-items: center; gap: 6px; }
 .legend .enemies { color: var(--enemy); font-weight: bold; }
 .legend .starbase { width: 10px; height: 10px; background: var(--base); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
-.legend .star { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
+.legend .ship { width: 8px; height: 12px; }
+.legend .enemy, .legend .star { width: 12px; height: 12px; }
+.legend .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--dim); }
 .legend .uncharted { width: 12px; height: 12px; background: repeating-linear-gradient(135deg, var(--hidden), var(--hidden) 2px, var(--panel-edge) 2px, var(--panel-edge) 3px); }
 
 .gauges { display: grid; gap: 14px; margin-bottom: 24px; }

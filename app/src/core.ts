@@ -27,6 +27,8 @@ export interface GameView {
   stardate: string;
   sector_yx: [number, number];
   ship: Record<string, number>;
+  /** The ship's sector, a row per string, as in the state's `map`. */
+  board: string[];
   galaxy: ({ enemies: number; starbases: number; stars: number } | null)[][];
 }
 

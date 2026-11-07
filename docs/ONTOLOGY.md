@@ -30,8 +30,8 @@ page is a read-only view of the game.
   LLM to narrate. [D]
 - **G-2 Search and battle across a galaxy.** Warp between sectors, maneuver within one,
   destroy enemies, resupply at starbases, and win or lose. [D]
-- **G-3 The browser shows the game being played.** A read-only page shows the galaxy map
-  and ship status of the game the LLM is playing, and follows it live. [D]
+- **G-3 The browser shows the game being played.** A read-only page shows the current sector,
+  the galaxy map and ship status of the game the LLM is playing, and follows it live. [D]
 - **G-4 Resources force choices.** Energy, quantorpedoes, shields and hull are finite and
   every action must be paid for. Starbases are rare. [D]
 
@@ -178,6 +178,7 @@ it from a Game and it holds only what the player has uncovered.
 | `stardate` | str | The Stardate display form |
 | `sector_yx` | Coordinate | The ship's sector |
 | `ship` | Ship | Every Ship field |
+| `board` | str[10] | The ship's sector as map rows, the same as GameState's `map` |
 | `galaxy` | 10×10 of `{enemies, starbases, stars}` or null | Null while the sector is hidden |
 
 ### Viewers
@@ -565,9 +566,9 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 
 ### Client contract
 - **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`. [D]
-- **Browser:** opens the game's socket, draws each frame's GameView as the galaxy map, ship
-  status and a survey panel (sectors charted, enemies sighted and starbases found, totalled
-  from the map), and reconnects after losing the socket. It sends nothing and never changes
-  state. [D] It also draws the current sector's board, updated after each warp and then after
-  ship and enemy actions. [D, unbuilt]
+- **Browser:** opens the game's socket, draws each frame's GameView as the current sector's
+  board, the galaxy map, ship status and a survey panel (sectors charted, enemies sighted and
+  starbases found, totalled from the map), and reconnects after losing the socket. It sends
+  nothing and never changes state. [D] Tabs above the map choose between Quadrant (the board,
+  shown first) and Galaxy (the map); the choice stays on the page. [D]
 - **App layer:** stores and forwards Games; it never reads or edits a Game's fields. [D]

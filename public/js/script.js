@@ -1,7 +1,7 @@
 // The main viewer (ONTOLOGY "Client contract"): draws the frames that arrive on the game's
 // socket. It sends nothing, so it can't change the game.
 (function () {
-    const GALAXY_SIZE = 10;
+    const GRID_SIZE = 10;
     const RECONNECT_MIN_MS = 1000;
     const RECONNECT_MAX_MS = 15000;
     const GAME_NOT_FOUND_CLOSE = 4404;
@@ -13,6 +13,15 @@
         { label: "Energy", value: "energy", max: "max_energy" },
         { label: "Quantorpedoes", value: "quantorpedoes", max: "max_quantorpedoes" },
     ];
+
+    /** What each character of the board's map draws. An empty cell draws nothing. */
+    const OCCUPANTS = {
+        ".": { className: null, name: "empty" },
+        S: { className: "ship", name: "ship" },
+        E: { className: "enemy", name: "enemy" },
+        B: { className: "starbase", name: "starbase" },
+        "*": { className: "star", name: "star" },
+    };
 
     const OUTCOMES = {
         playing: null,
@@ -31,7 +40,7 @@
     const NOT_FOUND_NOTICE = "This ship isn't on record. A local server forgets its games when it restarts, so ask your ship's computer to start a new game.";
 
     const byId = (id) => document.getElementById(id);
-    const drawn = { cells: [], gauges: {}, marker: null, previous: null };
+    const drawn = { sectors: [], board: [], gauges: {}, marker: null, previous: null };
 
     function element(className) {
         const node = document.createElement("div");
@@ -45,24 +54,49 @@
         return node;
     }
 
-    function buildGalaxy() {
-        const galaxy = byId("galaxy");
-        galaxy.append(axisLabel(""));
-        for (let x = 0; x < GALAXY_SIZE; x++) {
-            galaxy.append(axisLabel(x));
+    /** Fills a map with its axis labels and cells, and returns the cells as `[y][x]`. */
+    function buildGrid(map, cellClass) {
+        map.append(axisLabel(""));
+        for (let x = 0; x < GRID_SIZE; x++) {
+            map.append(axisLabel(x));
         }
-        for (let y = 0; y < GALAXY_SIZE; y++) {
-            galaxy.append(axisLabel(y));
-            drawn.cells.push([]);
-            for (let x = 0; x < GALAXY_SIZE; x++) {
-                const cell = element("sector hidden");
-                drawn.cells[y].push(cell);
-                galaxy.append(cell);
-            }
-        }
+        return Array.from({ length: GRID_SIZE }, (_, y) => {
+            map.append(axisLabel(y));
+            const cells = Array.from({ length: GRID_SIZE }, () => element(cellClass));
+            map.append(...cells);
+            return cells;
+        });
+    }
+
+    function buildMaps() {
+        drawn.board = buildGrid(byId("board"), "cell");
+        drawn.sectors = buildGrid(byId("galaxy"), "sector hidden");
         drawn.marker = element("ship-marker");
         drawn.marker.hidden = true;
-        galaxy.append(drawn.marker);
+        byId("galaxy").append(drawn.marker);
+    }
+
+    /** A browser restarts a CSS animation when its hidden panel reappears, so a flash that's
+     *  still on a cell would replay every time its tab opens. */
+    function clearSectorFlashes() {
+        for (const cell of drawn.sectors.flat()) {
+            cell.classList.remove("revealed", "struck");
+        }
+    }
+
+    function showTab(chosen) {
+        clearSectorFlashes();
+        for (const tab of document.querySelectorAll("[role=tab]")) {
+            const selected = tab === chosen;
+            tab.setAttribute("aria-selected", String(selected));
+            byId(tab.getAttribute("aria-controls")).hidden = !selected;
+        }
+    }
+
+    function buildTabs() {
+        for (const tab of document.querySelectorAll("[role=tab]")) {
+            tab.addEventListener("click", () => showTab(tab));
+        }
     }
 
     function buildGauges() {
@@ -86,7 +120,7 @@
 
     /** Scatters a sector's stars the same way every time, from its coordinates. */
     function starAt(y, x, index) {
-        const star = element("star");
+        const star = element("dot");
         const spread = (salt) => (y * 37 + x * 17 + index * salt) % 89 + 5;
         star.style.top = `${spread(53)}%`;
         star.style.left = `${spread(29)}%`;
@@ -121,7 +155,7 @@
     }
 
     function drawSector(y, x, sector, previous) {
-        const cell = drawn.cells[y][x];
+        const cell = drawn.sectors[y][x];
         cell.setAttribute("aria-label", sectorLabel(y, x, sector));
         cell.classList.toggle("hidden", sector === null);
         if (sector === null) {
@@ -144,8 +178,19 @@
         }));
         const [y, x] = view.sector_yx;
         drawn.marker.hidden = false;
-        drawn.marker.style.top = `${((y + 1) * 100) / (GALAXY_SIZE + 1)}%`;
-        drawn.marker.style.left = `${((x + 1) * 100) / (GALAXY_SIZE + 1)}%`;
+        drawn.marker.style.top = `${((y + 1) * 100) / (GRID_SIZE + 1)}%`;
+        drawn.marker.style.left = `${((x + 1) * 100) / (GRID_SIZE + 1)}%`;
+    }
+
+    function drawBoardCell(cell, y, x, occupant) {
+        cell.setAttribute("aria-label", `Cell ${y},${x}: ${occupant.name}`);
+        cell.replaceChildren(...(occupant.className === null ? [] : [element(occupant.className)]));
+    }
+
+    function drawBoard(board) {
+        board.forEach((row, y) => [...row].forEach((character, x) => {
+            drawBoardCell(drawn.board[y][x], y, x, OCCUPANTS[character]);
+        }));
     }
 
     function drawGauges(ship, previous) {
@@ -164,7 +209,7 @@
     function drawSurvey(view) {
         const charted = view.galaxy.flat().filter((sector) => sector !== null);
         const total = (field) => charted.reduce((sum, sector) => sum + sector[field], 0);
-        byId("charted").textContent = `${charted.length} / ${GALAXY_SIZE * GALAXY_SIZE}`;
+        byId("charted").textContent = `${charted.length} / ${GRID_SIZE * GRID_SIZE}`;
         byId("sighted").textContent = total("enemies");
         byId("bases").textContent = total("starbases");
     }
@@ -179,6 +224,7 @@
     function drawView(view) {
         byId("stardate").textContent = view.stardate;
         byId("sector").textContent = `(${view.sector_yx[0]}, ${view.sector_yx[1]})`;
+        drawBoard(view.board);
         drawGalaxy(view, drawn.previous);
         drawGauges(view.ship, drawn.previous);
         drawSurvey(view);
@@ -218,7 +264,8 @@
     }
 
     function start() {
-        buildGalaxy();
+        buildMaps();
+        buildTabs();
         buildGauges();
         const gameId = new URLSearchParams(location.search).get("game");
         if (gameId === null) {

@@ -3,6 +3,11 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-07 — The page shows the current sector, under Quadrant and Galaxy tabs
+The designer asked for the page to feature the current sector, with tabs above the map. GameView
+gains `board`, the ship's sector as map rows, so a running server must restart to serve the new
+page's frames. New U-10; U-9 is now automated.
+
 ### 2026-11-07 — A second stdio client forwards to the first; default port 8572
 The Claude desktop app launches one stdio server for chat and another for Cowork and Code
 sessions with the same arguments, so whichever came second crashed on `EADDRINUSE`. That process
