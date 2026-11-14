@@ -1,6 +1,6 @@
 ---
 name: starreach-recipes
-description: Project-local just recipes for Starreach (build WASM, serve locally, run Rust/app tests, model balance numbers). Use before running tests or regenerating RATIONALE evidence in this repo.
+description: Project-local just recipes for Starreach (build WASM, serve locally, run the Cloudflare adapter in the background, smoke-test a server, tail or undeploy production, run Rust/app tests, model balance numbers). Use before running tests or regenerating RATIONALE evidence in this repo.
 ---
 
 # Starreach recipes
@@ -14,8 +14,14 @@ Invoke these recipes; don't call the scripts directly.
 | `just serve` | Builds the WASM core and serves the viewer page and sockets, MCP at `/mcp` and `/health` on `HTTP_HOST:HTTP_PORT` (127.0.0.1:8572, set at the top of the justfile). Browsers get `VIEW_ORIGIN`; override both in a container: `just HTTP_HOST=0.0.0.0 VIEW_ORIGIN=http://localhost:8572 serve` |
 | `just stdio` | The same as `serve`, plus MCP over stdio. It exits when stdin closes |
 | `just cf-dev [wrangler dev args]` | Builds the WASM core and runs the Cloudflare adapter under `wrangler dev` (wrangler 4.90.0, from npm): the viewer page and sockets, MCP at `/mcp` and `/health` on http://localhost:8787, games in local Durable Objects under `adapters/cloudflare/.wrangler/`. In a container: `just cf-dev --ip 0.0.0.0` |
+| `just cf-up [wrangler dev args]` | `cf-dev` in the background: builds the WASM core, starts `wrangler dev` in its own process group (`setsid`), writes the PGID to `adapters/cloudflare/.wrangler/pids/cf.pid` and output to `adapters/cloudflare/.wrangler/logs/cf.log`, and waits for wrangler's "Ready on" line. Says so and does nothing if already running. Same local Durable Objects as `cf-dev`. In a container: `just cf-up --ip 0.0.0.0` |
+| `just cf-down` | Stops what `cf-up` started: TERM to the process group, KILL after 4 s, removes the pidfile. Also reaps a `wrangler dev --config adapters/cloudflare/wrangler.jsonc` whose pidfile is gone (pgrep sweep) |
+| `just cf-logs` | Follows `cf-up`'s log (`tail -F`) |
+| `just cf-smoke <base_url>` | Runs `tools/smoke.ts` against a running server, e.g. `just cf-smoke http://localhost:8787` (after `cf-up`) or `just cf-smoke https://starreach.yuwakisa.com`: `/health` is 200, MCP `initialize` and `new_game` return a game_id and view_url, a viewer socket on `/live/<view_id>` gets a frame on connecting, `long_range_scan` succeeds, and the socket gets another frame. Prints `ok` per step; exits 1 with `smoke FAILED ...` on any failure. Leaves one game on the server. Works against `just serve` too (http://127.0.0.1:8572) |
 | `just cf-whoami` | Shows which Cloudflare account wrangler is logged in to: the shared OAuth login also used by /work/yuwakisacloud (`just login` there to log in) |
 | `just cf-deploy [--dry-run]` | Builds the WASM core and runs `wrangler deploy --env production` for the Cloudflare adapter, to the `starreach.yuwakisa.com` custom domain. `--dry-run` checks the bundle and bindings without deploying. Only deploy with the user's go-ahead |
+| `just cf-tail` | Streams the production Worker's live logs (`wrangler tail --env production`) |
+| `just cf-undeploy` | KILL SWITCH: `wrangler delete --env production` deletes the production Worker, taking starreach.yuwakisa.com down, and its Durable Objects with it, so every deployed game is lost. Wrangler asks for confirmation. Never run it without the user's go-ahead |
 | `just cc-build-wasm` | Builds the core to WASM and generates bindings into `app/src/wasm/` (gitignored) |
 | `just cc-test-all` | Runs `cc-test-core`, `cc-test-app`, `cc-test-node`, `cc-test-cloudflare`, `cc-test-page` and `cc-typecheck` |
 | `just cc-test-core [cargo test args]` | Runs the Rust core's rule tests (`core/tests/R-n/`) and the CRITERIA coverage test (e.g. `just cc-test-core --test rules r_9`) |

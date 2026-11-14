@@ -112,6 +112,14 @@ Q-7 (docs/RATIONALE.md): Docking restores shields, energy and quantorpedoes but 
 ----
 Priority:   55
 Status: Done
+ID: justops-fu2a
+Created: 2026-11-14T17:14:44Z
+Updated: 2026-11-14T17:51:31Z
+
+Round out the justfile so running locally and deploying are one command each, following the sibling meta-repo /work/yuwakisacloud's justfiles as the model (dev-up/dev-down/dev-logs with setsid process groups and pidfiles under .wrangler/, deploy, undeploy kill switches, whoami). Already present: cf-dev (wrangler dev in the foreground), cf-whoami, cf-deploy (production, accepts --dry-run), the Node adapter recipes, cc-build-wasm and the test recipes; review them for consistent names and descriptions. Add what is missing, for example: a background local run with start/stop/logs for the Cloudflare adapter (and the Node adapter if useful); a smoke recipe that checks /health, starts a game and runs a command over /mcp, against either localhost or https://starreach.yuwakisa.com (a committed script exposed as a recipe, not a throwaway); `cf-tail` for live production logs (wrangler tail); and `cf-undeploy` as a kill switch that deletes the production Worker (warn that this also deletes its Durable Object games). Document every recipe in .claude/skills/starreach-recipes/SKILL.md and the README. Ask the user before committing, and never run cf-undeploy or a real deploy without the user's go-ahead.
+----
+Priority:   55
+Status: Done
 ID: shieldregen-amsh
 Created: 2026-11-04T23:53:50Z
 Updated: 2026-11-05T01:44:39Z

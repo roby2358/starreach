@@ -31,9 +31,17 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just stdio        # the same, plus MCP over stdio
 
     just cf-dev       # the Cloudflare adapter under wrangler dev: the viewer at http://localhost:8787/, MCP at /mcp
+    just cf-up        # cf-dev in the background; log in adapters/cloudflare/.wrangler/logs/cf.log
+    just cf-logs      # follow that log
+    just cf-down      # stop it
     just cf-deploy    # deploy to https://starreach.yuwakisa.com (add --dry-run to check first)
+    just cf-tail      # stream the production Worker's live logs
+    just cf-undeploy  # kill switch: delete the production Worker AND every deployed game
 
-Each recipe builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart.
+    just cf-smoke http://localhost:8787               # check a running server: /health, a game over /mcp, a viewer socket
+    just cf-smoke https://starreach.yuwakisa.com      # the same against production (leaves one game there)
+
+Each recipe that runs a server builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart.
 
 ## Run in Claude Desktop
 
