@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-14 — Both adapters limit viewer frames to 128 bytes
+The designer set `VIEWER_MAX_FRAME_BYTES` to 128 (from 1024), enough for a ping or a small view
+setting, and made it apply on Cloudflare too: the Durable Object's message handler, empty before,
+now closes a socket with 1009 on a larger frame. The constant moved from the Node server into the
+app layer (with `FRAME_TOO_BIG_CLOSE`), so both adapters read one value. ONTOLOGY's Viewer socket
+rule and D-31 drop the Node-only [P]; R-27 now covers the limit in both adapters.
+
 ### 2026-11-14 — First deploy to starreach.yuwakisa.com
 The Cloudflare adapter is deployed to production with `just cf-deploy` (`wrangler deploy --env
 production`), on the account and zone shared with yuwakisacloud; the `custom_domain` route

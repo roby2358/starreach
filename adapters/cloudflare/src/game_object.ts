@@ -4,7 +4,15 @@
 // memory while viewers stay connected.
 
 import { DurableObject } from "cloudflare:workers";
-import { currentFrame, GAME_NOT_FOUND_CLOSE, liveViewId, type GameJson, type GameStore } from "@starreach/app";
+import {
+  currentFrame,
+  FRAME_TOO_BIG_CLOSE,
+  GAME_NOT_FOUND_CLOSE,
+  liveViewId,
+  VIEWER_MAX_FRAME_BYTES,
+  type GameJson,
+  type GameStore,
+} from "@starreach/app";
 
 import { core } from "./core.ts";
 
@@ -54,10 +62,19 @@ export class GameObject extends DurableObject<Env> {
     return upgraded;
   }
 
-  /** A viewer has nothing to say (R-27), so whatever it sends is dropped. */
-  webSocketMessage(): void {}
+  /** A viewer has nothing to say (R-27): a frame over VIEWER_MAX_FRAME_BYTES closes that
+   *  socket, and any other frame is dropped. */
+  webSocketMessage(socket: WebSocket, message: string | ArrayBuffer): void {
+    if (frameBytes(message) > VIEWER_MAX_FRAME_BYTES) {
+      socket.close(FRAME_TOO_BIG_CLOSE, "Frame too big");
+    }
+  }
 
   /** The runtime answers a viewer's close frame itself and drops the socket from
    *  getWebSockets, so there is nothing to do. */
   webSocketClose(): void {}
+}
+
+function frameBytes(message: string | ArrayBuffer): number {
+  return typeof message === "string" ? new TextEncoder().encode(message).byteLength : message.byteLength;
 }

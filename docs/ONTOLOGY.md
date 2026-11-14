@@ -470,7 +470,7 @@ Referred to by name everywhere else.
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
 | `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |
-| `VIEWER_MAX_FRAME_BYTES` | 1024 | largest frame a viewer may send before its socket closes | D-31 |
+| `VIEWER_MAX_FRAME_BYTES` | 128 | largest frame a viewer may send before its socket closes; room for a ping or a small view setting | D-31 |
 | `LOW_GAUGE_FRACTION` | 0.25 | share of its maximum below which a page gauge turns red | D-31 |
 
 ---
@@ -551,7 +551,7 @@ handler, and takes the viewer link's origin from the request. [D] Before `/mcp` 
 seam, which allows every request until auth exists (Q-15). [D] `/health` doesn't pass through
 the seam, and the seam answers with the response that refuses a request, or nothing to let it
 through. [P] Locally it runs under `wrangler dev` (`just cf-dev`). Its production environment
-is routed to `starreach.yuwakisa.com` (D-20), and nothing is deployed yet. [D]
+is routed to `starreach.yuwakisa.com` (D-20) and deployed there with `just cf-deploy`. [D]
 
 The Worker calls the same seam before a viewer's socket upgrade, then hands the upgrade to the
 Durable Object named by the path's `view_id`. [D] A `/live/` request that isn't a WebSocket
@@ -567,10 +567,9 @@ on connect to /live/<view_id>:
     unknown game: close with code 4404
     otherwise: add to the game's viewers, send {type: "view", view: GameView}
 on an accepted command: send {type: "view", view: GameView} to the game's viewers
-on any frame from a viewer: ignore it; one over VIEWER_MAX_FRAME_BYTES closes that socket
+on any frame from a viewer: ignore it; one over VIEWER_MAX_FRAME_BYTES closes that socket (1009)
 ```
-The size limit is the Node adapter's. The Cloudflare adapter ignores a frame of any size the
-platform delivers, and leaves the socket open. [P]
+Both adapters enforce the size limit, which the app layer defines. [D]
 Every frame carries a `type`, so other kinds can join the same socket. [P]
 
 ### Events (messages)

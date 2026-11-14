@@ -7,7 +7,14 @@ import type { AddressInfo } from "node:net";
 import type { Duplex } from "node:stream";
 
 import { serve } from "@hono/node-server";
-import { currentFrame, GAME_NOT_FOUND_CLOSE, handleHttp, liveViewId, type McpDeps } from "@starreach/app";
+import {
+  currentFrame,
+  GAME_NOT_FOUND_CLOSE,
+  handleHttp,
+  liveViewId,
+  VIEWER_MAX_FRAME_BYTES,
+  type McpDeps,
+} from "@starreach/app";
 import { WebSocket, WebSocketServer } from "ws";
 
 import type { SocketViewers } from "./viewers.ts";
@@ -15,9 +22,6 @@ import type { SocketViewers } from "./viewers.ts";
 export interface NodeDeps extends McpDeps {
   viewers: SocketViewers;
 }
-
-/** A viewer has nothing to say, so any frame bigger than this closes its socket. */
-const VIEWER_MAX_FRAME_BYTES = 1024;
 
 const PUBLIC_DIR = new URL("../../../public/", import.meta.url);
 
@@ -49,10 +53,19 @@ async function connectViewer(socket: WebSocket, view: string, deps: NodeDeps): P
   socket.send(frame);
 }
 
+/** The view_id an upgrade request's path watches, or undefined for a request with no URL or any
+ *  other path. The URL is only a path, so a fixed base parses it. */
+function upgradeViewId(url: string | undefined): string | undefined {
+  if (url === undefined) {
+    return undefined;
+  }
+  return liveViewId(new URL(url, "http://upgrade").pathname);
+}
+
 function acceptViewers(server: Server, deps: NodeDeps): void {
   const sockets = new WebSocketServer({ noServer: true, maxPayload: VIEWER_MAX_FRAME_BYTES });
   server.on("upgrade", (request, stream: Duplex, head) => {
-    const view = liveViewId(new URL(request.url ?? "", "http://upgrade").pathname);
+    const view = upgradeViewId(request.url);
     if (view === undefined) {
       stream.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       return;

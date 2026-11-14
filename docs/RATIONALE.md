@@ -109,9 +109,11 @@ inferences, waiting for review.
   a separate port for the view (a Worker has one origin).
 - **Why:** G-3. The split fits Cloudflare: a per-game socket list maps onto one Durable Object
   per game, which holds hibernating sockets there. That object reads its own game for the frame
-  a viewer gets on connecting, so a connect touches no second object. Its message handler is
-  empty, and it enforces no frame size [P]: the Node limit protects that process's memory, and
-  on Cloudflare the platform has already received the frame. Several viewers per game already work, which
+  a viewer gets on connecting, so a connect touches no second object. Both adapters close a
+  viewer's socket on a frame over `VIEWER_MAX_FRAME_BYTES` [D], sized for a ping or a small view
+  setting later. On Node the limit protects the process's memory; on Cloudflare the platform has
+  already received the frame, so the limit's use there is to stop a misbehaving viewer from
+  waking the hibernating object again and again. Several viewers per game already work, which
   multiplayer will need (D-18). Typed frames leave room for events on the same socket.
 - **Evidence:** `just cc-test-page` drives the page in Chromium against the real server.
   The same page, unchanged, followed a game on the Cloudflare adapter under `wrangler dev`

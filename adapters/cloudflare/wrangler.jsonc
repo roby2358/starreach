@@ -1,6 +1,6 @@
 // Starreach on Cloudflare (D-21): one Worker, one SQLite Durable Object per game holding the
 // game and its viewer sockets, and the viewer page as static assets.
-// `just cf-dev` runs this locally. The first deploy is a later step.
+// `just cf-dev` runs this locally; `just cf-deploy` deploys the production environment.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "starreach",

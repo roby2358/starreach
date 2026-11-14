@@ -71,6 +71,15 @@ const MODES: Record<string, (launch: Launch) => Promise<void>> = {
   http: listen,
 };
 
+/** The mode a command line names, or undefined when it names none or an unknown one. Own keys
+ *  only, so a name like "constructor" isn't found on the prototype. */
+function modeNamed(name: string | undefined): ((launch: Launch) => Promise<void>) | undefined {
+  if (name === undefined || !Object.hasOwn(MODES, name)) {
+    return undefined;
+  }
+  return MODES[name];
+}
+
 function required(value: string | undefined, flag: string): string {
   if (value === undefined) {
     throw new Error(`${flag} is required. ${USAGE}`);
@@ -90,7 +99,7 @@ const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: { host: { type: "string" }, port: { type: "string" }, origin: { type: "string" } },
 });
-const mode = MODES[positionals[0] ?? ""];
+const mode = modeNamed(positionals[0]);
 if (mode === undefined) {
   console.error(USAGE);
   process.exit(2);

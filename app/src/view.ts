@@ -17,6 +17,13 @@ export type Frame = { type: "view"; view: GameView };
  *  failed upgrade, so the socket opens and then closes with this. */
 export const GAME_NOT_FOUND_CLOSE = 4404;
 
+/** A viewer has nothing to say beyond a small ping, so any frame bigger than this closes its
+ *  socket (R-27). */
+export const VIEWER_MAX_FRAME_BYTES = 128;
+
+/** The WebSocket close code for a frame over VIEWER_MAX_FRAME_BYTES (RFC 6455 "message too big"). */
+export const FRAME_TOO_BIG_CLOSE = 1009;
+
 const LIVE_PATH = /^\/live\/([0-9a-f]{64})$/;
 
 /** The view_id for a game_id: its hex SHA-256 (D-32). The store and the viewers are keyed by

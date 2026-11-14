@@ -46,7 +46,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | R-24 | Warp out of a sector and back | Stars and the starbase are on the same cells. Enemies stand on the first `len(enemies_yx)` of the cells first generated for them | automated |
 | R-25 | Every command, accepted or refused | The Result has exactly `ok, error, events, report, state`. `error` is null iff `ok`; `report` is null when refused. A refused action returns the game unchanged. A coordinate outside `0..9` is refused | automated |
 | R-26 | The ship is stranded in a sector with a starbase | The game goes on; energy becomes `max(energy, STARBASE_EMERGENCY_ENERGY)` and the transfer message is in `events` | automated |
-| R-27 | A viewer sends frames down its socket, including commands | The game doesn't change. On the Node adapter a frame over `VIEWER_MAX_FRAME_BYTES` closes that socket | automated |
+| R-27 | A viewer sends frames down its socket, including commands | The game doesn't change. A frame over `VIEWER_MAX_FRAME_BYTES` closes that socket with code 1009 | automated |
 | R-28 | The view of any game | A hidden sector is null and a visible one matches its record. Ship, status, stardate, sector and board match the game. It has only the GameView fields | automated |
 
 ## U — UI / readability
@@ -86,7 +86,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 - **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets (by `view_id`) and R-27.
 - **Automated in the Cloudflare adapter** (`just cc-test-cloudflare`, inside workerd): R-21's
   sockets on the Durable Object (by `view_id`, through the Worker's upgrade) and R-27's ignored
-  frames. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
+  frames and its size limit. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
   which are integration tests and own no R-row. The static-assets page isn't under test there:
   it was checked by hand under `just cf-dev`, in headless Chromium (2026-11-14).
 - **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11. It needs Chromium's system
