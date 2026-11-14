@@ -1,3 +1,10 @@
+Score:   75
+ID: goals-9atp
+Created: 2026-11-14T15:48:48Z
+Updated: 2026-11-14T15:48:48Z
+
+Player goals page and goals per game. A page where a player sees their goals, plus goals set for each game. Details to be worked out with the designer: what a goal is (for example clear N enemies, finish by a stardate, lose no starbase), whether goals are fixed, generated per game or chosen by the player, how progress is tracked and shown (on the viewer, in the MCP results), and whether goals carry across games on a player's own page, which needs sign-in and a player identity.
+----
 Score:   50
 ID: starcentral-rixp
 Created: 2026-11-14T15:47:45Z
