@@ -30,8 +30,8 @@ serve: cc-build-wasm
 stdio: cc-build-wasm
     node adapters/node/src/main.ts stdio --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
 
-# Run the Cloudflare adapter locally under wrangler dev: MCP at /mcp and /health on
-# http://localhost:8787, games in local Durable Objects. In a container: just cf-dev --ip 0.0.0.0
+# Run the Cloudflare adapter locally under wrangler dev: the viewer page and sockets, MCP at
+# /mcp and /health on http://localhost:8787, games in local Durable Objects. In a container: just cf-dev --ip 0.0.0.0
 cf-dev *args: cc-build-wasm
     npx wrangler dev --config adapters/cloudflare/wrangler.jsonc {{args}}
 

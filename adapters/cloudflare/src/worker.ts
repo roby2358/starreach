@@ -1,33 +1,41 @@
 // Starreach on Cloudflare (D-21): the app layer's routes served by a Worker, with each game
-// in its own Durable Object. Viewer sockets and the page aren't served yet, so publishing a
-// frame does nothing.
+// and its viewer sockets in one Durable Object. The page is served as static assets
+// (wrangler.jsonc), which are tried before this Worker runs.
 
-import { handleHttp, loadCore, type Viewers } from "@starreach/app";
+import { handleHttp, liveViewId } from "@starreach/app";
 
 import instructions from "../../../public/instructions.txt";
-import wasm from "../../../app/src/wasm/starreach_core_bg.wasm";
 import { authorize } from "./auth.ts";
+import { core } from "./core.ts";
 import { DurableObjectStore } from "./store.ts";
+import { DurableObjectViewers } from "./viewers.ts";
 
 export { GameObject } from "./game_object.ts";
 
-const core = loadCore(wasm);
-
-const noViewers: Viewers = {
-  async publish(): Promise<void> {},
-};
+/** The view_id a viewer's socket upgrade asks for, or undefined for any other request. */
+function upgradeViewId(request: Request, path: string): string | undefined {
+  if (request.headers.get("upgrade")?.toLowerCase() !== "websocket") {
+    return undefined;
+  }
+  return liveViewId(path);
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    const refusal = url.pathname === "/mcp" ? await authorize(request, env) : undefined;
+    const view = upgradeViewId(request, url.pathname);
+    const guarded = view !== undefined || url.pathname === "/mcp";
+    const refusal = guarded ? await authorize(request, env) : undefined;
     if (refusal !== undefined) {
       return refusal;
+    }
+    if (view !== undefined) {
+      return env.GAMES.getByName(view).fetch(request);
     }
     return handleHttp(request, {
       core,
       store: new DurableObjectStore(env.GAMES),
-      viewers: noViewers,
+      viewers: new DurableObjectViewers(env.GAMES),
       viewOrigin: url.origin,
       instructions: instructions.trim(),
     });

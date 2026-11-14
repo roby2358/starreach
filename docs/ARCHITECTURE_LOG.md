@@ -3,6 +3,17 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-14 — The Cloudflare adapter serves viewers and the page
+The Durable Object that stores a game now also holds its `/live/<view_id>` sockets, with the
+hibernation API (D-31). The Worker calls the auth seam before the upgrade and routes it to the
+object by `view_id`; the object sends the current frame, or closes with 4404 when it has no
+game. `publish` was a no-op and is now a call on the object that sends the frame to its sockets.
+`public/` is served as static assets, except `instructions.txt` (`public/.assetsignore`), so
+`view_url` opens a working page under `just cf-dev`. The adapter ignores viewer frames of any
+size, so `VIEWER_MAX_FRAME_BYTES` is the Node adapter's alone, and R-27's row says so. R-21 and
+R-27 gain tests under `adapters/cloudflare/test/`, whose files now share one worker and its
+storage. D-21's Cloudflare adapter was "partly built" and is now built. Nothing is deployed.
+
 ### 2026-11-14 — The Cloudflare adapter serves MCP and stores games; viewers come later
 `adapters/cloudflare/` now exists (D-21): a Worker serves the app layer's `/mcp` and `/health`
 with the WASM core bundled in, and each game lives in a SQLite-backed Durable Object named by

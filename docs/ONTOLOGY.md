@@ -188,8 +188,9 @@ it from a Game and it holds only what the player has uncovered.
 *Serves: G-3.* [D] The sockets watching each game. The app layer makes frames and calls
 `publish(view_id, frame)`. Each adapter holds the sockets, because upgrading a request and
 keeping a socket open belong to the platform. The Node adapter keeps a list per `view_id` in
-process memory. The Cloudflare adapter keeps them on the game's Durable Object. [D, unbuilt]
-Until then its `publish` does nothing, so accepted commands still succeed. [D]
+process memory. The Cloudflare adapter keeps them on the game's Durable Object, as hibernating
+WebSockets, so the object can leave memory while viewers stay connected. Its `publish` is a
+call on that object, which sends the frame to each of its sockets. [D]
 
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
@@ -532,7 +533,7 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 | `POST /mcp` | Streamable-HTTP MCP |
 | `GET /health` | `{status: "ok"}` |
 | `GET /` | The viewer page. `?view=<view_id>` chooses the game |
-| `GET /css/styles.css`, `GET /js/script.js` | The page's files |
+| `GET /css/styles.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2` | The page's files |
 | WebSocket `/live/<view_id>` | The game's frames, read-only [P] |
 | any other path | 404 |
 
@@ -550,8 +551,15 @@ handler, and takes the viewer link's origin from the request. [D] Before `/mcp` 
 seam, which allows every request until auth exists (Q-15). [D] `/health` doesn't pass through
 the seam, and the seam answers with the response that refuses a request, or nothing to let it
 through. [P] Locally it runs under `wrangler dev` (`just cf-dev`). Its production environment
-is routed to `starreach.yuwakisa.com` (D-20), and nothing is deployed yet. [D] It doesn't serve
-the socket or the page yet; the page will be static assets. [D, unbuilt]
+is routed to `starreach.yuwakisa.com` (D-20), and nothing is deployed yet. [D]
+
+The Worker calls the same seam before a viewer's socket upgrade, then hands the upgrade to the
+Durable Object named by the path's `view_id`. [D] A `/live/` request that isn't a WebSocket
+upgrade, or whose id isn't a `view_id`, gets the 404 of any other path. [P] The page is
+`public/` served as Workers static assets: a request that matches a file is answered without
+running the Worker, and every other request reaches it. [D] `public/.assetsignore` keeps
+`instructions.txt` out of the assets, since the Worker bundles it as a module; everything else
+in `public/` is served, which adds the font's licence text to the page's files. [P]
 
 ### Viewer socket [D]
 ```
@@ -561,6 +569,8 @@ on connect to /live/<view_id>:
 on an accepted command: send {type: "view", view: GameView} to the game's viewers
 on any frame from a viewer: ignore it; one over VIEWER_MAX_FRAME_BYTES closes that socket
 ```
+The size limit is the Node adapter's. The Cloudflare adapter ignores a frame of any size the
+platform delivers, and leaves the socket open. [P]
 Every frame carries a `type`, so other kinds can join the same socket. [P]
 
 ### Events (messages)

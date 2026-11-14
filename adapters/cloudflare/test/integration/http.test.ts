@@ -4,31 +4,7 @@
 import { exports } from "cloudflare:workers";
 import { expect, test } from "vitest";
 
-// Loads the Worker before the tests start. The first load takes workerd several seconds,
-// which would otherwise count against the first test's timeout.
-import "../../src/worker.ts";
-
-const BASE = "http://starreach.test";
-
-function rpc(method: string, params: Record<string, unknown>): Request {
-  return new Request(`${BASE}/mcp`, {
-    method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-}
-
-async function rpcResult(method: string, params: Record<string, unknown>): Promise<any> {
-  const response = await exports.default.fetch(rpc(method, params));
-  expect(response.status).toBe(200);
-  const body: any = await response.json();
-  return body.result;
-}
-
-async function callTool(name: string, args: Record<string, unknown>): Promise<any> {
-  const result = await rpcResult("tools/call", { name, arguments: args });
-  return JSON.parse(result.content[0].text);
-}
+import { BASE, callTool, rpcResult } from "../helpers/worker.ts";
 
 test("GET /health answers ok", async () => {
   const response = await exports.default.fetch(`${BASE}/health`);
@@ -49,7 +25,7 @@ test("a game made over HTTP is playable on later requests", async () => {
   expect(state.state).toEqual(created.state);
 });
 
-test("an accepted command is stored, with no viewers to tell", async () => {
+test("an accepted command is stored, with no viewers watching", async () => {
   const created = await callTool("new_game", {});
   const gameId = created.report.game_id;
   const scanned = await callTool("long_range_scan", { game_id: gameId });

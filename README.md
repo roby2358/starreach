@@ -5,7 +5,7 @@ The game is in three layers (D-21):
 - `core/`: the rules, in Rust compiled to WASM.
 - `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
 - `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the viewer page and its sockets, and games kept in memory.
-- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP and each game in its own Durable Object. It has no viewer page or sockets yet, and it isn't deployed.
+- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, and the viewer page as static assets. It isn't deployed.
 
 ## Design docs
 
@@ -30,9 +30,9 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just serve        # the viewer at http://127.0.0.1:8572/, MCP at /mcp, health at /health
     just stdio        # the same, plus MCP over stdio
 
-    just cf-dev       # the Cloudflare adapter under wrangler dev: MCP at http://localhost:8787/mcp
+    just cf-dev       # the Cloudflare adapter under wrangler dev: the viewer at http://localhost:8787/, MCP at /mcp
 
-Each recipe builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart. Its `view_url` leads nowhere until that adapter serves the page.
+Each recipe builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart.
 
 ## Run in Claude Desktop
 

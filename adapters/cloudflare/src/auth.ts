@@ -1,5 +1,5 @@
-// The auth seam (Q-15, D-20). The Worker calls it before /mcp, and the viewer socket upgrade
-// will call it too. It allows every request for now.
+// The auth seam (Q-15, D-20). The Worker calls it before /mcp and before a viewer's socket
+// upgrade. It allows every request for now.
 //
 // When auth lands, this verifies the yuwakisacloud access token with auth-client's
 // `verifyAccessToken`. The check must reach auth/'s JWKS through a service binding to the

@@ -50,7 +50,7 @@ inferences, waiting for review.
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 
-### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter partly built (Worker, store and MCP; viewers and the page unbuilt)*
+### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter built; nothing deployed*
 - **Choice:** `core/` is the Rust crate (rules only, compiled to WASM). `app/` is a
   TypeScript package with no platform imports: it defines the MCP tools and the
   `instructions` prompt, loads the core, and talks to storage through a `GameStore`
@@ -61,11 +61,12 @@ inferences, waiting for review.
   adapter under `wrangler dev` (`just cf-dev`).
   In the Cloudflare adapter [P]: the Durable Object keeps the game JSON under one key of its
   SQLite-backed key-value storage, with no table of its own; the auth hook is one function
-  that returns the refusing response or nothing, called before `/mcp` only; its tests run
-  inside workerd under vitest with `@cloudflare/vitest-pool-workers`, while the other
-  TypeScript packages keep Node's test runner; and `wrangler.jsonc` keeps the route under
-  `env.production` only, deployed with `wrangler deploy --env production`, as yuwakisacloud's
-  Workers do.
+  that returns the refusing response or nothing, called before `/mcp` and before a viewer's
+  socket upgrade; its tests run inside workerd under vitest with
+  `@cloudflare/vitest-pool-workers`, while the other TypeScript packages keep Node's test
+  runner; `wrangler.jsonc` keeps the route under `env.production` only, deployed with
+  `wrangler deploy --env production`, as yuwakisacloud's Workers do; and the page is `public/`
+  as static assets with the default asset-first routing, minus `instructions.txt`.
 - **Alternatives:** a single Worker project (Cloudflare APIs spread through the code); an
   app with only the Cloudflare adapter, run locally under `wrangler dev` (no stdio for
   Claude Desktop).
@@ -76,10 +77,15 @@ inferences, waiting for review.
   Cloudflare offers new Durable Object classes. Tests inside workerd exercise the real
   Durable Object storage and the bundled WASM, which Node can't. `wrangler` is pinned to
   4.90.0 to match yuwakisacloud, and the vitest pool (0.16.3) and `@cloudflare/workers-types`
-  are the releases built against that `wrangler`, so one `workerd` is installed.
-- **Evidence:** A game started and played over `/mcp` under `wrangler dev`, and
-  `wrangler deploy --env production --dry-run` resolves the Durable Object binding
-  (2026-11-14).
+  are the releases built against that `wrangler`, so one `workerd` is installed. Asset-first
+  routing needs no `run_worker_first`: `/mcp`, `/health` and `/live/<view_id>` match no file,
+  so they fall through to the Worker, and the page costs no Worker invocation. The adapter's
+  test files share one worker and its storage, because the vitest pool doesn't support Durable
+  Object WebSockets under per-file storage isolation.
+- **Evidence:** Under `wrangler dev`, a game started over `/mcp`, its `view_url` opened in
+  headless Chromium and went live, and the map updated after a `long_range_scan`;
+  `/instructions.txt` answered 404. `wrangler deploy --env production --dry-run` reads the
+  assets and resolves the Durable Object binding (2026-11-14).
 
 ### D-22 Games are addressed by an explicit `game_id` — *Decided*
 - **Alternatives:** bind the game to the MCP connection (a reconnect loses the game unless
@@ -102,10 +108,14 @@ inferences, waiting for review.
   game with no id (works for one local player, but not on a shared server or in multiplayer);
   a separate port for the view (a Worker has one origin).
 - **Why:** G-3. The split fits Cloudflare: a per-game socket list maps onto one Durable Object
-  per game, which can hold hibernating sockets. Several viewers per game already work, which
+  per game, which holds hibernating sockets there. That object reads its own game for the frame
+  a viewer gets on connecting, so a connect touches no second object. Its message handler is
+  empty, and it enforces no frame size [P]: the Node limit protects that process's memory, and
+  on Cloudflare the platform has already received the frame. Several viewers per game already work, which
   multiplayer will need (D-18). Typed frames leave room for events on the same socket.
 - **Evidence:** `just cc-test-page` drives the page in Chromium against the real server.
-  Not yet watched alongside a real LLM session.
+  The same page, unchanged, followed a game on the Cloudflare adapter under `wrangler dev`
+  (2026-11-14). Not yet watched alongside a real LLM session.
 
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
