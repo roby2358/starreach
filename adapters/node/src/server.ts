@@ -7,7 +7,7 @@ import type { AddressInfo } from "node:net";
 import type { Duplex } from "node:stream";
 
 import { serve } from "@hono/node-server";
-import { currentFrame, GAME_NOT_FOUND_CLOSE, handleHttp, liveGameId, type McpDeps } from "@starreach/app";
+import { currentFrame, GAME_NOT_FOUND_CLOSE, handleHttp, liveViewId, type McpDeps } from "@starreach/app";
 import { WebSocket, WebSocketServer } from "ws";
 
 import type { SocketViewers } from "./viewers.ts";
@@ -35,9 +35,9 @@ function loadPage(): Map<string, { body: Uint8Array<ArrayBuffer>; type: string }
   );
 }
 
-async function connectViewer(socket: WebSocket, gameId: string, deps: NodeDeps): Promise<void> {
+async function connectViewer(socket: WebSocket, view: string, deps: NodeDeps): Promise<void> {
   socket.on("error", (error) => console.error(`Viewer socket: ${error.message}`));
-  const frame = await currentFrame(deps, gameId);
+  const frame = await currentFrame(deps, view);
   if (frame === undefined) {
     socket.close(GAME_NOT_FOUND_CLOSE, "Game not found");
     return;
@@ -45,19 +45,19 @@ async function connectViewer(socket: WebSocket, gameId: string, deps: NodeDeps):
   if (socket.readyState !== WebSocket.OPEN) {
     return;
   }
-  deps.viewers.attach(gameId, socket);
+  deps.viewers.attach(view, socket);
   socket.send(frame);
 }
 
 function acceptViewers(server: Server, deps: NodeDeps): void {
   const sockets = new WebSocketServer({ noServer: true, maxPayload: VIEWER_MAX_FRAME_BYTES });
   server.on("upgrade", (request, stream: Duplex, head) => {
-    const gameId = liveGameId(new URL(request.url ?? "", "http://upgrade").pathname);
-    if (gameId === undefined) {
+    const view = liveViewId(new URL(request.url ?? "", "http://upgrade").pathname);
+    if (view === undefined) {
       stream.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       return;
     }
-    sockets.handleUpgrade(request, stream, head, (socket) => void connectViewer(socket, gameId, deps));
+    sockets.handleUpgrade(request, stream, head, (socket) => void connectViewer(socket, view, deps));
   });
 }
 

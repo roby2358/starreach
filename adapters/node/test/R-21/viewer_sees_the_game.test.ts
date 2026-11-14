@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { newGame, runCommand } from "@starreach/app";
+import { newGame, runCommand, viewId } from "@starreach/app";
 
 import { startServer, stopServer, Viewer, type Running } from "../helpers/server.ts";
 
@@ -19,16 +19,16 @@ async function createGame(): Promise<string> {
 
 test("a viewer gets the current view on connecting", async () => {
   const gameId = await createGame();
-  const viewer = new Viewer(running.port, gameId);
+  const viewer = new Viewer(running.port, await viewId(gameId));
   const frame = await viewer.nextFrame();
   assert.equal(frame.type, "view");
-  assert.deepEqual(frame.view, running.deps.core.view((await running.deps.store.get(gameId))!));
+  assert.deepEqual(frame.view, running.deps.core.view((await running.deps.store.get(await viewId(gameId)))!));
   viewer.socket.close();
 });
 
 test("every viewer of a game sees a command as it happens", async () => {
   const gameId = await createGame();
-  const viewers = [new Viewer(running.port, gameId), new Viewer(running.port, gameId)];
+  const viewers = [new Viewer(running.port, await viewId(gameId)), new Viewer(running.port, await viewId(gameId))];
   const [first] = await Promise.all(viewers.map((v) => v.nextFrame()));
 
   const scan = await runCommand(running.deps, gameId, { type: "long_range_scan" });
@@ -44,7 +44,7 @@ test("every viewer of a game sees a command as it happens", async () => {
 test("a viewer sees only its own game", async () => {
   const watched = await createGame();
   const other = await createGame();
-  const viewer = new Viewer(running.port, watched);
+  const viewer = new Viewer(running.port, await viewId(watched));
   await viewer.nextFrame();
 
   await runCommand(running.deps, other, { type: "long_range_scan" });
@@ -56,13 +56,23 @@ test("a viewer sees only its own game", async () => {
 });
 
 test("an unknown game closes the socket with the not-found code", async () => {
-  const viewer = new Viewer(running.port, "00000000-0000-4000-8000-000000000000");
+  const viewer = new Viewer(running.port, "0".repeat(64));
   assert.equal(await viewer.closed, 4404);
 });
 
 test("any other socket path is refused", async () => {
   const response = await new Promise<number>((resolve) => {
     const viewer = new Viewer(running.port, "not-a-game-id");
+    viewer.socket.once("unexpected-response", (_request, incoming) => resolve(incoming.statusCode!));
+    viewer.socket.once("error", () => {});
+  });
+  assert.equal(response, 404);
+});
+
+test("the socket path takes a view_id, never the game_id", async () => {
+  const gameId = await createGame();
+  const response = await new Promise<number>((resolve) => {
+    const viewer = new Viewer(running.port, gameId);
     viewer.socket.once("unexpected-response", (_request, incoming) => resolve(incoming.statusCode!));
     viewer.socket.once("error", () => {});
   });

@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-14 — Q-17 is settled by D-32: the viewer's link holds a hash of the game_id
+The link and socket used to carry the `game_id`, so sharing the link shared the controls. They now
+carry `view_id`, the hex SHA-256 of the `game_id`: the link is `/?view=<view_id>` (was `?game=`), the
+socket is `/live/<view_id>`, and the GameStore and Viewers are keyed by `view_id`. MCP hashes the
+`game_id` it receives. Games stored under the old keys can't be found; local games were in memory
+and are forgotten on restart anyway, so there is no migration. D-31's link is no longer Proposed.
+
 ### 2026-11-07 — The page becomes one Holotank display; the tabs are gone
 The designer chose Holotank from five mockups (`docs/mockups/viewer_styles.html`) and dropped the
 tabs, because the player otherwise never needs the mouse. U-10 now states the one display, and new

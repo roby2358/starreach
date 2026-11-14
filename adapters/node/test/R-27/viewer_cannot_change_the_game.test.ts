@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { after, before, test } from "node:test";
 
-import { newGame } from "@starreach/app";
+import { newGame, viewId } from "@starreach/app";
 
 import { startServer, stopServer, Viewer, type Running } from "../helpers/server.ts";
 
@@ -16,8 +16,8 @@ after(() => stopServer(running));
 
 test("a command sent down the socket does nothing", async () => {
   const gameId = (await newGame(running.deps)).report!.game_id as string;
-  const before = await running.deps.store.get(gameId);
-  const viewer = new Viewer(running.port, gameId);
+  const before = await running.deps.store.get(await viewId(gameId));
+  const viewer = new Viewer(running.port, await viewId(gameId));
   await viewer.nextFrame();
 
   viewer.socket.send(JSON.stringify({ type: "long_range_scan" }));
@@ -26,18 +26,18 @@ test("a command sent down the socket does nothing", async () => {
   viewer.socket.ping();
   await once(viewer.socket, "pong");
 
-  assert.equal(await running.deps.store.get(gameId), before);
+  assert.equal(await running.deps.store.get(await viewId(gameId)), before);
   viewer.socket.close();
 });
 
 test("a frame over the size limit closes that socket and leaves the game alone", async () => {
   const gameId = (await newGame(running.deps)).report!.game_id as string;
-  const before = await running.deps.store.get(gameId);
-  const viewer = new Viewer(running.port, gameId);
+  const before = await running.deps.store.get(await viewId(gameId));
+  const viewer = new Viewer(running.port, await viewId(gameId));
   await viewer.nextFrame();
 
   viewer.socket.send("x".repeat(2048));
 
   assert.equal(await viewer.closed, 1009);
-  assert.equal(await running.deps.store.get(gameId), before);
+  assert.equal(await running.deps.store.get(await viewId(gameId)), before);
 });

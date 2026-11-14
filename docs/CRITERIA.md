@@ -39,7 +39,7 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 | R-18 | MCP tools across games | An unknown `game_id` returns `ok: false`, error "Game not found". A command on game A leaves game B unchanged | automated |
 | R-19 | Any sequence of commands | ONTOLOGY's invariants hold after every command (one `S`; `enemies_yx` matches `E` cells and the galaxy record; resource bounds including energy ≥ 0; stardate never decreases; visibility never reverts; status leaves `playing` at most once) | automated |
 | R-20 | The same seed and the same commands | The same final GameState | automated |
-| R-21 | A viewer connected to a game | It gets the game's view on connecting and after every accepted command, and no frame for a refused command or another game. An unknown game closes the socket with 4404. `new_game` reports the viewer's link | automated |
+| R-21 | A viewer connected to a game | It gets the game's view on connecting and after every accepted command, and no frame for a refused command or another game. An unknown game closes the socket with 4404. `new_game` reports the viewer's link, which holds the `view_id` and never the `game_id`; the socket path takes a `view_id` and refuses a `game_id`. A `view_id` passed as `game_id` to a tool returns Game not found | automated |
 | R-22 | A successful blast or torpedo | The galaxy record for `sector_yx` has `enemies == len(enemies_yx)` | automated |
 | R-23 | Hull reaches 0; the last enemy in the galaxy is destroyed; or the ship is stranded (energy below the warp cost to the nearest other visible starbase sector) with no starbase in its sector | `status` becomes `lost`, `won`, or `lost` and an end message is in `events`. Every later action is refused with no change; queries still answer | automated |
 | R-24 | Warp out of a sector and back | Stars and the starbase are on the same cells. Enemies stand on the first `len(enemies_yx)` of the cells first generated for them | automated |
@@ -80,9 +80,9 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 
 - **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26.
   The coverage test runs with them.
-- **Automated in the app layer** (`just cc-test-app`): R-18, R-25's not-found result, and
-  R-21's publishing.
-- **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets and R-27.
+- **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result, and
+  R-21's publishing and link.
+- **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets (by `view_id`) and R-27.
 - **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11. It needs Chromium's system
   libraries, which `just cc-setup` fetches in a rebuilt container.
 - **Manual only:** U-3 – U-7.

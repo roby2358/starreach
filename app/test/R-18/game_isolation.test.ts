@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { viewId } from "../../src/index.ts";
 import { call, connectClient, testDeps } from "../helpers/deps.ts";
 
 test("an unknown game_id returns Game not found", async () => {
@@ -25,4 +26,12 @@ test("a command on one game leaves another unchanged", async () => {
 
   assert.deepEqual(await call(client, "state", { game_id: b }), before);
   assert.notDeepEqual((await call(client, "state", { game_id: a })).state, before.state);
+});
+
+test("a view_id passed as game_id returns Game not found", async () => {
+  const client = await connectClient(testDeps());
+  const gameId = (await call(client, "new_game", {})).report!.game_id as string;
+  const result = await call(client, "state", { game_id: await viewId(gameId) });
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "Game not found");
 });

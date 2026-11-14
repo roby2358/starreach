@@ -66,6 +66,7 @@ One name per concept. These names are used in code, tools and docs.
 | **Query** | A command that only reads state | |
 | **Event** | Something the game does in response to an action, reported as a message | |
 | **Game id** | The name a client uses for one stored game (`game_id`) | |
+| **View id** | The hex SHA-256 of a `game_id` (`view_id`). It keys the GameStore and the Viewers, and is all the viewer's link and socket carry | |
 | **Viewer** | A browser page watching one game over its socket | main viewer |
 | **Frame** | One message on a viewer's socket, `{type, …}` | |
 
@@ -162,11 +163,12 @@ never sees it.
 
 | Field | Type | Notes |
 |---|---|---|
-| `game_id` | str | Random, unguessable; chosen by the app layer |
+| `view_id` | str | The hex SHA-256 of the `game_id`; the store never holds a `game_id` |
 | `game` | Game | Stored as the core returned it |
 
-The Node adapter keeps games in process memory. The Cloudflare adapter keeps one Durable
-Object per `game_id`. [D, unbuilt]
+The `game_id` is random and unguessable, chosen by the app layer, and one app-layer function
+hashes it to the `view_id` (D-32). The Node adapter keeps games in process memory. The
+Cloudflare adapter keeps one Durable Object per `view_id`. [D, unbuilt]
 
 ### GameView
 *Serves: G-3, F-discovery.* [D] What a read-only display may see of a Game. The core makes
@@ -183,8 +185,8 @@ it from a Game and it holds only what the player has uncovered.
 
 ### Viewers
 *Serves: G-3.* [D] The sockets watching each game. The app layer makes frames and calls
-`publish(game_id, frame)`. Each adapter holds the sockets, because upgrading a request and
-keeping a socket open belong to the platform. The Node adapter keeps a list per game in
+`publish(view_id, frame)`. Each adapter holds the sockets, because upgrading a request and
+keeping a socket open belong to the platform. The Node adapter keeps a list per `view_id` in
 process memory. The Cloudflare adapter keeps them on the game's Durable Object. [D, unbuilt]
 
 ### Agents
@@ -200,7 +202,7 @@ process memory. The Cloudflare adapter keeps them on the game's Durable Object. 
 
 | Relation | Cardinality |
 |---|---|
-| GameStore *has* Game | 1 → 0..n, keyed by `game_id` |
+| GameStore *has* Game | 1 → 0..n, keyed by `view_id` |
 | Game *has* Galaxy, Ship, ActiveSector | 1 → 1 each |
 | Galaxy *has* SectorRecord | 1 → 100 |
 | Ship *is in* Sector (`sector_yx`) | exactly one sector |
@@ -409,8 +411,8 @@ s = int(stardate) zero-padded to 8 digits, first 8 kept;  shown as s[0:2]-s[2:6]
 ### Game lookup — *Serves: G-1* [D]
 In the app layer.
 ```
-new_game: seed = random u32;  game_id = random id;  store new_game(seed) under game_id
-any other tool: load game_id, else error "Game not found"
+new_game: seed = random u32;  game_id = random id;  view_id = sha256(game_id);  store new_game(seed) under view_id
+any other tool: load sha256(game_id), else error "Game not found"
 apply the command;  if ok: store the returned game, publish its view frame to the viewers
 return the result
 ```
@@ -513,7 +515,7 @@ the core Result. Plus:
 
 | Tool / prompt | Args | Returns |
 |---|---|---|
-| `new_game` | — | Result with `report: {game_id, view_url}`. `view_url` is the viewer's link, `<origin>/?game=<game_id>` [P] |
+| `new_game` | — | Result with `report: {game_id, view_url}`. `view_url` is the viewer's link, `<origin>/?view=<view_id>`; it never holds the `game_id` [D] |
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM |
 
 An unknown `game_id` returns `{ok: false, error: "Game not found", …}` with `state` null.
@@ -527,9 +529,9 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 |---|---|
 | `POST /mcp` | Streamable-HTTP MCP |
 | `GET /health` | `{status: "ok"}` |
-| `GET /` | The viewer page. `?game=<game_id>` chooses the game |
+| `GET /` | The viewer page. `?view=<view_id>` chooses the game |
 | `GET /css/styles.css`, `GET /js/script.js` | The page's files |
-| WebSocket `/live/<game_id>` | The game's frames, read-only [P] |
+| WebSocket `/live/<view_id>` | The game's frames, read-only [P] |
 | any other path | 404 |
 
 The app layer serves `/mcp` and `/health` as one fetch handler. MCP over HTTP is stateless:
@@ -544,7 +546,7 @@ assets. [D, unbuilt]
 
 ### Viewer socket [D]
 ```
-on connect to /live/<game_id>:
+on connect to /live/<view_id>:
     unknown game: close with code 4404
     otherwise: add to the game's viewers, send {type: "view", view: GameView}
 on an accepted command: send {type: "view", view: GameView} to the game's viewers
@@ -565,8 +567,8 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Emergency energy | `Starbase transfers emergency energy: n` |
 
 ### Client contract
-- **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`. [D]
-- **Browser:** opens the game's socket, draws each frame's GameView as the current sector's
+- **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`, and the link it hands the captain holds only the `view_id`. [D]
+- **Browser:** reads `view` from its URL, opens the game's socket, draws each frame's GameView as the current sector's
   board, the galaxy map, ship status and a survey panel (sectors charted, enemies sighted and
   starbases found, totalled from the map), and reconnects after losing the socket. It sends
   nothing and never changes state. [D] It is one display with nothing to click: the board as a

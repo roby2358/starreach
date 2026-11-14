@@ -6,7 +6,7 @@ import { mkdirSync } from "node:fs";
 import { after, before, test } from "node:test";
 import { fileURLToPath } from "node:url";
 
-import { newGame, runCommand } from "@starreach/app";
+import { newGame, runCommand, viewId } from "@starreach/app";
 import { chromium, type Browser, type Page } from "playwright-core";
 
 import { startServer, stopServer, type Running } from "../test/helpers/server.ts";
@@ -32,7 +32,7 @@ after(async () => {
 
 async function openGame(gameId: string, viewport: { width: number; height: number }): Promise<Page> {
   const page = await browser.newPage({ viewport });
-  await page.goto(`${running.base}/?game=${gameId}`);
+  await page.goto(`${running.base}/?view=${await viewId(gameId)}`);
   await page.waitForSelector("body[data-link=live]");
   return page;
 }
@@ -68,7 +68,7 @@ test("U-2: the ship's status follows the game, and nothing goes back up the sock
   const sent: unknown[] = [];
   const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
   page.on("websocket", (socket) => socket.on("framesent", (frame) => sent.push(frame)));
-  await page.goto(`${running.base}/?game=${id}`);
+  await page.goto(`${running.base}/?view=${await viewId(id)}`);
   await page.waitForSelector("body[data-link=live]");
   const energy = page.locator("[data-gauge=energy] .gauge-value");
   assert.match((await energy.textContent())!, /^(\d+) \/ \1$/);
@@ -161,10 +161,10 @@ test("U-11: an enemy gone from the ship's sector flares the hologram", async () 
   const id = await gameId();
   const page = await openGame(id, { width: 1100, height: 800 });
   const setEnemies = async (enemies: number) => {
-    const game = JSON.parse((await deps.store.get(id))!);
+    const game = JSON.parse((await deps.store.get(await viewId(id)))!);
     const [y, x] = game.sector_yx;
     game.galaxy.sectors[y][x].enemies = enemies;
-    await deps.store.put(id, JSON.stringify(game));
+    await deps.store.put(await viewId(id), JSON.stringify(game));
     await runCommand(deps, id, { type: "state" });
   };
   await setEnemies(2);
@@ -195,8 +195,8 @@ test("the page announces how the game ended", async () => {
     const id = await gameId();
     const page = await openGame(id, { width: 1100, height: 800 });
     assert.equal(await page.locator("#outcome").isVisible(), false);
-    const ended = JSON.stringify({ ...JSON.parse((await deps.store.get(id))!), status });
-    await deps.store.put(id, ended);
+    const ended = JSON.stringify({ ...JSON.parse((await deps.store.get(await viewId(id)))!), status });
+    await deps.store.put(await viewId(id), ended);
     await runCommand(deps, id, { type: "state" });
     await page.waitForSelector(`#outcome.${status}`);
     assert.match((await page.locator("#outcome").textContent())!, text);
@@ -242,7 +242,7 @@ test("the page says so when it has no game or an unknown game", async () => {
   const page = await browser.newPage();
   await page.goto(`${running.base}/`);
   assert.match((await page.locator("#notice").textContent())!, /No ship on this channel/);
-  await page.goto(`${running.base}/?game=00000000-0000-4000-8000-000000000000`);
+  await page.goto(`${running.base}/?view=${"0".repeat(64)}`);
   await page.waitForSelector("body[data-link=absent]");
   assert.match((await page.locator("#notice").textContent())!, /isn't on record/);
   await page.close();
@@ -252,7 +252,7 @@ test("a page whose server goes away shows the lost signal and keeps the last vie
   const local = await startServer();
   const id = (await newGame(local.deps)).report!.game_id as string;
   const page = await browser.newPage();
-  await page.goto(`${local.base}/?game=${id}`);
+  await page.goto(`${local.base}/?view=${await viewId(id)}`);
   await page.waitForSelector("body[data-link=live]");
   await stopServer(local);
   await page.waitForSelector("body[data-link=lost]");

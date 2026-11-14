@@ -70,17 +70,17 @@ inferences, waiting for review.
 - **Alternatives:** bind the game to the MCP connection (a reconnect loses the game unless
   auth ties it to a user).
 - **Why:** G-1: the LLM holds the id and can resume. It maps directly onto one Durable
-  Object per game, and it works before auth exists. Once auth exists, the store also
+  Object per game (keyed by its `view_id`, D-32), and it works before auth exists. Once auth exists, the store also
   records the owner's `sub` (D-20).
 
-### D-31 Dual display: the LLM plays over MCP, a read-only browser page follows over a WebSocket — *Decided; the routes, frame shape and link are Proposed*
+### D-31 Dual display: the LLM plays over MCP, a read-only browser page follows over a WebSocket — *Decided; the routes and frame shape are Proposed*
 - **Choice:** MCP stays the only way to act, with the LLM as the ship's computer. A browser
   page gets the current sector's board, the galaxy map, ship status and a survey panel for one
   game, pushed over a per-game socket. Everything shows on one display, with the board as a
   tilted hologram in the middle, because the player otherwise doesn't need the mouse at all. The
   core makes the view (`view`, which can't change a game and shows only what's uncovered),
   the app layer makes frames and publishes after each accepted command, and each adapter holds
-  the sockets. `new_game` reports the link, and the crew hands it to the captain.
+  the sockets. `new_game` reports the link (D-32), and the crew hands it to the captain.
 - **Alternatives:** polling a `/state` route (delay, and load that grows with viewers);
   building the view in TypeScript from the Game (the app layer would have to read Game
   fields, and the hidden-sector rule would live outside the core); showing the most recent
@@ -91,6 +91,25 @@ inferences, waiting for review.
   multiplayer will need (D-18). Typed frames leave room for events on the same socket.
 - **Evidence:** `just cc-test-page` drives the page in Chromium against the real server.
   Not yet watched alongside a real LLM session.
+
+### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
+- **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
+  (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call
+  hashes the `game_id` it is given to find its game, and a viewer presents the `view_id`
+  directly: the link is `<origin>/?view=<view_id>` and the socket is `/live/<view_id>`. Sharing
+  the link shares the view and not the controls, because a `view_id` can't be reversed to a
+  `game_id`, and passed as a `game_id` it hashes to a key nothing is stored under.
+- **Alternatives:** a random view token with a mapping table to the `game_id` (a second
+  record to store and keep in step, and on Cloudflare a second Durable Object lookup); an HMAC
+  of the `game_id` under a server secret (needs secret storage and keeps the same
+  lookup-by-hash shape, with no gain while the `game_id` itself is unguessable); keeping the
+  `game_id` in the link (the viewer link would carry the controls).
+- **Why:** G-3 and G-1 together: the link must be shareable and the `game_id` must stay private.
+  A `game_id` is `crypto.randomUUID`, 122 random bits, so its hash can't be searched for it. A
+  plain hash needs no table and no secret, and it works the same on Node and Workers. It also
+  gives the Cloudflare adapter its key: one Durable Object per `view_id`.
+- **Evidence:** R-18 and R-21 tests: the link and socket path never hold the `game_id`, and a
+  `view_id` sent as a `game_id` returns Game not found.
 
 ### D-28 All randomness comes from a seed stored in the game; constants are named — *Decided*
 - **Alternatives:** a global, unseeded RNG; tests that build boards by hand only.
@@ -271,12 +290,6 @@ inferences, waiting for review.
 
 Each question lists its options and Claude's recommendation.
 
-- **Q-17 How does the viewer's link stop being able to play?** The link holds the `game_id`,
-  and anyone with a `game_id` can send MCP commands to that game, so sharing the link shares
-  the controls. The designer's direction is for the link to hold a hash of the `game_id`, which
-  the server can resolve and another player can't reverse. **Recommend** SHA-256 of the
-  `game_id` as the store key, so MCP hashes the id it's given, a viewer presents the hash, and
-  no mapping table is needed.
 - **Q-19 Do players in one game see one view?** A frame is per game today. Multiplayer could
   share what any ship uncovers, or give each player their own fog, which would make the view
   per player. Deferred by the designer to multiplayer design, where what is shared is a central

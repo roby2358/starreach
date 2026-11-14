@@ -9,6 +9,8 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
+import { viewId } from "@starreach/app";
+
 import { Viewer } from "../helpers/server.ts";
 
 const MAIN = fileURLToPath(new URL("../../src/main.ts", import.meta.url));
@@ -49,9 +51,9 @@ test("a viewer watches the game the stdio client is playing, and hanging up ends
   const reply = await replies.next();
   const created = JSON.parse(JSON.parse(reply.value as string).result.content[0].text);
   const gameId = created.report.game_id;
-  assert.equal(created.report.view_url, `http://localhost/?game=${gameId}`);
+  assert.equal(created.report.view_url, `http://localhost/?view=${await viewId(gameId)}`);
 
-  const viewer = new Viewer(port, gameId);
+  const viewer = new Viewer(port, await viewId(gameId));
   const first = await viewer.nextFrame();
   child.stdin.write(toolCall(2, "long_range_scan", { game_id: gameId }));
   const scanned = await viewer.nextFrame();

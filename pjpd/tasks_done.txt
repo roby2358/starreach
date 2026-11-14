@@ -40,6 +40,14 @@ Q-10 (docs/RATIONALE.md): All randomness uses the global random module and most 
 ----
 Priority:   75
 Status: Done
+ID: viewhash-5p9i
+Created: 2026-11-07T02:23:17Z
+Updated: 2026-11-14T16:16:42Z
+
+Hash the game_id for the viewer link, so sharing the link shares the view but not the controls (RATIONALE Q-17). Today `view_url` and the `/live/<game_id>` socket contain the game_id, and anyone holding a game_id can send MCP commands to that game. Direction from the designer: the link holds a hash of the game_id, which the server can resolve but another player can't turn back into the game_id. Suggested design, which needs no mapping table: view_id = SHA-256(game_id) via Web Crypto (available on Node and Workers), and the GameStore and Viewers are keyed by view_id. An MCP call hashes its game_id to find the game; a viewer presents the view_id directly. The stored key then can't play either. game_id comes from crypto.randomUUID, so it has too much entropy to guess from the hash. Change: app/src/view.ts (viewerUrl, liveGameId and its path pattern), app/src/games.ts, the page's `?game=` parameter, and the Cloudflare adapter's Durable Object naming if it is built by then. Tests: the link and socket never contain the game_id; a view_id passed as game_id to an MCP tool returns Game not found; a viewer connecting by view_id gets the game. Settle Q-17 as a decision in RATIONALE and update ONTOLOGY (GameStore, HTTP, Viewer socket), CRITERIA (R-21), and the log. Ask the user before committing.
+----
+Priority:   75
+Status: Done
 ID: energyfloor-ynw2
 Created: 2026-11-04T23:53:42Z
 Updated: 2026-11-05T01:44:39Z

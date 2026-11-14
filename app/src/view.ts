@@ -7,7 +7,7 @@ import type { GameStore } from "./store.ts";
 
 /** The sockets watching each game. Nothing comes back from a viewer. */
 export interface Viewers {
-  publish(gameId: string, frame: string): Promise<void>;
+  publish(viewIdValue: string, frame: string): Promise<void>;
 }
 
 /** Everything on a viewer's socket is a frame with a `type`, so other kinds can join it. */
@@ -17,15 +17,23 @@ export type Frame = { type: "view"; view: GameView };
  *  failed upgrade, so the socket opens and then closes with this. */
 export const GAME_NOT_FOUND_CLOSE = 4404;
 
-const LIVE_PATH = /^\/live\/([0-9a-f-]{36})$/;
+const LIVE_PATH = /^\/live\/([0-9a-f]{64})$/;
 
-/** The game a `/live/<game_id>` path watches, or undefined for any other path. */
-export function liveGameId(path: string): string | undefined {
+/** The view_id for a game_id: its hex SHA-256 (D-32). The store and the viewers are keyed by
+ *  it, so the one place a game_id is accepted is where it is hashed, and a view_id can't be
+ *  turned back into a game_id or used to play. */
+export async function viewId(gameId: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(gameId));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** The view_id a `/live/<view_id>` path watches, or undefined for any other path. */
+export function liveViewId(path: string): string | undefined {
   return LIVE_PATH.exec(path)?.[1];
 }
 
-export function viewerUrl(origin: string, gameId: string): string {
-  return `${origin}/?game=${gameId}`;
+export function viewerUrl(origin: string, viewIdValue: string): string {
+  return `${origin}/?view=${viewIdValue}`;
 }
 
 export function viewFrame(core: Core, game: GameJson): string {
@@ -36,8 +44,8 @@ export function viewFrame(core: Core, game: GameJson): string {
 /** The frame a viewer gets on connecting, or undefined for an unknown game. */
 export async function currentFrame(
   { core, store }: { core: Core; store: GameStore },
-  gameId: string,
+  viewIdValue: string,
 ): Promise<string | undefined> {
-  const game = await store.get(gameId);
+  const game = await store.get(viewIdValue);
   return game === undefined ? undefined : viewFrame(core, game);
 }

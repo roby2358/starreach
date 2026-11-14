@@ -240,9 +240,9 @@
         byId("notice").textContent = shown;
     }
 
-    function connect(gameId, delay) {
+    function connect(view, delay) {
         const scheme = location.protocol === "https:" ? "wss:" : "ws:";
-        const socket = new WebSocket(`${scheme}//${location.host}/live/${gameId}`);
+        const socket = new WebSocket(`${scheme}//${location.host}/live/${view}`);
         let nextDelay = delay;
         socket.onmessage = (message) => {
             const frame = JSON.parse(message.data);
@@ -256,20 +256,20 @@
                 return;
             }
             setLink(drawn.previous === null ? "connecting" : "lost", null);
-            setTimeout(() => connect(gameId, Math.min(nextDelay * 2, RECONNECT_MAX_MS)), nextDelay);
+            setTimeout(() => connect(view, Math.min(nextDelay * 2, RECONNECT_MAX_MS)), nextDelay);
         };
     }
 
     function start() {
         buildMaps();
         buildGauges();
-        const gameId = new URLSearchParams(location.search).get("game");
-        if (gameId === null) {
+        const view = new URLSearchParams(location.search).get("view");
+        if (view === null) {
             setLink("absent", NO_GAME_NOTICE);
             return;
         }
         setLink("connecting", null);
-        connect(gameId, RECONNECT_MIN_MS);
+        connect(view, RECONNECT_MIN_MS);
     }
 
     start();
