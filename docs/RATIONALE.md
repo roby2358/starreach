@@ -50,7 +50,7 @@ inferences, waiting for review.
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 
-### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter built; nothing deployed*
+### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter built and deployed to starreach.yuwakisa.com*
 - **Choice:** `core/` is the Rust crate (rules only, compiled to WASM). `app/` is a
   TypeScript package with no platform imports: it defines the MCP tools and the
   `instructions` prompt, loads the core, and talks to storage through a `GameStore`

@@ -35,6 +35,14 @@ stdio: cc-build-wasm
 cf-dev *args: cc-build-wasm
     npx wrangler dev --config adapters/cloudflare/wrangler.jsonc {{args}}
 
+# Show which Cloudflare account wrangler is logged in to (the shared yuwakisacloud login)
+cf-whoami:
+    npx wrangler whoami
+
+# Deploy the Cloudflare adapter to production (starreach.yuwakisa.com). Pass --dry-run to check without deploying.
+cf-deploy *args: cc-build-wasm
+    npx wrangler deploy --config adapters/cloudflare/wrangler.jsonc --env production {{args}}
+
 # Build the core to WASM and generate its JS bindings into app/src/wasm
 cc-build-wasm:
     cargo build --quiet --manifest-path core/Cargo.toml --release --target wasm32-unknown-unknown

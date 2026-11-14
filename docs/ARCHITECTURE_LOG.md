@@ -3,6 +3,15 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-14 — First deploy to starreach.yuwakisa.com
+The Cloudflare adapter is deployed to production with `just cf-deploy` (`wrangler deploy --env
+production`), on the account and zone shared with yuwakisacloud; the `custom_domain` route
+created the DNS record and certificate. Auth is deferred by the designer: the seam still allows
+all, so anyone with the URL can start games until sign-in lands (D-20, Q-15). Smoke test on the
+live site: `/health` 200, `new_game` over `/mcp`, the viewer page loads, `instructions.txt` is not
+served, and a viewer socket got its frame on connect and a second after a `long_range_scan`.
+Recipes `cf-whoami` and `cf-deploy` added. D-21 now records the deploy.
+
 ### 2026-11-14 — The Cloudflare adapter serves viewers and the page
 The Durable Object that stores a game now also holds its `/live/<view_id>` sockets, with the
 hibernation API (D-31). The Worker calls the auth seam before the upgrade and routes it to the

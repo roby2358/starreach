@@ -14,6 +14,8 @@ Invoke these recipes; don't call the scripts directly.
 | `just serve` | Builds the WASM core and serves the viewer page and sockets, MCP at `/mcp` and `/health` on `HTTP_HOST:HTTP_PORT` (127.0.0.1:8572, set at the top of the justfile). Browsers get `VIEW_ORIGIN`; override both in a container: `just HTTP_HOST=0.0.0.0 VIEW_ORIGIN=http://localhost:8572 serve` |
 | `just stdio` | The same as `serve`, plus MCP over stdio. It exits when stdin closes |
 | `just cf-dev [wrangler dev args]` | Builds the WASM core and runs the Cloudflare adapter under `wrangler dev` (wrangler 4.90.0, from npm): the viewer page and sockets, MCP at `/mcp` and `/health` on http://localhost:8787, games in local Durable Objects under `adapters/cloudflare/.wrangler/`. In a container: `just cf-dev --ip 0.0.0.0` |
+| `just cf-whoami` | Shows which Cloudflare account wrangler is logged in to: the shared OAuth login also used by /work/yuwakisacloud (`just login` there to log in) |
+| `just cf-deploy [--dry-run]` | Builds the WASM core and runs `wrangler deploy --env production` for the Cloudflare adapter, to the `starreach.yuwakisa.com` custom domain. `--dry-run` checks the bundle and bindings without deploying. Only deploy with the user's go-ahead |
 | `just cc-build-wasm` | Builds the core to WASM and generates bindings into `app/src/wasm/` (gitignored) |
 | `just cc-test-all` | Runs `cc-test-core`, `cc-test-app`, `cc-test-node`, `cc-test-cloudflare`, `cc-test-page` and `cc-typecheck` |
 | `just cc-test-core [cargo test args]` | Runs the Rust core's rule tests (`core/tests/R-n/`) and the CRITERIA coverage test (e.g. `just cc-test-core --test rules r_9`) |
