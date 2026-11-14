@@ -50,21 +50,36 @@ inferences, waiting for review.
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 
-### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter unbuilt*
+### D-21 Three layers: Rust core, platform-neutral TypeScript app, one adapter per platform — *Decided; core, app and Node adapter built, Cloudflare adapter partly built (Worker, store and MCP; viewers and the page unbuilt)*
 - **Choice:** `core/` is the Rust crate (rules only, compiled to WASM). `app/` is a
   TypeScript package with no platform imports: it defines the MCP tools and the
   `instructions` prompt, loads the core, and talks to storage through a `GameStore`
   interface. `adapters/node/` runs the app over stdio and streamable HTTP with an in-memory
   store. `adapters/cloudflare/` is the only place Cloudflare APIs appear: the Worker, the
   Durable Object store, `wrangler.jsonc`, and the auth hook. npm workspaces join the TS
-  packages. `just` recipes launch either adapter locally on `HTTP_PORT`.
+  packages. `just` recipes launch the Node adapter locally on `HTTP_PORT` and the Cloudflare
+  adapter under `wrangler dev` (`just cf-dev`).
+  In the Cloudflare adapter [P]: the Durable Object keeps the game JSON under one key of its
+  SQLite-backed key-value storage, with no table of its own; the auth hook is one function
+  that returns the refusing response or nothing, called before `/mcp` only; its tests run
+  inside workerd under vitest with `@cloudflare/vitest-pool-workers`, while the other
+  TypeScript packages keep Node's test runner; and `wrangler.jsonc` keeps the route under
+  `env.production` only, deployed with `wrangler deploy --env production`, as yuwakisacloud's
+  Workers do.
 - **Alternatives:** a single Worker project (Cloudflare APIs spread through the code); an
   app with only the Cloudflare adapter, run locally under `wrangler dev` (no stdio for
   Claude Desktop).
 - **Why:** The rules can't depend on a platform, and the MCP surface shouldn't either.
   Keeping Cloudflare in one directory means a platform change touches one adapter. The Node
-  adapter keeps Claude Desktop (stdio) working without Cloudflare tooling.
-- **Evidence:** none yet.
+  adapter keeps Claude Desktop (stdio) working without Cloudflare tooling. One key is enough
+  for the store because a game is read and written whole, and the SQLite backend is what
+  Cloudflare offers new Durable Object classes. Tests inside workerd exercise the real
+  Durable Object storage and the bundled WASM, which Node can't. `wrangler` is pinned to
+  4.90.0 to match yuwakisacloud, and the vitest pool (0.16.3) and `@cloudflare/workers-types`
+  are the releases built against that `wrangler`, so one `workerd` is installed.
+- **Evidence:** A game started and played over `/mcp` under `wrangler dev`, and
+  `wrangler deploy --env production --dry-run` resolves the Durable Object binding
+  (2026-11-14).
 
 ### D-22 Games are addressed by an explicit `game_id` — *Decided*
 - **Alternatives:** bind the game to the MCP connection (a reconnect loses the game unless

@@ -30,13 +30,18 @@ serve: cc-build-wasm
 stdio: cc-build-wasm
     node adapters/node/src/main.ts stdio --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
 
+# Run the Cloudflare adapter locally under wrangler dev: MCP at /mcp and /health on
+# http://localhost:8787, games in local Durable Objects. In a container: just cf-dev --ip 0.0.0.0
+cf-dev *args: cc-build-wasm
+    npx wrangler dev --config adapters/cloudflare/wrangler.jsonc {{args}}
+
 # Build the core to WASM and generate its JS bindings into app/src/wasm
 cc-build-wasm:
     cargo build --quiet --manifest-path core/Cargo.toml --release --target wasm32-unknown-unknown
     wasm-bindgen --target web --out-dir app/src/wasm core/target/wasm32-unknown-unknown/release/starreach_core.wasm
 
 # Run every test suite and the typecheck
-cc-test-all: cc-test-core cc-test-app cc-test-node cc-test-page cc-typecheck
+cc-test-all: cc-test-core cc-test-app cc-test-node cc-test-cloudflare cc-test-page cc-typecheck
 
 # Run the Rust core's rule tests and the CRITERIA coverage test
 cc-test-core *args:
@@ -50,6 +55,10 @@ cc-test-app: cc-build-wasm
 cc-test-node: cc-build-wasm
     node --test 'adapters/node/test/**/*.test.ts'
 
+# Run the Cloudflare adapter's tests (adapters/cloudflare/test) inside workerd, under vitest
+cc-test-cloudflare: cc-build-wasm
+    npx vitest run --root adapters/cloudflare
+
 # Drive the viewer page in headless Chromium against the real server; screenshots go to
 # adapters/node/test-browser/out/
 cc-test-page: cc-build-wasm
@@ -58,6 +67,7 @@ cc-test-page: cc-build-wasm
 # Typecheck the TypeScript app and adapters
 cc-typecheck: cc-build-wasm
     npx tsc -p tsconfig.json
+    npx tsc -p adapters/cloudflare/tsconfig.json
 
 # Model generation and combat numbers cited as Evidence in docs/RATIONALE.md
 cc-model-balance galaxies:

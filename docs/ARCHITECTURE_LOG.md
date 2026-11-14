@@ -3,6 +3,15 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-14 — The Cloudflare adapter serves MCP and stores games; viewers come later
+`adapters/cloudflare/` now exists (D-21): a Worker serves the app layer's `/mcp` and `/health`
+with the WASM core bundled in, and each game lives in a SQLite-backed Durable Object named by
+its `view_id`. Its `publish` does nothing and it serves no page or socket, so `view_url` leads
+nowhere there yet. An auth seam is called before `/mcp` and allows everything (Q-15). The
+adapter's tests run inside workerd under vitest (`just cc-test-cloudflare`), and `just cf-dev`
+runs it under `wrangler dev`. The designer confirmed the hostname `starreach.yuwakisa.com`, which
+is the route of `wrangler.jsonc`'s production environment. Nothing is deployed.
+
 ### 2026-11-14 — Q-17 is settled by D-32: the viewer's link holds a hash of the game_id
 The link and socket used to carry the `game_id`, so sharing the link shared the controls. They now
 carry `view_id`, the hex SHA-256 of the `game_id`: the link is `/?view=<view_id>` (was `?game=`), the

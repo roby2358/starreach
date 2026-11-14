@@ -168,7 +168,8 @@ never sees it.
 
 The `game_id` is random and unguessable, chosen by the app layer, and one app-layer function
 hashes it to the `view_id` (D-32). The Node adapter keeps games in process memory. The
-Cloudflare adapter keeps one Durable Object per `view_id`. [D, unbuilt]
+Cloudflare adapter keeps one SQLite-backed Durable Object per `view_id`, named by it. [D] The
+object holds the game JSON under one key of its key-value storage. [P]
 
 ### GameView
 *Serves: G-3, F-discovery.* [D] What a read-only display may see of a Game. The core makes
@@ -188,6 +189,7 @@ it from a Game and it holds only what the player has uncovered.
 `publish(view_id, frame)`. Each adapter holds the sockets, because upgrading a request and
 keeping a socket open belong to the platform. The Node adapter keeps a list per `view_id` in
 process memory. The Cloudflare adapter keeps them on the game's Durable Object. [D, unbuilt]
+Until then its `publish` does nothing, so accepted commands still succeed. [D]
 
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
@@ -541,8 +543,15 @@ also serves MCP over stdio, from one process that holds the games. It takes `--h
 `--port` to bind and `--origin` for where browsers reach it. A stdio process that finds the
 port held by a Starreach server forwards its MCP messages there instead, so one process still
 holds every client's games, and refuses to start if anything else holds it. A stdio process
-exits when its client closes stdin, which ends the games it holds. [P] The Cloudflare adapter serves the routes, and the page as static
-assets. [D, unbuilt]
+exits when its client closes stdin, which ends the games it holds. [P]
+
+The Cloudflare adapter is a Worker that serves `/mcp` and `/health` through the app layer's
+handler, and takes the viewer link's origin from the request. [D] Before `/mcp` it calls an auth
+seam, which allows every request until auth exists (Q-15). [D] `/health` doesn't pass through
+the seam, and the seam answers with the response that refuses a request, or nothing to let it
+through. [P] Locally it runs under `wrangler dev` (`just cf-dev`). Its production environment
+is routed to `starreach.yuwakisa.com` (D-20), and nothing is deployed yet. [D] It doesn't serve
+the socket or the page yet; the page will be static assets. [D, unbuilt]
 
 ### Viewer socket [D]
 ```

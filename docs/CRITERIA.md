@@ -8,9 +8,10 @@ Constants are referred to by name; their values are in ONTOLOGY's Numbers table.
 `not yet covered`, or `retired` (a tombstone; the ID is never reused).
 
 **Tests.** Each `automated` R-row owns `test/R-n/` inside the package that owns the code:
-`core/tests/R-n/` for rules in the Rust core, `app/test/R-n/` for the app layer. Each test asserts one rule. Tests seed
+`core/tests/R-n/` for rules in the Rust core, `app/test/R-n/` for the app layer, and
+`adapters/<platform>/test/R-n/` for an adapter. Each test asserts one rule. Tests seed
 the RNG, or build an `ActiveSector` by hand, and never depend on chance. A coverage test in
-the core scans both packages and fails when an `automated` row has no `test/R-n/`, a
+the core scans every package and fails when an `automated` row has no `test/R-n/`, a
 `test/R-n/` has no `automated` row, or an Instrument cell isn't one of the four forms.
 
 ---
@@ -76,13 +77,16 @@ the core scans both packages and fails when an `automated` row has no `test/R-n/
 
 ---
 
-## Status — 2026-11-07
+## Status — 2026-11-14
 
 - **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26.
   The coverage test runs with them.
 - **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result, and
   R-21's publishing and link.
 - **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets (by `view_id`) and R-27.
+- **Checked in the Cloudflare adapter** (`just cc-test-cloudflare`, inside workerd): the Durable
+  Object GameStore, and the Worker's `/mcp` and `/health`. These are integration tests and own
+  no R-row. R-21's sockets and R-27 aren't covered there, because that adapter has no viewers yet.
 - **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11. It needs Chromium's system
   libraries, which `just cc-setup` fetches in a rebuilt container.
 - **Manual only:** U-3 – U-7.

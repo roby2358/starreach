@@ -1,0 +1,27 @@
+// Starreach on Cloudflare (D-21): one Worker, and one SQLite Durable Object per game.
+// `just cf-dev` runs this locally. The first deploy is a later step.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "starreach",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-05-07",
+  "workers_dev": false,
+  "observability": { "enabled": true },
+  "durable_objects": {
+    "bindings": [{ "name": "GAMES", "class_name": "GameObject" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameObject"] }],
+  "env": {
+    // Deployed with `wrangler deploy --env production`. The route is in this block only, so
+    // `wrangler dev` carries none.
+    "production": {
+      // Without this the Worker would deploy as "starreach-production"
+      "name": "starreach",
+      "routes": [{ "pattern": "starreach.yuwakisa.com", "custom_domain": true }],
+      // Bindings aren't inherited by an environment, so they are repeated here
+      "durable_objects": {
+        "bindings": [{ "name": "GAMES", "class_name": "GameObject" }]
+      }
+    }
+  }
+}
