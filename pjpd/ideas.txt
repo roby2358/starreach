@@ -11,3 +11,31 @@ Created: 2026-11-14T15:47:45Z
 Updated: 2026-11-14T15:47:45Z
 
 Message from Star Central. Details to be supplied by the designer.
+----
+Score:   50
+ID: mmomap-w4tt
+Created: 2026-11-14T15:49:41Z
+Updated: 2026-11-14T15:49:41Z
+
+Massive multiplayer map: one shared galaxy that many players' ships occupy at once, instead of a private 10x10 galaxy per game. Questions to work out with the designer: map size and how it grows with players; what players see of each other (fog of war, per-player event visibility); whether players cooperate, compete or both; how turns work when many ships act (real time, simultaneous ticks, or per-sector turn order); what persists when a player is offline; and how it maps onto Cloudflare, for example one Durable Object per sector or region as the sequencer, rather than one per game. Builds on the event architecture and on sign-in for player identity.
+----
+Score:   50
+ID: publicdress-6wm6
+Created: 2026-11-14T15:50:17Z
+Updated: 2026-11-14T15:50:17Z
+
+Dress Starreach up for public release with game trappings: a title or landing page that explains the game and how to connect Claude to it, a name and logo, an intro or briefing for new captains, a game-over screen (victory or loss) with the final stats, sound and music, an about or credits page with the font licence, and polish to the Holotank viewer so it reads as a game rather than a dev tool. Work out with the designer which trappings matter for a first release and what can wait.
+----
+Score:   50
+ID: training-w9u8
+Created: 2026-11-14T15:51:39Z
+Updated: 2026-11-14T15:51:39Z
+
+Training scenarios: short, hand-set games that teach one skill each (navigating, firing phasers and quantorpedoes, managing energy and shields, docking at a starbase, warping between sectors) before a player takes on a full galaxy. One scenario is a no-win test in the spirit of the Kobayashi Maru: a rescue call that leads into a sector the player can't survive, which tests how a captain behaves under certain defeat rather than whether they win. Give it an original name and story of our own for release. Work out with the designer: whether scenarios are fixed seeds or hand-built boards in the core; how a game is started in scenario mode over MCP; what counts as passing each one; and whether the no-win scenario is scored on conduct (crew saved, time held, choices made) instead of victory.
+----
+Score:   50
+ID: nowincheat-fruc
+Created: 2026-11-14T15:55:17Z
+Updated: 2026-11-14T15:55:52Z
+
+Kobayashi Maru cheat: the no-win training scenario hides one very subtle way to win, as a captain might by changing the test's conditions. It must be legal under the game's own rules (no bug, no exploit of the server), invisible to a player who plays it straight, and discoverable by a curious one, for example through an odd detail in the briefing, a command or argument that does something unexpected only in this scenario, or a quirk in how the enemy fleet is set up. Winning this way should be noticed and acknowledged (a commendation, or a reprimand, or both) rather than scored as an ordinary victory. It is a public secret, decided by the designer: the cheat may sit in plain sight in the public repo, the ontology docs and the tests, and that is part of the joke (anyone who reads the source can find it, just as a cadet could reprogram the simulator). Document it normally. Open points for the designer: what the cheat is; how much of a hint to leave in the game itself; and whether an LLM captain playing over MCP can find it as well as a human.
