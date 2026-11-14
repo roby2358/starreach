@@ -105,9 +105,9 @@ cf-logs:
     tail -n 200 -F {{CF_LOG}}
 
 # Checks /health, new_game and long_range_scan over /mcp, and a viewer socket's frames.
-# Creates one game. e.g. just cf-smoke http://localhost:8787
+# Creates one game. e.g. just cc-smoke http://localhost:8787
 # Smoke-test a running server at a base URL, local or https://starreach.yuwakisa.com
-cf-smoke base_url:
+cc-smoke base_url:
     node tools/smoke.ts '{{base_url}}'
 
 # Show which Cloudflare account wrangler is logged in to (the shared yuwakisacloud login)

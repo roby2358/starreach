@@ -38,8 +38,8 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just cf-tail      # stream the production Worker's live logs
     just cf-undeploy  # kill switch: delete the production Worker AND every deployed game
 
-    just cf-smoke http://localhost:8787               # check a running server: /health, a game over /mcp, a viewer socket
-    just cf-smoke https://starreach.yuwakisa.com      # the same against production (leaves one game there)
+    just cc-smoke http://localhost:8787               # check a running server: /health, a game over /mcp, a viewer socket
+    just cc-smoke https://starreach.yuwakisa.com      # the same against production (leaves one game there)
 
 Each recipe that runs a server builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart.
 
