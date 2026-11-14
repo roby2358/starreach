@@ -1,3 +1,19 @@
+Priority:   65
+Status: ToDo
+ID: lrsturn-q2fy
+Created: 2026-11-14T23:58:27Z
+Updated: 2026-11-14T23:58:27Z
+
+Make the long-range scan take a full round, so scanning in combat has a cost. Today `long_range_scan` (core/src/actions.rs) spends LRS_ENERGY but no time, so enemies in the sector never get a turn and the scan is free in the middle of a fight. Give it a time cost (a new [T] constant, e.g. LRS_TIME, likely 1 stardate unit) so it advances the stardate and runs the same stardate events as other timed actions, which is where enemies present fire or advance. Return `time` in its report like the other actions. Update: the Long-range scan rule in ONTOLOGY (and its report row in the Commands table and the Numbers table), a RATIONALE decision with alternatives (e.g. enemies act only while the sector is hostile; a scan is still free in a cleared sector because no one is there to act), the CRITERIA row for the scan and its test/R-n tests (an enemy present acts after a scan; no enemy, no events), the `long_range_scan` tool description in app/src/mcp.ts (say it takes a turn, so enemies present act), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
+Priority:   60
+Status: ToDo
+ID: enemyrange-4e6f
+Created: 2026-11-14T23:58:32Z
+Updated: 2026-11-14T23:58:32Z
+
+Make the sector display give the range and bearing to each enemy, so the LLM (and the captain) don't have to work out distances by hand before choosing blast versus torpedo or deciding to close in. Range is the same Euclidean distance the blast range check uses (BLAST_RANGE) and enemy fire uses for damage; bearing is included even though no command takes one yet. Likely shape: GameState gains an enemy list with each enemy's yx, range (two decimals) and bearing (decide the convention with the user, e.g. degrees clockwise from up/north, or a compass point), computed in the core from the ship's cell, so every client reads one source. Then: public/instructions.txt shows a short enemy table (cell, range, bearing) under the sector map; decide with the user whether the viewer page shows it too. Update ONTOLOGY (GameState fields, and where the range comes from), CRITERIA with a row and test/R-n tests (range matches the blast check's distance; bearing for the four axis directions and a diagonal), RATIONALE for the bearing convention, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
 Priority:   40
 Status: ToDo
 ID: loginflow-96sy
