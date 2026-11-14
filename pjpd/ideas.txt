@@ -39,3 +39,10 @@ Created: 2026-11-14T15:55:17Z
 Updated: 2026-11-14T15:55:52Z
 
 Kobayashi Maru cheat: the no-win training scenario hides one very subtle way to win, as a captain might by changing the test's conditions. It must be legal under the game's own rules (no bug, no exploit of the server), invisible to a player who plays it straight, and discoverable by a curious one, for example through an odd detail in the briefing, a command or argument that does something unexpected only in this scenario, or a quirk in how the enemy fleet is set up. Winning this way should be noticed and acknowledged (a commendation, or a reprimand, or both) rather than scored as an ordinary victory. It is a public secret, decided by the designer: the cheat may sit in plain sight in the public repo, the ontology docs and the tests, and that is part of the joke (anyone who reads the source can find it, just as a cadet could reprogram the simulator). Document it normally. Open points for the designer: what the cheat is; how much of a hint to leave in the game itself; and whether an LLM captain playing over MCP can find it as well as a human.
+----
+Score:   50
+ID: rustport-hsau
+Created: 2026-11-14T16:42:12Z
+Updated: 2026-11-14T16:42:12Z
+
+Port to Rust: move the TypeScript app layer (MCP handling, GameStore, viewers, view ids) and the adapters into Rust, so the whole stack is one language. On Cloudflare that would mean workers-rs, with the Durable Object written in Rust and no WASM-to-JS boundary. Weigh: maturity of workers-rs for Durable Objects (SQLite storage, hibernating WebSockets), Rust MCP SDK support for stateless streamable HTTP, what happens to the local Node adapter (a native Rust binary instead?), and the cost of rewriting the existing tests. Best decided before or alongside the Cloudflare adapter work, since that is the biggest new chunk of TypeScript.

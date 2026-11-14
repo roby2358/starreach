@@ -1,10 +1,26 @@
-Priority:   45
+Priority:   80
 Status: ToDo
 ID: cfadapter-2p5f
 Created: 2026-11-05T08:07:06Z
-Updated: 2026-11-14T16:15:40Z
+Updated: 2026-11-14T16:52:20Z
 
-Build adapters/cloudflare (D-21, slice 4): a Worker that serves the app layer's handleHttp (/mcp stateless streamable HTTP, /health) with the WASM core imported as a WebAssembly.Module and passed to loadCore. Store: one SQLite-backed Durable Object per view_id (the hex SHA-256 of the game_id, D-32; the app layer's viewId computes it) implementing app's GameStore (get/put the game JSON). Viewers (D-31): that same Durable Object holds the game's `/live/<view_id>` WebSockets with the hibernation API; the Worker uses the app's liveViewId to route the upgrade to it, keying the Durable Object by view_id; connecting uses currentFrame, closes with GAME_NOT_FOUND_CLOSE for an unknown game and ignores incoming frames (webSocketMessage does nothing); `publish` is an RPC that broadcasts to ctx.getWebSockets(). Set viewOrigin from the request's origin. Serve the page as static assets, and keep public/instructions.txt out of them or accept it as public. wrangler.jsonc with the DO binding and migration; wrangler 4.90.0 as an npm dev dependency in the adapters/cloudflare workspace. Leave an auth seam (a function the Worker calls before /mcp and before the socket upgrade that currently allows all) for the later yuwakisacloud token check (Q-15, D-20); do not implement auth. Add just recipes (e.g. `cf-dev` running `wrangler dev` after cc-build-wasm) and document them in .claude/skills/starreach-recipes/SKILL.md. Tests: a store test for the DO GameStore, a viewer socket test, and an HTTP integration test like app/test/integration/http.test.ts, run under the normal test command. Update ONTOLOGY (Cloudflare adapter [D, unbuilt] -> [D]), RATIONALE D-21, CRITERIA Status, README, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+Build adapters/cloudflare, part 1 of 2: Worker, store and MCP (D-21, slice 4). Result: an LLM can play a game on Cloudflare (locally under wrangler dev). New workspace adapters/cloudflare with wrangler 4.90.0 as an npm dev dependency and wrangler.jsonc carrying the Durable Object binding and its SQLite migration. A Worker that serves the app layer's handleHttp (/mcp stateless streamable HTTP, /health), with the WASM core imported as a WebAssembly.Module and passed to loadCore; set viewOrigin from the request's origin. Store: one SQLite-backed Durable Object per view_id (the hex SHA-256 of the game_id, D-32; the app layer's viewId computes it) implementing app's GameStore (get/put the game JSON). Viewers are out of scope here: wire the app's publish to a no-op so accepted commands still succeed. Leave an auth seam (a function the Worker calls before /mcp, and that the later socket upgrade will also call, which currently allows all) for the later yuwakisacloud token check (Q-15, D-20); do not implement auth. Add just recipes (e.g. `cf-dev` running `wrangler dev` after cc-build-wasm) and document them in .claude/skills/starreach-recipes/SKILL.md. Tests, run under the normal test command: a store test for the Durable Object GameStore and an HTTP integration test like app/test/integration/http.test.ts. Docs: ONTOLOGY marks the Cloudflare adapter partly built (store and MCP [D], viewers still [D, unbuilt]), RATIONALE D-21, CRITERIA Status, README, and an ARCHITECTURE_LOG entry. Ask the user before committing.
+----
+Priority:   70
+Status: ToDo
+ID: cfviewers-jeyf
+Created: 2026-11-14T16:43:59Z
+Updated: 2026-11-14T16:52:20Z
+
+Build adapters/cloudflare, part 2 of 2: viewers and the page (D-31, D-32). Starts after the Cloudflare Worker, the per-view_id SQLite Durable Object GameStore and /mcp exist in adapters/cloudflare. The same Durable Object that stores a game holds that game's `/live/<view_id>` WebSockets using the hibernation API. The Worker calls the auth seam (currently allows all) before the upgrade, uses the app's liveViewId to read the view_id from the path, and routes the upgrade to the Durable Object keyed by that view_id. On connect send currentFrame; for an unknown game close with GAME_NOT_FOUND_CLOSE; ignore incoming frames (webSocketMessage does nothing). Replace the no-op publish with an RPC on the Durable Object that broadcasts the frame to ctx.getWebSockets(). Serve the viewer page (public/) as static assets, and keep public/instructions.txt out of them or accept it as public. Tests, run under the normal test command: a viewer socket test (current frame on connect, broadcast after an accepted command, close code for an unknown view_id). Docs: ONTOLOGY marks the Cloudflare adapter fully built ([D]), RATIONALE D-21 and D-31 as needed, CRITERIA Status, README, and an ARCHITECTURE_LOG entry. Ask the user before committing.
+----
+Priority:   60
+Status: ToDo
+ID: cfdeploy-axub
+Created: 2026-11-14T16:44:03Z
+Updated: 2026-11-14T16:52:20Z
+
+First Cloudflare deploy of Starreach, once adapters/cloudflare serves /mcp, stores games in Durable Objects, and serves viewer sockets and the page. With the user: pick the Cloudflare account and the hostname (workers.dev or a custom domain), confirm wrangler login, run `wrangler deploy`, then smoke-test the live site: /health, start and play a game over /mcp from an MCP client, open the returned view link and see the board update. Add a `cf-deploy` just recipe (building the WASM first) and document it in .claude/skills/starreach-recipes/SKILL.md. Record the deployed URL in README and add an ARCHITECTURE_LOG entry. Note that auth is not in place yet, so anyone with the URL can start games; the user decides whether that is acceptable for a first deploy. Ask the user before deploying and before committing.
 ----
 Priority:   40
 Status: ToDo
