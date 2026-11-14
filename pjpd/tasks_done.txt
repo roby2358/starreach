@@ -8,6 +8,14 @@ Q-2 (docs/RATIONALE.md): Enemies almost never act. Game._stardate_events fires o
 ----
 Priority:   85
 Status: Done
+ID: sectorview-7u36
+Created: 2026-11-07T02:23:22Z
+Updated: 2026-11-14T15:44:47Z
+
+Show the current sector's board on the main viewer page (decided by the designer, RATIONALE D-31; CRITERIA U-9). It updates after each warp, and then after ship and enemy actions. Add the board to the core's GameView (ship, enemies, starbase and stars for the sector the ship is in, nothing about other sectors), keeping R-28's rule that hidden information stays out, and draw it on the page beside the galaxy map as a labelled 10x10 grid. Open point to raise with the designer: one `apply` runs the ship's action and the enemy turn together, so today one command makes one frame. Showing the ship's move and then the enemy's response as two visible steps needs the core to capture the board between them, for example a list of board snapshots per command that the app publishes as separate frames. Recommend two steps, because watching the enemy respond is the point. This touches the same ground as the event architecture work, so keep the frame shape compatible with it. Tests: R-28 (the view has the board and only the current sector's), R-21 (frames after warp and actions), U-9 in the browser test. Update ONTOLOGY (GameView, Client contract, the GameView invariant), CRITERIA, the log, and core/src/view.rs's header comment. Ask the user before committing.
+----
+Priority:   85
+Status: Done
 ID: gameend-gtqy
 Created: 2026-11-04T23:53:38Z
 Updated: 2026-11-05T01:44:39Z
@@ -29,6 +37,14 @@ Created: 2026-11-04T23:53:42Z
 Updated: 2026-11-05T01:44:39Z
 
 Q-3 (docs/RATIONALE.md): Warp and subwarp have no energy check and drive ship energy negative; blast and torpedo still succeed when unaffordable and clamp energy to 0 (a free last shot). RECOMMENDATION: refuse any action whose energy cost exceeds current energy, with no state change, matching long_range_scan's existing check. Add the energy >= 0 invariant to ONTOLOGY and a CRITERIA row.
+----
+Priority:   70
+Status: Done
+ID: browserview-6psm
+Created: 2026-11-04T23:53:44Z
+Updated: 2026-11-14T15:37:16Z
+
+Q-8 (docs/RATIONALE.md): The browser UI doesn't show the game the LLM is playing. GET /state serves a separate 'default' session, public/ is not mounted as static files, and public/index.html links styles.css and script.js at the root while they live in css/ and js/. RECOMMENDATION: mount public/ as static files, fix the asset links, and have /state return the most recently active session (single player). Meets goal G-3; covers CRITERIA R-21, U-1, U-2.
 ----
 Priority:   65
 Status: Done
