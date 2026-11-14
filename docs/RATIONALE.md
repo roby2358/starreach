@@ -45,8 +45,8 @@ inferences, waiting for review.
   for commands and events, fast deterministic `cargo test`, and room to grow toward
   multiplayer and balance simulations. A single JSON call keeps the FFI cost small. A
   Durable Object per game makes games persist, keeps actions in order, and is the shape
-  multiplayer needs (D-18). The owner check and a signed-in browser view replace the shared
-  `"default"` session (Q-8, G-3).
+  multiplayer needs (D-18). The owner check and a signed-in browser view mean only the
+  game's owner plays it (G-3).
 - **Evidence:** Review of yuwakisacloud in `YUWAKISA.md`, with file citations. Nothing has
   been measured yet.
 

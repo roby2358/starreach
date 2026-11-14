@@ -1,11 +1,3 @@
-Priority:   90
-Status: ToDo
-ID: nodefault-8q2k
-Created: 2026-11-14T15:42:16Z
-Updated: 2026-11-14T15:42:16Z
-
-Remove the leftover mentions of the shared "default" session from the current-state docs. The designer confirmed there is no default session any more: every game is reached by its game_id, and the viewer watches /live/<game_id>. The code has none left (no /state route, no default session in the Node server or app). Two places still mention it: docs/RATIONALE.md D-20's Why bullet ends "The owner check and a signed-in browser view replace the shared "default" session (Q-8, G-3)." Reword it to state the current design without history, for example that the owner check and a signed-in browser view mean only the game's owner plays it (G-3), and drop the Q-8 citation, since Q-8 is settled. YUWAKISA.md (the yuwakisacloud review) says "`"default"` goes away." at the end of the game_id ↔ identity bullet. Drop or reword that clause. Leave docs/ARCHITECTURE_LOG.md alone, because it is the history. Grep the repo (excluding node_modules and the pjpd done/verified files) for '"default"', 'default session' and 'Q-8' to confirm nothing else remains. Add an ARCHITECTURE_LOG entry only if the wording change counts as a design change, otherwise none. Ask the user before committing.
-----
 Priority:   75
 Status: ToDo
 ID: viewhash-5p9i
@@ -30,14 +22,6 @@ Updated: 2026-11-14T15:47:44Z
 
 Login flow, in this order: (1) the player opens the web page, (2) signs in, (3) connects with MCP. The page comes first and waits ("awaiting ship's computer"), then picks up the signed-in player's game by itself as soon as MCP starts one, so `view_url` and the `?game=` link stop being how a player finds their own game (a hashed link may remain for sharing a view). Needs: sign-in through auth/ on the page (PKCE redirect, HttpOnly cookie, per YUWAKISA.md); the owner's `sub` stored with each game; an owner check on every MCP tool and at the socket upgrade; an Origin check on the socket upgrade, needed once a cookie authenticates it; a per-player channel or lookup so the page learns of a new game; how a page shows the MCP connection instructions after sign-in; and what the local Node adapter does with no auth (a single implicit player). Depends on the open question RATIONALE Q-15 (can claude.ai and Claude Desktop connectors sign in to auth/ without dynamic client registration). Update ONTOLOGY, RATIONALE, CRITERIA, README, the log. Ask the user before committing or deploying.
 ----
-Priority:   30
-Status: ToDo
-ID: eventarch-rm5g
-Created: 2026-11-07T02:15:40Z
-Updated: 2026-11-14T16:08:57Z
-
-Event architecture: push what happens in a game, not only what it now looks like, to viewers. Today a viewer's socket carries `{type: "view", view: GameView}` frames after each accepted command, while events are plain strings in the MCP Result that only the caller sees (D-17). Design structured events (for example `{type, from, to, damage}`) in the Rust core, with the strings still derived for the LLM, and send them as a new frame type on the same socket, so the page can animate beams, torpedoes, hits, warps and hails. One `apply` runs the ship's action and then the enemy turn, and today the viewer sees only the final board. The core must emit a command's events in the order they happened (the ship's action first, then each enemy's move and shot), and the page plays them back in that order, so a viewer sees the ship act and then the enemies respond, and a hit or kill flashes on the right cell (the Holotank page currently flares the whole plane because a frame can't say which enemy died). This replaces any idea of capturing board snapshots between the two halves. Decide: event visibility per player for multiplayer (see RATIONALE Q-19); an ordering sequence number; replay or catch-up when a viewer reconnects; and how it maps onto one Durable Object per game, which would be the natural sequencer. Colour such as messages from Star Central could travel this way. Update ONTOLOGY (Event, Viewer socket), RATIONALE D-17, and CRITERIA. Ask the user before committing.
-----
 Priority:   35
 Status: ToDo
 ID: authclient-ze87
@@ -45,3 +29,11 @@ Created: 2026-11-05T00:41:07Z
 Updated: 2026-11-14T15:47:45Z
 
 Publish yuwakisacloud's auth-client and switch Starreach to consume it. Today auth-client is a private workspace package inside /work/yuwakisacloud/jsonsolver/auth-client ("private": true, version 0.0.0, depends on cbor-x 1.6.4); it verifies auth/'s bespoke Ed25519/CBOR access tokens offline (verifyAccessToken, JWKS cache, pins iss/aud/exp). Short-term plan (decided): Starreach COPIES auth-client into this repo (vendored, with a note recording the source path and git commit it was copied from) so the Cloudflare deployment isn't blocked. This task: (1) in yuwakisacloud, make auth-client publishable — give it a real version, move it out of jsonsolver to a shared location or keep it there, and publish as a git dependency or private npm package; update jsonsolver to depend on the published version; (2) in Starreach, replace the vendored copy with the published package and delete the copy; (3) add an ARCHITECTURE_LOG entry. Risk while vendored: the copy silently drifts if auth/ changes its token format — check the source commit before each Starreach deploy.
+----
+Priority:   30
+Status: ToDo
+ID: eventarch-rm5g
+Created: 2026-11-07T02:15:40Z
+Updated: 2026-11-14T16:08:57Z
+
+Event architecture: push what happens in a game, not only what it now looks like, to viewers. Today a viewer's socket carries `{type: "view", view: GameView}` frames after each accepted command, while events are plain strings in the MCP Result that only the caller sees (D-17). Design structured events (for example `{type, from, to, damage}`) in the Rust core, with the strings still derived for the LLM, and send them as a new frame type on the same socket, so the page can animate beams, torpedoes, hits, warps and hails. One `apply` runs the ship's action and then the enemy turn, and today the viewer sees only the final board. The core must emit a command's events in the order they happened (the ship's action first, then each enemy's move and shot), and the page plays them back in that order, so a viewer sees the ship act and then the enemies respond, and a hit or kill flashes on the right cell (the Holotank page currently flares the whole plane because a frame can't say which enemy died). This replaces any idea of capturing board snapshots between the two halves. Decide: event visibility per player for multiplayer (see RATIONALE Q-19); an ordering sequence number; replay or catch-up when a viewer reconnects; and how it maps onto one Durable Object per game, which would be the natural sequencer. Colour such as messages from Star Central could travel this way. Update ONTOLOGY (Event, Viewer socket), RATIONALE D-17, and CRITERIA. Ask the user before committing.

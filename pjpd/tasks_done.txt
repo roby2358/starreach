@@ -1,5 +1,13 @@
 Priority:   90
 Status: Done
+ID: nodefault-8q2k
+Created: 2026-11-14T15:42:16Z
+Updated: 2026-11-14T16:12:37Z
+
+Remove the leftover mentions of the shared "default" session from the current-state docs. The designer confirmed there is no default session any more: every game is reached by its game_id, and the viewer watches /live/<game_id>. The code has none left (no /state route, no default session in the Node server or app). Two places still mention it: docs/RATIONALE.md D-20's Why bullet ends "The owner check and a signed-in browser view replace the shared "default" session (Q-8, G-3)." Reword it to state the current design without history, for example that the owner check and a signed-in browser view mean only the game's owner plays it (G-3), and drop the Q-8 citation, since Q-8 is settled. YUWAKISA.md (the yuwakisacloud review) says "`"default"` goes away." at the end of the game_id ↔ identity bullet. Drop or reword that clause. Leave docs/ARCHITECTURE_LOG.md alone, because it is the history. Grep the repo (excluding node_modules and the pjpd done/verified files) for '"default"', 'default session' and 'Q-8' to confirm nothing else remains. Add an ARCHITECTURE_LOG entry only if the wording change counts as a design change, otherwise none. Ask the user before committing.
+----
+Priority:   90
+Status: Done
 ID: enemyclock-nk4r
 Created: 2026-11-04T23:53:35Z
 Updated: 2026-11-05T01:44:39Z
