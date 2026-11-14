@@ -33,7 +33,7 @@ export async function callTool(name: string, args: Record<string, unknown>): Pro
 /** A new game's game_id and the view_id its link carries. */
 export async function createGame(): Promise<{ gameId: string; view: string }> {
   const created = await callTool("new_game", {});
-  return { gameId: created.report.game_id, view: new URL(created.report.view_url).searchParams.get("view")! };
+  return { gameId: created.report.game_id, view: new URL(created.report.viewer_url).searchParams.get("view")! };
 }
 
 /** The Worker's answer to a socket upgrade on `/live/<id>`. */

@@ -82,7 +82,7 @@ inferences, waiting for review.
   so they fall through to the Worker, and the page costs no Worker invocation. The adapter's
   test files share one worker and its storage, because the vitest pool doesn't support Durable
   Object WebSockets under per-file storage isolation.
-- **Evidence:** Under `wrangler dev`, a game started over `/mcp`, its `view_url` opened in
+- **Evidence:** Under `wrangler dev`, a game started over `/mcp`, its `viewer_url` opened in
   headless Chromium and went live, and the map updated after a `long_range_scan`;
   `/instructions.txt` answered 404. `wrangler deploy --env production --dry-run` reads the
   assets and resolves the Durable Object binding (2026-11-14).

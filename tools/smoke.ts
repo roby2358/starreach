@@ -1,5 +1,5 @@
 // Smoke test against a running Starreach server, local or deployed: /health answers, new_game
-// over MCP returns a game_id and view_url, a command succeeds, and a viewer socket gets a frame
+// over MCP returns a game_id and viewer_url, a command succeeds, and a viewer socket gets a frame
 // on connecting and another after the command. Exits non-zero with a message on any failure.
 // Creates one game on the server and leaves it there.
 //
@@ -110,12 +110,12 @@ async function startGame(mcp: Mcp): Promise<{ gameId: string; viewId: string }> 
   pass("MCP initialize");
   const result = await mcp.callTool("new_game", {});
   const gameId = result.report?.game_id;
-  const viewUrl = result.report?.view_url;
+  const viewerUrl = result.report?.viewer_url;
   check(typeof gameId === "string" && gameId !== "", `new_game: no game_id in ${JSON.stringify(result.report)}`);
-  check(typeof viewUrl === "string", `new_game: no view_url in ${JSON.stringify(result.report)}`);
-  const viewId = new URL(viewUrl).searchParams.get("view");
-  check(viewId !== null && viewId !== "", `new_game: view_url ${viewUrl} has no ?view=`);
-  pass(`new_game: view_url ${viewUrl}`);
+  check(typeof viewerUrl === "string", `new_game: no viewer_url in ${JSON.stringify(result.report)}`);
+  const viewId = new URL(viewerUrl).searchParams.get("view");
+  check(viewId !== null && viewId !== "", `new_game: viewer_url ${viewerUrl} has no ?view=`);
+  pass(`new_game: viewer_url ${viewerUrl}`);
   return { gameId, viewId };
 }
 

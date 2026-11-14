@@ -22,7 +22,7 @@ export async function newGame({ core, store, viewOrigin }: Games): Promise<Comma
   const view = await viewId(gameId);
   await store.put(view, game);
   const { result } = core.apply(game, { type: "state" });
-  return { ...result, report: { game_id: gameId, view_url: viewerUrl(viewOrigin, view) } };
+  return { ...result, report: { game_id: gameId, viewer_url: viewerUrl(viewOrigin, view) } };
 }
 
 /** Runs one command on a stored game, stores what the core returns, and tells its viewers. */

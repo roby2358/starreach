@@ -43,6 +43,15 @@ test("a game made over HTTP is playable on later requests", async () => {
   assert.deepEqual(state.state, created.state);
 });
 
+test("initialize hands the client the instructions", async () => {
+  const deps = testDeps();
+  const response = await handleHttp(
+    rpc("initialize", { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "0" } }),
+    deps,
+  );
+  assert.equal((await response.json()).result.instructions, deps.instructions);
+});
+
 test("tools/list names new_game and every command", async () => {
   const response = await handleHttp(rpc("tools/list", {}), testDeps());
   const names = (await response.json()).result.tools.map((t: { name: string }) => t.name).sort();

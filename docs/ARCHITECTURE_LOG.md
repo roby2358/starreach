@@ -3,6 +3,16 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-14 — Server instructions; wait for orders; the subwarp cap; viewer_url
+In the first live game the LLM played several sectors before the player had opened the viewer, and
+was surprised when a subwarp stopped after 3 cells. `instructions.txt`, until now only an MCP
+prompt that clients rarely load, is also sent as the server's instructions in `initialize`, so
+the LLM always has it. It now casts the LLM as the ship's computer working with the captain to
+make the galaxy safe, and says to give the captain the viewer link and wait for orders.
+`subwarp`'s description states the `SUBWARP_MAX_STEPS_HOSTILE` cap while enemies are present
+(the rule itself, D-6, is unchanged). `new_game`'s `report.view_url` is renamed `viewer_url`,
+matching the Viewer it opens; `view_id` keeps its name, as the key every viewer of a game shares.
+
 ### 2026-11-14 — Both adapters limit viewer frames to 128 bytes
 The designer set `VIEWER_MAX_FRAME_BYTES` to 128 (from 1024), enough for a ping or a small view
 setting, and made it apply on Cloudflare too: the Durable Object's message handler, empty before,

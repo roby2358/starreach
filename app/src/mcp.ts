@@ -1,5 +1,5 @@
 // The MCP surface (ONTOLOGY "MCP tools"): new_game, one tool per core command, and the
-// instructions prompt. Every tool returns the core Result as JSON text.
+// instructions, sent as the server's instructions and as a prompt. Every tool returns the core Result as JSON text.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -23,9 +23,9 @@ const COMMAND_TOOLS = [
   { type: "state", args: {}, description: "The current game state: ship, sector map, stardate" },
   { type: "galaxy_map", args: {}, description: "The 10x10 galaxy map: E|B|S (enemies|starbases|stars) per visible sector, ..... when hidden" },
   { type: "galaxy_warp", args: COORDINATES, description: "Warp the ship to sector (y, x). Enemies in the current sector get a turn first" },
-  { type: "subwarp", args: COORDINATES, description: "Move the ship within the sector toward cell (y, x), stopping before obstacles" },
+  { type: "subwarp", args: COORDINATES, description: "Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present" },
   { type: "dock", args: {}, description: "Dock with an adjacent starbase in a cleared sector: restores hull, shields, energy and quantorpedoes" },
-  { type: "long_range_scan", args: {}, description: "Scan the 3x3 block of sectors around the ship, revealing E|B|S for each" },
+  { type: "long_range_scan", args: {}, description: "Reveal E|B|S for the 3x3 block of sectors around the ship" },
   { type: "blast", args: COORDINATES, description: "Fire a blaston beam toward cell (y, x); it hits the first enemy on the line, within range" },
   { type: "torpedo", args: COORDINATES, description: "Fire a quantorpedo toward cell (y, x); it hits the first enemy on the line, at any range" },
 ] as const;
@@ -35,7 +35,7 @@ function asToolResult(result: CommandResult) {
 }
 
 export function createMcpServer(deps: McpDeps): McpServer {
-  const server = new McpServer({ name: "Starreach", version: "0.1.0" });
+  const server = new McpServer({ name: "Starreach", version: "0.1.0" }, { instructions: deps.instructions });
 
   server.registerPrompt(
     "instructions",
@@ -45,7 +45,7 @@ export function createMcpServer(deps: McpDeps): McpServer {
 
   server.registerTool(
     "new_game",
-    { description: "Start a new game. Returns its game_id in report.game_id; pass it to every other tool" },
+    { description: "Start a new game; pass report.game_id to every other tool. report.viewer_url is the live viewer's link" },
     async () => asToolResult(await newGame(deps)),
   );
 

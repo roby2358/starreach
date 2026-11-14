@@ -197,7 +197,7 @@ call on that object, which sends the frame to each of its sockets. [D]
   same Ray rule as the ship. Each enemy independently fires or advances, chosen at random
   each turn, with no memory. [D]
 - **The LLM** isn't a game actor. It is the player's interface: it sees what the tools
-  return and follows the `instructions` prompt for decorum and rendering. [D]
+  return and follows the instructions for decorum and rendering. [D]
 
 ---
 
@@ -518,8 +518,15 @@ the core Result. Plus:
 
 | Tool / prompt | Args | Returns |
 |---|---|---|
-| `new_game` | — | Result with `report: {game_id, view_url}`. `view_url` is the viewer's link, `<origin>/?view=<view_id>`; it never holds the `game_id` [D] |
-| prompt `instructions` | — | The decorum and rendering instructions for the LLM |
+| `new_game` | — | Result with `report: {game_id, viewer_url}`. `viewer_url` is the viewer's link, `<origin>/?view=<view_id>`; it never holds the `game_id` [D] |
+| prompt `instructions` | — | The decorum and rendering instructions for the LLM, which `initialize` also returns as the server's instructions |
+
+The instructions reach the LLM as soon as its client connects, since `initialize` returns them;
+most clients load a prompt only when the user picks it. They cast it as the ship's computer,
+working closely with the captain to make the galaxy safe, and tell it to give the captain the
+`viewer_url` and then wait for orders rather than play on its own [D]. Facts about one tool go in
+that tool's description: `subwarp`'s states the Subwarp rule's hostile-sector cap, so a move that
+stops short isn't a surprise [D].
 
 An unknown `game_id` returns `{ok: false, error: "Game not found", …}` with `state` null.
 Arguments that don't fit a tool's schema, such as a missing `game_id` or a coordinate that
@@ -585,7 +592,7 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Emergency energy | `Starbase transfers emergency energy: n` |
 
 ### Client contract
-- **LLM:** MCP tools and the `instructions` prompt only. It holds the `game_id`, and the link it hands the captain holds only the `view_id`. [D]
+- **LLM:** MCP tools and the instructions only. It holds the `game_id`, and the link it hands the captain holds only the `view_id`. [D]
 - **Browser:** reads `view` from its URL, opens the game's socket, draws each frame's GameView as the current sector's
   board, the galaxy map, ship status and a survey panel (sectors charted, enemies sighted and
   starbases found, totalled from the map), and reconnects after losing the socket. It sends
