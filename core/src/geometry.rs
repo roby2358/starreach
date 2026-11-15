@@ -49,3 +49,9 @@ pub fn bresenham(start: Yx, dest: Yx) -> impl Iterator<Item = Yx> {
         Some(cell)
     })
 }
+
+/// Exponential decay from `near` at range `start` to `far` at range `end`: the value is
+/// multiplied by the same ratio for each cell between them. Callers clamp outside that span.
+pub fn exp_falloff(range: f64, start: f64, end: f64, near: f64, far: f64) -> f64 {
+    near * (far / near).powf((range - start) / (end - start))
+}

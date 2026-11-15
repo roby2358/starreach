@@ -5,7 +5,7 @@
 
 use crate::constants::*;
 use crate::game::Game;
-use crate::geometry::{euclid, format_yx, Yx};
+use crate::geometry::{euclid, exp_falloff, format_yx, Yx};
 
 pub struct Event {
     pub can_occur: fn(&Game) -> bool,
@@ -204,7 +204,21 @@ pub fn fire_factor(roll: f64) -> f64 {
 }
 
 pub fn fire_damage(distance: f64, factor: f64) -> i32 {
-    (ENEMY_FIRE_BASE * (1.0 / distance).powf(ENEMY_FIRE_FALLOFF) * factor).round() as i32
+    (fire_base_damage(distance) * factor).round() as i32
+}
+
+/// Raxxon damage before the shot's factor (D-10): `ENEMY_FIRE_BASE` at 1 cell, easing linearly to
+/// `ENEMY_FIRE_NEAR` at `ENEMY_FIRE_NEAR_RANGE`, then decaying exponentially to `ENEMY_FIRE_FAR` at
+/// `ENEMY_FIRE_FAR_RANGE` and holding there beyond it.
+pub fn fire_base_damage(distance: f64) -> f64 {
+    if distance >= ENEMY_FIRE_FAR_RANGE {
+        return ENEMY_FIRE_FAR;
+    }
+    if distance > ENEMY_FIRE_NEAR_RANGE {
+        return exp_falloff(distance, ENEMY_FIRE_NEAR_RANGE, ENEMY_FIRE_FAR_RANGE, ENEMY_FIRE_NEAR, ENEMY_FIRE_FAR);
+    }
+    let along = (distance - 1.0) / (ENEMY_FIRE_NEAR_RANGE - 1.0);
+    ENEMY_FIRE_BASE + (ENEMY_FIRE_NEAR - ENEMY_FIRE_BASE) * along
 }
 
 /// Shields first, then hull, neither below 0. Returns the damage taken.

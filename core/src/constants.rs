@@ -52,8 +52,13 @@ pub const ENEMY_ADVANCE_FRACTION: f64 = 1.0 / 3.0;
 pub const ENEMY_ADVANCE_STEPS: usize = 2;
 pub const ENEMY_OBLIQUE_CHANCE: f64 = 0.5;
 pub const ENEMY_AMBUSH_CHANCE: f64 = 0.3;
+/// Raxxon damage at 1 cell, easing linearly to `ENEMY_FIRE_NEAR` at `ENEMY_FIRE_NEAR_RANGE`, then
+/// decaying exponentially to `ENEMY_FIRE_FAR` at `ENEMY_FIRE_FAR_RANGE` and beyond.
 pub const ENEMY_FIRE_BASE: f64 = 2000.0;
-pub const ENEMY_FIRE_FALLOFF: f64 = 1.57;
+pub const ENEMY_FIRE_NEAR: f64 = 1800.0;
+pub const ENEMY_FIRE_NEAR_RANGE: f64 = 2.0;
+pub const ENEMY_FIRE_FAR: f64 = 100.0;
+pub const ENEMY_FIRE_FAR_RANGE: f64 = 9.0;
 /// Enemy fire damage is multiplied by a uniform factor in this band.
 pub const ENEMY_FIRE_VARIANCE_MIN: f64 = 0.75;
 pub const ENEMY_FIRE_VARIANCE_MAX: f64 = 1.25;

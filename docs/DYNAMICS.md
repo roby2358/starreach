@@ -37,7 +37,7 @@ where you come back to resupply.
 | Mechanic | Feeds | Driver |
 |---|---|---|
 | Single ray rule: stars and ships block movement and fire | Combat positioning, cover | Scarcity of Agency, Readable Consequences |
-| Damage falls off steeply with distance (`ENEMY_FIRE_FALLOFF`) | Range as protection | Scarcity of Agency |
+| Damage stays high to `ENEMY_FIRE_NEAR_RANGE`, then falls off exponentially to `ENEMY_FIRE_FAR` | Range as protection | Scarcity of Agency |
 | Blast: limited range, energy cost rising with √range, kill chance falling with range | Weapon choice; the gamble of a long shot | Scarcity of Agency, Near Miss |
 | Enemy fire damage varies within a band | "Can I take one more volley?" | Variable Reinforcement |
 | Torpedo: unlimited range, limited ammo | Weapon choice; the long shot | Scarcity of Agency |

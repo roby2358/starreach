@@ -8,7 +8,7 @@ use serde::Serialize;
 use crate::constants::*;
 use crate::events::{ambush, enemies_turn, stardate_events, warp_events};
 use crate::game::{Game, Status};
-use crate::geometry::{adjacent, euclid, format_yx, Yx};
+use crate::geometry::{adjacent, euclid, exp_falloff, format_yx, Yx};
 
 pub type Refusal = String;
 
@@ -133,8 +133,7 @@ pub fn blast_kill_chance(range: f64) -> f64 {
     if range <= BLAST_SURE_RANGE {
         return BLAST_KILL_CHANCE_NEAR;
     }
-    let along = (range - BLAST_SURE_RANGE) / (BLAST_RANGE - BLAST_SURE_RANGE);
-    BLAST_KILL_CHANCE_NEAR * (BLAST_KILL_CHANCE_FAR / BLAST_KILL_CHANCE_NEAR).powf(along)
+    exp_falloff(range, BLAST_SURE_RANGE, BLAST_RANGE, BLAST_KILL_CHANCE_NEAR, BLAST_KILL_CHANCE_FAR)
 }
 
 /// Blast energy cost at a range: rises with its square root (D-9).

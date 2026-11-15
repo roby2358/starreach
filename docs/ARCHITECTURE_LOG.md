@@ -3,6 +3,14 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Raxxon damage follows the blast profile
+Enemy fire was `ENEMY_FIRE_BASE × (1/d)^ENEMY_FIRE_FALLOFF` (exponent 1.57: 674 at 2, 356 at 3,
+120 at 6). The designer gave it the blast kill chance's shape: `ENEMY_FIRE_BASE` (2000) at 1 cell,
+linear to `ENEMY_FIRE_NEAR` (1800) at `ENEMY_FIRE_NEAR_RANGE` (2), exponential to `ENEMY_FIRE_FAR`
+(100) at `ENEMY_FIRE_FAR_RANGE` (9), flat beyond. `ENEMY_FIRE_FALLOFF` is removed. The decay is a
+shared `geometry::exp_falloff`, which `blast_kill_chance` now uses too. New D-39; D-10, D-36, D-37
+and R-14 updated. Mid-range fire is much heavier: about 3.3× at range 3 (1191 against 356).
+
 ### 2026-11-15 — Starbases are placed after generation, spread apart
 Every sector except Star Central used to roll `STARBASE_CHANCE` (0.02) for a starbase, so a
 galaxy could have none beyond home, or several bunched together. Generation now draws a count in

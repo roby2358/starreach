@@ -288,11 +288,9 @@ inferences, waiting for review.
   advancers (0 for 1–2 enemies, so small groups never close in).
 - **Why:** Time passing is the threat, and it adds up across actions, so every action that
   takes time brings the next enemy turn closer. Faster actions still buy more shots before
-  the reply. A per-enemy roll lets small groups advance too. Damage falls off steeply with
-  distance, so range is protection.
-- **Evidence:** Modeled by: `just cc-model-balance 2000` — at the middle of the D-37 band, 2000 damage at
-  range 1, 674 at 2, 356 at 3, 120 at 6. With 5000 shields plus hull, about 2.5 point-blank hits
-  destroy the ship.
+  the reply. A per-enemy roll lets small groups advance too. Range is protection: damage
+  falls off past `ENEMY_FIRE_NEAR_RANGE` (D-39).
+- **Evidence:** none yet for the clock itself; the damage numbers are under D-39.
 
 ### D-34 An advancing enemy approaches 25% oblique left, 50% head-on, 25% oblique right — *Decided; the geometry is Proposed*
 - **Alternatives:** always head-on (the old rule: an enemy often stepped into the line of a shot already aimed at it, easy to predict and cover); a target cell offset perpendicular to the ray; a sidestep then advance; a different split.
@@ -318,14 +316,14 @@ inferences, waiting for review.
   falloff (0.77 at 4, 0.5 at 6: long shots stay too good, and standing off stays cheap); a sigmoid
   (holds near 0.9 past 4 and drops late, which blurs the effective range and needs a midpoint
   and steepness to tune).
-  An effective range of 3, the same as raxxon fire's (the old rule: the player had no reach
-  advantage in a crowded sector).
+  An effective range of 3 (the old rule: no more reach than raxxon fire had, so the player had no
+  edge in a crowded sector).
 - **Why:** Designer decision: the effective range is 4, but 5 or 6 is still a decent shot, and a
-  long shot is a gamble. Raxxon fire is effective to about 3 and falls off after it (D-10), so the
-  extra cell gives the player the edge in a busy sector: at range 4 a blast is as sure as at 1,
-  while an enemy shot deals about 227 against 356 at 3. Exponential decay drops fastest just past 4, so closing that first cell or
-  two pays most, and it needs no constants beyond the two end points. Missing makes closing in worth its danger (enemy fire falls off steeply,
-  D-10), gives torpedoes, which always kill, a reason to be saved, and brings the near-miss into
+  long shot is a gamble. Raxxon fire is effective to 2 and falls off after it (D-39), so the
+  two extra cells give the player the edge in a busy sector: at range 4 a blast is as sure as at 1,
+  while an enemy shot there has already started its falloff (about 788 against 1191 at 3, D-39). Exponential decay drops fastest just past 4, so closing that first cell or
+  two pays most, and it needs no constants beyond the two end points. Missing makes closing in worth its danger (enemy fire is heavy inside its near range,
+  D-39), gives torpedoes, which always kill, a reason to be saved, and brings the near-miss into
   play. A paid miss keeps every action costing something (G-4).
 - **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — kill chance
   90% to range 4, 58% at 5, 37% at 6, 24% at 7, 16% at 8, 10% at 9. Expected energy per
@@ -342,10 +340,29 @@ inferences, waiting for review.
   could compute exactly how many hits the shields would take); a band that widens with range; a
   normal distribution.
 - **Why:** Variable reinforcement and a little uncertainty in "can I take one more volley" (F-danger),
-  without changing the mean, so D-10's range falloff still sets the shape of a fight.
+  without changing the mean, so D-39's range profile still sets the shape of a fight.
 - **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — damage
-  1500–2500 at range 1, 505–842 at 2, 267–446 at 3, 90–150 at 6, 48–79 at 9. Before: a fixed 2000,
-  674, 356 and 120. Tested by R-14 and R-33.
+  1500–2500 at range 1, 1350–2250 at 2, 893–1489 at 3, 259–431 at 6, 75–125 at 9. Tested by R-14
+  and R-33.
+
+### D-39 Raxxon damage: 2000 at 1 cell, 1800 at 2, then exponential decay to 100 at 9 and beyond — *Decided*
+- **Choice:** Before the D-37 factor, an enemy shot deals `ENEMY_FIRE_BASE` at 1 cell, easing
+  linearly to `ENEMY_FIRE_NEAR` at `ENEMY_FIRE_NEAR_RANGE`, then decaying exponentially (the same
+  ratio per cell) to `ENEMY_FIRE_FAR` at `ENEMY_FIRE_FAR_RANGE`, and holding there beyond it. The
+  decay shares its formula with the blast kill chance (D-36).
+- **Alternatives:** a power law `ENEMY_FIRE_BASE × (1/d)^1.57` (the old rule: most of the drop
+  came inside range 3, so a shot at 3 did a sixth of a point-blank one and mid-range fire barely
+  mattered); 1800 at range 3 (fire at 3 became devastating: about 3 average hits destroy the ship);
+  a flat `ENEMY_FIRE_NEAR` out to the near range, a strict mirror of blasts (point-blank no worse); a lower near value with the same shape.
+- **Why:** Designer decision: raxxon fire uses the same profile as the blast kill chance, effective
+  to 2 and falling off after it, so range 3 is still nasty but not devastating, and the player's
+  sure blasts out to 4 (D-36) are the edge in a busy sector. Point-blank stays the worst place to be. Mid-range fire is now a real threat, so
+  every enemy turn in a sector counts (F-danger), and a floor of `ENEMY_FIRE_FAR` keeps a distant
+  enemy from being harmless.
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — at the
+  middle of the D-37 band, 2000 at range 1, 1800 at 2, 1191 at 3, 788 at 4, 522 at 5, 345 at 6,
+  228 at 7, 151 at 8, 100 at 9 and beyond. Against 3000 shields plus 2000 hull, about 4.2 average
+  hits at range 3 or 6.3 at range 4 destroy the ship. Tested by R-14.
 
 ### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided*
 - **Alternatives:** a stardate deadline; open-ended play.

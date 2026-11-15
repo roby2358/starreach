@@ -434,7 +434,11 @@ if dest is empty: move enemy to dest   else: stay
 ```
 if ray(enemy, ship_yx) doesn't end at ship_yx: no effect
 factor = uniform(rng, ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX)      # one draw per shot, blocked or not
-damage = round(ENEMY_FIRE_BASE × (1 / euclid(enemy, ship_yx)) ^ ENEMY_FIRE_FALLOFF × factor)
+d = euclid(enemy, ship_yx)
+base = d ≥ ENEMY_FIRE_FAR_RANGE:  ENEMY_FIRE_FAR
+       d > ENEMY_FIRE_NEAR_RANGE: ENEMY_FIRE_NEAR × (ENEMY_FIRE_FAR / ENEMY_FIRE_NEAR) ^ ((d − ENEMY_FIRE_NEAR_RANGE) / (ENEMY_FIRE_FAR_RANGE − ENEMY_FIRE_NEAR_RANGE))
+       otherwise:                 linear from ENEMY_FIRE_BASE at 1 to ENEMY_FIRE_NEAR at ENEMY_FIRE_NEAR_RANGE      [D, D-39]
+damage = round(base × factor)
 shields absorb up to their value; hull absorbs the rest up to its value
 ```
 
@@ -511,8 +515,11 @@ Referred to by name everywhere else.
 | `ENEMY_ADVANCE_STEPS` | 2 | cells | D-10 |
 | `ENEMY_OBLIQUE_CHANCE` | 0.5 | probability an advance is oblique, split evenly left and right | D-34 |
 | `ENEMY_AMBUSH_CHANCE` | 0.3 | probability per enemy that it fires when the ship arrives | D-35 |
-| `ENEMY_FIRE_BASE` | 2000 | damage at 1 cell | D-10 |
-| `ENEMY_FIRE_FALLOFF` | 1.57 | exponent | D-10 |
+| `ENEMY_FIRE_BASE` | 2000 | damage at 1 cell | D-39 |
+| `ENEMY_FIRE_NEAR` | 1800 | damage at `ENEMY_FIRE_NEAR_RANGE` | D-39 |
+| `ENEMY_FIRE_NEAR_RANGE` | 2 | cells, where the exponential falloff begins | D-39 |
+| `ENEMY_FIRE_FAR` | 100 | damage at `ENEMY_FIRE_FAR_RANGE` and beyond | D-39 |
+| `ENEMY_FIRE_FAR_RANGE` | 9 | cells, where damage stops falling | D-39 |
 | `ENEMY_FIRE_VARIANCE_MIN` | 0.75 | lowest damage factor of a shot | D-37 |
 | `ENEMY_FIRE_VARIANCE_MAX` | 1.25 | highest damage factor of a shot | D-37 |
 | `SHIP_MAX_HULL` | 2000 | hp | D-11 |
