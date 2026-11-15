@@ -1,32 +1,3 @@
-Priority:   80
-Status: ToDo
-ID: homepage-88xw
-Created: 2026-11-15T01:34:28Z
-Updated: 2026-11-15T01:34:28Z
-
-Add a static home page at https://starreach.yuwakisa.com/ (public/index.html) for new players.
-
-The page should have:
-- What Starreach is, in a few lines: you are the captain, an LLM is your ship's computer, and the galaxy is full of enemies to clear.
-- How to connect. Add the MCP server (the URL https://starreach.yuwakisa.com/mcp; a `claude mcp add --transport http starreach https://starreach.yuwakisa.com/mcp` example; a note on adding a custom connector in claude.ai or Claude Desktop). Then ask the computer to start a game, and open the viewer link it gives.
-- A loose play guide, not a rules manual:
-  - Coordinates are (y, x).
-  - Scan with the long-range scan, then warp to a sector.
-  - Blasters are best at close range. Torpedoes are limited, but always hit with a clear shot.
-  - Dock at a starbase to restore energy and torpedoes.
-  - Enemies fire back and close in.
-  - Talk to the computer in plain orders ("clear this sector with blasters, closing to range 4").
-- A prominent line telling players to ask the computer what it can do, for more information. The computer knows the commands and rules from its tool descriptions and instructions.
-- The viewer page's look and feel: reuse public/css and fonts. Plain HTML/CSS, no build step, works at phone width.
-
-The constraint: today public/index.html IS the live viewer, served at / and reached by `viewer_url` (`/?view=<hash>`). Move the viewer to its own page (e.g. public/view.html, served at /view.html?view=…, or /view if html_handling allows). Then update:
-- where viewer_url is built (app and adapters), and the tests that match its URL pattern (Cloudflare http.test.ts, Node integration tests, R-21 tests, page tests);
-- the smoke test;
-- README, ONTOLOGY (the viewer page and the viewer_url field), and the starreach-recipes skill if it mentions the path.
-Old `/?view=` links from earlier games will stop working unless the home page forwards a `view` query parameter to the viewer. A tiny script on the home page doing exactly that is cheap; propose it to the user.
-
-Keep the game's numbers out of the page where possible (refer to them loosely), so tuning doesn't make it stale. Docs: a RATIONALE decision for the page layout and paths, CRITERIA (a U-row or a page test that the home page serves and the viewer still loads at its new path), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
-----
 Priority:   40
 Status: ToDo
 ID: loginflow-96sy

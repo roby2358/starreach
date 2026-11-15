@@ -27,7 +27,7 @@ cc-setup:
     python3 tools/container_tools.py
     just setup
 
-# Serve the viewer page and its sockets, MCP over streamable HTTP at /mcp, and /health
+# Serve the home page, the viewer page and its sockets, MCP over streamable HTTP at /mcp, and /health
 serve: cc-build-wasm
     node adapters/node/src/main.ts http --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
 
@@ -35,7 +35,7 @@ serve: cc-build-wasm
 stdio: cc-build-wasm
     node adapters/node/src/main.ts stdio --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
 
-# The viewer page and sockets, MCP at /mcp and /health on http://localhost:8787, games in local
+# The home page, the viewer page and sockets, MCP at /mcp and /health on http://localhost:8787, games in local
 # Durable Objects under adapters/cloudflare/.wrangler/. In a container: just cf-dev --ip 0.0.0.0
 # Run the Cloudflare adapter locally under wrangler dev, in the foreground
 cf-dev *args: cc-build-wasm
@@ -156,9 +156,13 @@ cc-test-cloudflare: cc-build-wasm
     npx vitest run --root adapters/cloudflare
 
 # Screenshots go to adapters/node/test-browser/out/
-# Drive the viewer page in headless Chromium against the real server
+# Drive the viewer page and the home page in headless Chromium against the real server
 cc-test-page: cc-build-wasm
     if [ -f {{CONTAINER_TOOLS}}/env ]; then . {{CONTAINER_TOOLS}}/env; fi; node --test 'adapters/node/test-browser/*.test.ts'
+
+# Screenshot a page in headless Chromium, e.g. just cc-screenshot 'https://starreach.yuwakisa.com/viewer?view=<id>' public/images/viewer.jpg 1100 800
+cc-screenshot url out width height:
+    if [ -f {{CONTAINER_TOOLS}}/env ]; then . {{CONTAINER_TOOLS}}/env; fi; node tools/screenshot.ts '{{url}}' '{{out}}' {{width}} {{height}}
 
 # Typecheck the TypeScript app and adapters
 cc-typecheck: cc-build-wasm

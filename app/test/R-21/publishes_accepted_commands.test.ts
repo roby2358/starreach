@@ -41,7 +41,7 @@ test("new_game reports the viewer's link for the game", async () => {
   const deps = testDeps();
   const { report } = await newGame(deps);
   const gameId = report!.game_id as string;
-  assert.equal(report!.viewer_url, `http://viewer.test/?view=${await viewId(gameId)}`);
+  assert.equal(report!.viewer_url, `http://viewer.test/viewer?view=${await viewId(gameId)}`);
   assert.ok(!(report!.viewer_url as string).includes(gameId));
   assert.ok(deps.viewers.published.every(([id]) => id !== gameId));
 });

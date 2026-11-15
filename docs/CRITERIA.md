@@ -60,6 +60,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | U-9 | The browser page shows the current sector's board, updated after each warp and then after ship and enemy actions | automated |
 | U-10 | The browser page is one display: the current sector's board as a tilted hologram, the galaxy map, ship status and survey all show together, with nothing to click, and fit a laptop screen without scrolling | automated |
 | U-11 | The hologram plays one animation on a warp and one when an enemy is gone from the ship's sector, and none on the first frame | automated |
+| U-12 | The home page shows the briefing: the MCP URL and the line telling players to ask the computer. It fits a phone width without horizontal scroll | automated |
 | U-3 | The LLM shows the sector in the instructions format: column header, row numbers, no legend, no star count | manual — run a session in Claude Desktop and compare with `public/instructions.txt` |
 | U-4 | The LLM opens a session with a greeting and the current state | manual — first reply of a fresh session |
 | U-5 | The LLM keeps naval decorum ("Aye aye, captain") | manual — read a 10-turn session |
@@ -88,9 +89,10 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 - **Automated in the Cloudflare adapter** (`just cc-test-cloudflare`, inside workerd): R-21's
   sockets on the Durable Object (by `view_id`, through the Worker's upgrade) and R-27's ignored
   frames and its size limit. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
-  which are integration tests and own no R-row. The static-assets page isn't under test there:
-  it was checked by hand under `just cf-dev`, in headless Chromium (2026-11-14).
-- **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11. It needs Chromium's system
+  which are integration tests and own no R-row. The static-assets pages aren't under test there:
+  the viewer was checked by hand under `just cf-dev`, in headless Chromium (2026-11-14), and
+  `just cc-smoke` against `just cf-up` fetches `/` and the `viewer_url`'s path without following redirects (2026-11-15).
+- **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11, U-12. It needs Chromium's system
   libraries, which `just cc-setup` fetches in a rebuilt container.
 - **Manual only:** U-3 – U-7.
 - **X-1 – X-5** need play sessions on the new layers.

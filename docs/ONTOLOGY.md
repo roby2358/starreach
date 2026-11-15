@@ -581,7 +581,7 @@ the core Result. Plus:
 
 | Tool / prompt | Args | Returns |
 |---|---|---|
-| `new_game` | — | Result with `report: {game_id, viewer_url}`. `viewer_url` is the viewer's link, `<origin>/?view=<view_id>`; it never holds the `game_id` [D] |
+| `new_game` | — | Result with `report: {game_id, viewer_url}`. `viewer_url` is the viewer's link, `<origin>/viewer?view=<view_id>`; it never holds the `game_id` [D] |
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM, which `initialize` also returns as the server's instructions |
 
 The instructions reach the LLM as soon as its client connects, since `initialize` returns them;
@@ -602,14 +602,15 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 |---|---|
 | `POST /mcp` | Streamable-HTTP MCP |
 | `GET /health` | `{status: "ok"}` |
-| `GET /` | The viewer page. `?view=<view_id>` chooses the game |
-| `GET /css/styles.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2` | The page's files |
+| `GET /` | The home page: a short briefing with how to connect (D-40). Cloudflare redirects `/index.html` to `/` [P] |
+| `GET /viewer` | The viewer page. `?view=<view_id>` chooses the game. Cloudflare redirects `/viewer.html` to `/viewer` [P]. With no game, its notice links to `/` |
+| `GET /css/styles.css`, `GET /css/home.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2` | The pages' files |
 | WebSocket `/live/<view_id>` | The game's frames, read-only [P] |
 | any other path | 404 |
 
 The app layer serves `/mcp` and `/health` as one fetch handler. MCP over HTTP is stateless:
 each request gets a fresh MCP server, and games live in the GameStore. [P] Adapters serve the
-page and the socket. The Node adapter serves all of these in both modes, and in stdio mode
+pages and the socket. The Node adapter serves all of these in both modes, and in stdio mode
 also serves MCP over stdio, from one process that holds the games. It takes `--host` and
 `--port` to bind and `--origin` for where browsers reach it. A stdio process that finds the
 port held by a Starreach server forwards its MCP messages there instead, so one process still
@@ -625,11 +626,11 @@ is routed to `starreach.yuwakisa.com` (D-20) and deployed there with `just cf-de
 
 The Worker calls the same seam before a viewer's socket upgrade, then hands the upgrade to the
 Durable Object named by the path's `view_id`. [D] A `/live/` request that isn't a WebSocket
-upgrade, or whose id isn't a `view_id`, gets the 404 of any other path. [P] The page is
+upgrade, or whose id isn't a `view_id`, gets the 404 of any other path. [P] The pages are
 `public/` served as Workers static assets: a request that matches a file is answered without
 running the Worker, and every other request reaches it. [D] `public/.assetsignore` keeps
 `instructions.txt` out of the assets, since the Worker bundles it as a module; everything else
-in `public/` is served, which adds the font's licence text to the page's files. [P]
+in `public/` is served, which adds the font's licence text to the pages' files. [P]
 
 ### Viewer socket [D]
 ```

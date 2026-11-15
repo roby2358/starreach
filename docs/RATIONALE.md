@@ -135,7 +135,7 @@ inferences, waiting for review.
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
   (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call
   hashes the `game_id` it is given to find its game, and a viewer presents the `view_id`
-  directly: the link is `<origin>/?view=<view_id>` and the socket is `/live/<view_id>`. Sharing
+  directly: the link is `<origin>/viewer?view=<view_id>` (D-40) and the socket is `/live/<view_id>`. Sharing
   the link shares the view and not the controls, because a `view_id` can't be reversed to a
   `game_id`, and passed as a `game_id` it hashes to a key nothing is stored under.
 - **Alternatives:** a random view token with a mapping table to the `game_id` (a second
@@ -344,6 +344,22 @@ inferences, waiting for review.
 - **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — damage
   1500–2500 at range 1, 1350–2250 at 2, 893–1489 at 3, 259–431 at 6, 75–125 at 9. Tested by R-14
   and R-33.
+
+### D-40 A home page at `/` and the viewer at `/viewer` — *Decided; the `/viewer` path Proposed*
+- **Choice:** `public/index.html` is a short home page for new players (what the game is, how to
+  connect, a loose field guide, a prominent line to ask the computer what it can do). The viewer
+  moves to `public/viewer.html`. `viewer_url` is `<origin>/viewer?view=<view_id>`.
+- **Alternatives:** `/view.html` or `/viewer.html` as the link (Cloudflare redirects `.html`
+  paths to the extensionless one, an extra hop on every link); keeping the viewer at `/` and
+  putting the home page elsewhere (a new player lands on a viewer that says "no ship on this
+  channel"); forwarding a `view` query parameter from the home page to the viewer (declined: links from
+  earlier games break, which the designer accepted).
+- **Why:** Designer decisions: the viewer gets its own page and `/` becomes the home page. [P] Cloudflare static assets use the default
+  `html_handling` (auto-trailing-slash), which serves `viewer.html` at `/viewer`, so building the
+  link as `/viewer` avoids the redirect. The Node adapter serves its pages from an explicit list at the
+  same two paths, so both adapters agree. A viewer with no game links back to the home page. The page keeps game numbers out, so tuning doesn't make it stale.
+- **Evidence:** Page tests in the Node adapter (home content, viewer paths); U-12. `just cc-smoke`
+  fetches `/` and the path of the `viewer_url` that `new_game` reports, on either adapter.
 
 ### D-39 Raxxon damage: 2000 at 1 cell, 1800 at 2, then exponential decay to 100 at 9 and beyond — *Decided*
 - **Choice:** Before the D-37 factor, an enemy shot deals `ENEMY_FIRE_BASE` at 1 cell, easing

@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Home page at `/`, viewer moved to `/viewer`
+`public/index.html` was the viewer, served at `/` and linked as `/?view=<view_id>`. It is now a
+home page for new players (D-40, U-12), and the viewer is `public/viewer.html`, linked as
+`/viewer?view=<view_id>`. Links from earlier games (`/?view=`) stop working; the designer accepted
+that. The Node adapter serves the new pages and `css/home.css`; the smoke test checks
+`/` and `/viewer`. ONTOLOGY's `viewer_url` and HTTP routes updated.
+
 ### 2026-11-15 — Raxxon damage follows the blast profile
 Enemy fire was `ENEMY_FIRE_BASE × (1/d)^ENEMY_FIRE_FALLOFF` (exponent 1.57: 674 at 2, 356 at 3,
 120 at 6). The designer gave it the blast kill chance's shape: `ENEMY_FIRE_BASE` (2000) at 1 cell,

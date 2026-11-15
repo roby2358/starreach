@@ -51,7 +51,7 @@ test("a viewer watches the game the stdio client is playing, and hanging up ends
   const reply = await replies.next();
   const created = JSON.parse(JSON.parse(reply.value as string).result.content[0].text);
   const gameId = created.report.game_id;
-  assert.equal(created.report.viewer_url, `http://localhost/?view=${await viewId(gameId)}`);
+  assert.equal(created.report.viewer_url, `http://localhost/viewer?view=${await viewId(gameId)}`);
 
   const viewer = new Viewer(port, await viewId(gameId));
   const first = await viewer.nextFrame();

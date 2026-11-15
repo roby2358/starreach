@@ -28,8 +28,11 @@ const PUBLIC_DIR = new URL("../../../public/", import.meta.url);
 /** The page's files, by the path that serves each one. */
 const PAGE_FILES = [
   { path: "/", file: "index.html", type: "text/html; charset=utf-8" },
+  { path: "/viewer", file: "viewer.html", type: "text/html; charset=utf-8" },
   { path: "/css/styles.css", file: "css/styles.css", type: "text/css; charset=utf-8" },
+  { path: "/css/home.css", file: "css/home.css", type: "text/css; charset=utf-8" },
   { path: "/js/script.js", file: "js/script.js", type: "text/javascript; charset=utf-8" },
+  { path: "/images/viewer.jpg", file: "images/viewer.jpg", type: "image/jpeg" },
   { path: "/fonts/oxanium.woff2", file: "fonts/oxanium.woff2", type: "font/woff2" },
 ];
 

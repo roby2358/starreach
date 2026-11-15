@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
-  "description": "Starreach on Cloudflare: a Worker serving MCP and the viewer page, one SQLite Durable Object per game and its viewer sockets (D-21)",
+  "description": "Starreach on Cloudflare: a Worker serving MCP, the home page and the viewer page, one SQLite Durable Object per game and its viewer sockets (D-21)",
   "type": "module",
   "dependencies": {
     "@starreach/app": "0.1.0"

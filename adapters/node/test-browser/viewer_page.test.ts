@@ -32,7 +32,7 @@ after(async () => {
 
 async function openGame(gameId: string, viewport: { width: number; height: number }): Promise<Page> {
   const page = await browser.newPage({ viewport });
-  await page.goto(`${running.base}/?view=${await viewId(gameId)}`);
+  await page.goto(`${running.base}/viewer?view=${await viewId(gameId)}`);
   await page.waitForSelector("body[data-link=live]");
   return page;
 }
@@ -68,7 +68,7 @@ test("U-2: the ship's status follows the game, and nothing goes back up the sock
   const sent: unknown[] = [];
   const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
   page.on("websocket", (socket) => socket.on("framesent", (frame) => sent.push(frame)));
-  await page.goto(`${running.base}/?view=${await viewId(id)}`);
+  await page.goto(`${running.base}/viewer?view=${await viewId(id)}`);
   await page.waitForSelector("body[data-link=live]");
   const energy = page.locator("[data-gauge=energy] .gauge-value");
   assert.match((await energy.textContent())!, /^(\d+) \/ \1$/);
@@ -240,9 +240,11 @@ test("the page fits a phone with no sideways scroll", async () => {
 
 test("the page says so when it has no game or an unknown game", async () => {
   const page = await browser.newPage();
-  await page.goto(`${running.base}/`);
+  await page.goto(`${running.base}/viewer`);
   assert.match((await page.locator("#notice").textContent())!, /No ship on this channel/);
-  await page.goto(`${running.base}/?view=${"0".repeat(64)}`);
+  assert.equal(await page.locator("#home-link").getAttribute("href"), "/");
+  assert.ok(await page.locator("#home-link").isVisible(), "a viewer with no game links to the home page");
+  await page.goto(`${running.base}/viewer?view=${"0".repeat(64)}`);
   await page.waitForSelector("body[data-link=absent]");
   assert.match((await page.locator("#notice").textContent())!, /isn't on record/);
   await page.close();
@@ -252,7 +254,7 @@ test("a page whose server goes away shows the lost signal and keeps the last vie
   const local = await startServer();
   const id = (await newGame(local.deps)).report!.game_id as string;
   const page = await browser.newPage();
-  await page.goto(`${local.base}/?view=${await viewId(id)}`);
+  await page.goto(`${local.base}/viewer?view=${await viewId(id)}`);
   await page.waitForSelector("body[data-link=live]");
   await stopServer(local);
   await page.waitForSelector("body[data-link=lost]");

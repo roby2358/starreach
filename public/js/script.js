@@ -237,7 +237,8 @@
         byId("link").textContent = LINKS[link].text;
         const shown = notice === null ? LINKS[link].notice : notice;
         byId("notice").hidden = shown === null;
-        byId("notice").textContent = shown;
+        byId("notice-text").textContent = shown;
+        byId("home-link").hidden = link !== "absent";
     }
 
     function connect(view, delay) {

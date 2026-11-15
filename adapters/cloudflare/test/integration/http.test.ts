@@ -42,7 +42,7 @@ test("an unknown game_id is not found", async () => {
 
 test("the viewer's link uses the request's origin", async () => {
   const created = await callTool("new_game", {});
-  expect(created.report.viewer_url).toMatch(/^http:\/\/starreach\.test\/\?view=[0-9a-f]{64}$/);
+  expect(created.report.viewer_url).toMatch(/^http:\/\/starreach\.test\/viewer\?view=[0-9a-f]{64}$/);
 });
 
 test("tools/list names new_game and every command", async () => {

@@ -4,8 +4,8 @@ The game is in three layers (D-21):
 
 - `core/`: the rules, in Rust compiled to WASM.
 - `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
-- `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the viewer page and its sockets, and games kept in memory.
-- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, and the viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), without sign-in for now.
+- `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the home page, the viewer page and its sockets, and games kept in memory.
+- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), without sign-in for now.
 
 ## Design docs
 
@@ -59,6 +59,6 @@ Start with the `new_game` tool and pass its `game_id` to every other tool. The s
 
 ## The main viewer
 
-`new_game` reports a `viewer_url`, and the crew gives you the link. It carries a hash of the game_id, so sharing it shares the view and not the controls. Open it for a live, read-only view of the current sector, the galaxy map and ship status. Only one server can hold the port. A stdio server that finds another Starreach server there forwards to it and shares its games, and those games end when the server holding the port exits.
+`new_game` reports a `viewer_url`, and the crew gives you the link. It carries a hash of the game_id, so sharing it shares the view and not the controls. Open it (at `/viewer`) for a live, read-only view of the current sector, the galaxy map and ship status. Only one server can hold the port. A stdio server that finds another Starreach server there forwards to it and shares its games, and those games end when the server holding the port exits.
 
 In a container, bind every interface, publish the port, and tell the server where browsers reach it: `--host 0.0.0.0 --port 8572 --origin http://localhost:8572`.

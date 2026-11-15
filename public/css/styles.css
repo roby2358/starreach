@@ -90,6 +90,8 @@ body[data-link="lost"] #link, body[data-link="absent"] #link { color: var(--enem
 body[data-link="lost"] .console { opacity: 0.45; filter: saturate(0.3); }
 body[data-link="absent"] .console, body[data-link="connecting"] .console { display: none; }
 
+.notice a { color: var(--cyan); }
+
 .notice {
     padding: 16px;
     background: var(--glass);

@@ -1,5 +1,5 @@
 // Starreach on Cloudflare (D-21): one Worker, one SQLite Durable Object per game holding the
-// game and its viewer sockets, and the viewer page as static assets.
+// game and its viewer sockets, and the home page and viewer page as static assets.
 // `just cf-dev` runs this locally; `just cf-deploy` deploys the production environment.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -8,7 +8,7 @@
   "compatibility_date": "2026-05-07",
   "workers_dev": false,
   "observability": { "enabled": true },
-  // The viewer page (D-31). A request that matches a file here is served without running the
+  // The home page and the viewer page (D-40, D-31). A request that matches a file here is served without running the
   // Worker; /mcp, /health and /live/<view_id> match none, so they reach the Worker.
   // public/.assetsignore keeps instructions.txt out, which the Worker imports as a module.
   "assets": { "directory": "../../public" },

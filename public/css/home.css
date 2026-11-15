@@ -1,0 +1,56 @@
+/* The home page: the briefing, in the viewer's holotank look (tokens come from styles.css). */
+.briefing {
+    display: grid;
+    gap: 16px;
+    max-width: 44rem;
+    margin: 0 auto;
+}
+
+.briefing h2 {
+    color: var(--cyan);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.briefing p,
+.briefing li { line-height: 1.5; }
+
+.briefing p + p,
+.briefing p + ul,
+.briefing ul + p,
+.briefing li pre { margin-top: 10px; }
+
+.briefing ul { padding-left: 1.2em; }
+.briefing li + li { margin-top: 6px; }
+
+.briefing .ask {
+    outline-color: var(--cyan);
+    background: var(--glow);
+}
+
+.briefing .ask h2 {
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+
+.viewer-shot { margin: 0; }
+.viewer-shot img { display: block; width: 100%; height: auto; }
+.viewer-shot figcaption { margin-top: 8px; color: var(--dim); font-size: 0.875rem; }
+
+.briefing code {
+    color: var(--star);
+    overflow-wrap: anywhere;
+}
+
+.briefing pre {
+    margin: 0;
+    padding: 10px 12px;
+    background: var(--glass);
+    border: 1px solid var(--glass-edge);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

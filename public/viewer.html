@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starreach Main Viewer</title>
+    <link rel="preload" href="fonts/oxanium.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-link="connecting" data-status="playing">
+    <header class="bridge-header">
+        <h1>Starreach <span>Main Viewer</span></h1>
+        <dl class="readouts">
+            <div><dt>Stardate</dt><dd id="stardate">--</dd></div>
+            <div><dt>Sector</dt><dd id="sector">--</dd></div>
+            <div><dt>Link</dt><dd id="link">--</dd></div>
+        </dl>
+    </header>
+
+    <p id="notice" class="notice" hidden><span id="notice-text"></span> <a id="home-link" href="/" hidden>New here? Read the Fleet Briefing.</a></p>
+    <p id="outcome" class="outcome" hidden></p>
+
+    <main id="console" class="console">
+        <section class="tank-section" aria-labelledby="quadrant-title">
+            <h2 id="quadrant-title">Quadrant</h2>
+            <div id="tank" class="tank"><div id="board" class="map"></div></div>
+            <ul class="legend">
+                <li><span class="ship"></span> Ship</li>
+                <li><span class="enemy"></span> Enemy</li>
+                <li><span class="starbase"></span> Starbase</li>
+                <li><span class="star"></span> Star</li>
+            </ul>
+        </section>
+
+        <section class="panel ship-panel" aria-labelledby="ship-title">
+            <h2 id="ship-title">Ship status</h2>
+            <div id="gauges" class="gauges"></div>
+        </section>
+
+        <section class="panel survey-panel" aria-labelledby="survey-title">
+            <h2 id="survey-title">Survey</h2>
+            <dl class="survey">
+                <div><dt>Sectors charted</dt><dd id="charted">--</dd></div>
+                <div><dt>Enemies sighted</dt><dd id="sighted">--</dd></div>
+                <div><dt>Starbases found</dt><dd id="bases">--</dd></div>
+            </dl>
+        </section>
+
+        <section class="panel galaxy-panel" aria-labelledby="galaxy-title">
+            <h2 id="galaxy-title">Galaxy</h2>
+            <div id="galaxy" class="map"></div>
+            <ul class="legend">
+                <li><span class="enemies">3</span> Enemies</li>
+                <li><span class="starbase"></span> Starbase</li>
+                <li><span class="dot"></span> Stars</li>
+            </ul>
+        </section>
+    </main>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

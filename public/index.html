@@ -3,60 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Starreach Main Viewer</title>
+    <title>Starreach Fleet Briefing</title>
+    <meta name="description" content="Starreach is a space game you play by talking to an AI assistant: you are the captain, it is your ship's computer. How to connect and how to play.">
     <link rel="preload" href="fonts/oxanium.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/home.css">
 </head>
-<body data-link="connecting" data-status="playing">
+<body>
     <header class="bridge-header">
-        <h1>Starreach <span>Main Viewer</span></h1>
-        <dl class="readouts">
-            <div><dt>Stardate</dt><dd id="stardate">--</dd></div>
-            <div><dt>Sector</dt><dd id="sector">--</dd></div>
-            <div><dt>Link</dt><dd id="link">--</dd></div>
-        </dl>
+        <h1>Starreach <span>Fleet Briefing</span></h1>
     </header>
 
-    <p id="notice" class="notice" hidden></p>
-    <p id="outcome" class="outcome" hidden></p>
+    <main class="briefing">
+        <section class="panel" aria-labelledby="mission-title">
+            <h2 id="mission-title">Your mission</h2>
+            <p>Welcome aboard, Captain. The galaxy is crawling with enemy raiders, and Fleet would like it less crawly.
+               You give the orders. Your ship's computer, an AI assistant, flies the ship and tells you what it sees.
+               Clear every enemy from the galaxy and Fleet will be very pleased with you.</p>
+        </section>
 
-    <main id="console" class="console">
-        <section class="tank-section" aria-labelledby="quadrant-title">
-            <h2 id="quadrant-title">Quadrant</h2>
-            <div id="tank" class="tank"><div id="board" class="map"></div></div>
-            <ul class="legend">
-                <li><span class="ship"></span> Ship</li>
-                <li><span class="enemy"></span> Enemy</li>
-                <li><span class="starbase"></span> Starbase</li>
-                <li><span class="star"></span> Star</li>
+        <figure class="panel viewer-shot">
+            <img src="images/viewer.jpg" width="1100" height="575"
+                 alt="The main viewer: ship status on the left, the current sector as a tilted holographic grid with the ship and three enemies, and the galaxy map on the right">
+            <figcaption>The main viewer, live while you play: three raiders in sector (3, 3).</figcaption>
+        </figure>
+
+        <section class="panel ask" aria-labelledby="ask-title">
+            <h2 id="ask-title">Not sure what to do? Ask the ship's computer.</h2>
+            <p>Ask it <q>What can you do?</q> It knows every command, and will happily explain.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="connect-title">
+            <h2 id="connect-title">Connect your computer</h2>
+            <p>Starreach runs as an MCP server. Add it to your AI assistant:</p>
+            <p><code>https://starreach.yuwakisa.com/mcp</code></p>
+            <ul>
+                <li>Claude Code:
+                    <pre><code>claude mcp add --transport http starreach https://starreach.yuwakisa.com/mcp</code></pre></li>
+                <li>claude.ai or Claude Desktop: add a custom connector with the URL above. It needs no sign-in.
+                    Free plans allow one custom connector.</li>
+                <li>Any other MCP client that speaks streamable HTTP works too.</li>
             </ul>
+            <p>Then tell the computer to start a game. It will give you a viewer link. Open it for a live,
+               read-only view of your ship, the sector and the galaxy while you play.</p>
         </section>
 
-        <section class="panel ship-panel" aria-labelledby="ship-title">
-            <h2 id="ship-title">Ship status</h2>
-            <div id="gauges" class="gauges"></div>
-        </section>
-
-        <section class="panel survey-panel" aria-labelledby="survey-title">
-            <h2 id="survey-title">Survey</h2>
-            <dl class="survey">
-                <div><dt>Sectors charted</dt><dd id="charted">--</dd></div>
-                <div><dt>Enemies sighted</dt><dd id="sighted">--</dd></div>
-                <div><dt>Starbases found</dt><dd id="bases">--</dd></div>
-            </dl>
-        </section>
-
-        <section class="panel galaxy-panel" aria-labelledby="galaxy-title">
-            <h2 id="galaxy-title">Galaxy</h2>
-            <div id="galaxy" class="map"></div>
-            <ul class="legend">
-                <li><span class="enemies">3</span> Enemies</li>
-                <li><span class="starbase"></span> Starbase</li>
-                <li><span class="dot"></span> Stars</li>
+        <section class="panel" aria-labelledby="guide-title">
+            <h2 id="guide-title">Field guide</h2>
+            <ul>
+                <li>Coordinates are (y, x): row first, then column.</li>
+                <li>Scan with the long-range scan, then warp to a sector.</li>
+                <li>Blaston beams are best up close. Quantorpedoes are limited, but never miss with a clear shot.</li>
+                <li>Dock at a starbase, once its sector is clear, to repair and resupply.</li>
+                <li>Enemies fire back, and they close in. Mind your shields.</li>
+                <li>Give plain orders: your ship's computer will understand.</li>
             </ul>
         </section>
     </main>
-
-    <script src="js/script.js"></script>
 </body>
 </html>

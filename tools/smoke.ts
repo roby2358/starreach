@@ -1,5 +1,6 @@
-// Smoke test against a running Starreach server, local or deployed: /health answers, new_game
-// over MCP returns a game_id and viewer_url, a command succeeds, and a viewer socket gets a frame
+// Smoke test against a running Starreach server, local or deployed: /health answers, the home
+// page is 200 HTML, new_game over MCP returns a game_id and viewer_url, the viewer_url's path is
+// 200 HTML on this server, a command succeeds, and a viewer socket gets a frame
 // on connecting and another after the command. Exits non-zero with a message on any failure.
 // Creates one game on the server and leaves it there.
 //
@@ -101,7 +102,15 @@ async function checkHealth(base: string): Promise<void> {
   pass("/health is 200");
 }
 
-async function startGame(mcp: Mcp): Promise<{ gameId: string; viewId: string }> {
+async function checkPage(base: string, path: string): Promise<void> {
+  const response = await fetch(`${base}${path}`, { redirect: "manual" });
+  const type = response.headers.get("content-type") ?? "";
+  check(response.status === 200, `${path}: HTTP ${response.status}, expected 200`);
+  check(type.includes("text/html"), `${path}: content-type ${type}, expected HTML`);
+  pass(`${path} is 200 HTML`);
+}
+
+async function startGame(mcp: Mcp): Promise<{ gameId: string; viewId: string; viewerPath: string }> {
   await mcp.request("initialize", {
     protocolVersion: "2025-06-18",
     capabilities: {},
@@ -113,10 +122,11 @@ async function startGame(mcp: Mcp): Promise<{ gameId: string; viewId: string }> 
   const viewerUrl = result.report?.viewer_url;
   check(typeof gameId === "string" && gameId !== "", `new_game: no game_id in ${JSON.stringify(result.report)}`);
   check(typeof viewerUrl === "string", `new_game: no viewer_url in ${JSON.stringify(result.report)}`);
-  const viewId = new URL(viewerUrl).searchParams.get("view");
+  const link = new URL(viewerUrl);
+  const viewId = link.searchParams.get("view");
   check(viewId !== null && viewId !== "", `new_game: viewer_url ${viewerUrl} has no ?view=`);
   pass(`new_game: viewer_url ${viewerUrl}`);
-  return { gameId, viewId };
+  return { gameId, viewId, viewerPath: link.pathname };
 }
 
 function liveUrl(base: string, viewId: string): string {
@@ -134,8 +144,10 @@ async function checkFrame(viewer: Viewer, what: string): Promise<Record<string, 
 
 async function smoke(base: string): Promise<void> {
   await checkHealth(base);
+  await checkPage(base, "/");
   const mcp = new Mcp(`${base}/mcp`);
-  const { gameId, viewId } = await startGame(mcp);
+  const { gameId, viewId, viewerPath } = await startGame(mcp);
+  await checkPage(base, viewerPath);
   const viewer = new Viewer(liveUrl(base, viewId));
   try {
     const first = await checkFrame(viewer, "a frame on connecting");

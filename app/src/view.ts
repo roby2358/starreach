@@ -40,7 +40,7 @@ export function liveViewId(path: string): string | undefined {
 }
 
 export function viewerUrl(origin: string, viewIdValue: string): string {
-  return `${origin}/?view=${viewIdValue}`;
+  return `${origin}/viewer?view=${viewIdValue}`;
 }
 
 export function viewFrame(core: Core, game: GameJson): string {
