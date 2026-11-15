@@ -76,3 +76,6 @@ mod r_26_emergency_energy;
 
 #[path = "R-28/view.rs"]
 mod r_28_view;
+
+#[path = "R-29/enemy_sights.rs"]
+mod r_29_enemy_sights;

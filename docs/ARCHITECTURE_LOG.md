@@ -3,6 +3,14 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Enemy range, bearing and clear shot in GameState
+The LLM worked out distances and lines of fire by hand before choosing blast or torpedo.
+`GameState.enemies` (replacing `enemies_yx`) now lists each enemy as `{yx, range, bearing,
+clear_shot}`, computed in the core: `range` is the blast distance to two decimals, `bearing` is
+whole degrees clockwise from up, and `clear_shot` asks the same `first_enemy` ray that blast
+and torpedo use. `public/instructions.txt` has the LLM show a short enemy table under the sector
+map. New decision D-33 and row R-29. The viewer page is unchanged.
+
 ### 2026-11-15 — The long-range scan takes a round of time
 `long_range_scan` spent `LRS_ENERGY` but no time, so enemies never acted and a scan in the
 middle of a fight was free. It now advances the stardate by the new `LRS_TIME` (3, equal to

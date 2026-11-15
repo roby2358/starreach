@@ -20,7 +20,7 @@ const COORDINATES = {
 
 /** One row per core command: the tool name is the command type. */
 const COMMAND_TOOLS = [
-  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate" },
+  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot)" },
   { type: "galaxy_map", args: {}, description: "The 10x10 galaxy map: E|B|S (enemies|starbases|stars) per visible sector, ..... when hidden" },
   { type: "galaxy_warp", args: COORDINATES, description: "Warp the ship to sector (y, x). Enemies in the current sector get a turn first" },
   { type: "subwarp", args: COORDINATES, description: "Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present" },

@@ -48,6 +48,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | R-26 | The ship is stranded in a sector with a starbase | The game goes on; energy becomes `max(energy, STARBASE_EMERGENCY_ENERGY)` and the transfer message is in `events` | automated |
 | R-27 | A viewer sends frames down its socket, including commands | The game doesn't change. A frame over `VIEWER_MAX_FRAME_BYTES` closes that socket with code 1009 | automated |
 | R-28 | The view of any game | A hidden sector is null and a visible one matches its record. Ship, status, stardate, sector and board match the game. It has only the GameView fields | automated |
+| R-29 | `state` with `n` enemies in the sector | `enemies` has one entry per enemy, in `enemies_yx` order, each `{yx, range, bearing, clear_shot}`. `range` is `euclid(ship, enemy)` to two decimals, the distance R-9 measures. `bearing` is whole degrees clockwise from up: 0 up, 90 right, 180 down, 270 left, 45 up-right. `clear_shot` is true iff the first enemy on `ray(ship, enemy)` is that enemy, whatever the range: false behind a star or another enemy, and equal to whether `torpedo` at that cell would hit it | automated |
 
 ## U — UI / readability
 
@@ -79,7 +80,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 
 ## Status — 2026-11-14
 
-- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26.
+- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28, R-29.
   The coverage test runs with them.
 - **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result, and
   R-21's publishing and link.

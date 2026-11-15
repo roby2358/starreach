@@ -20,6 +20,11 @@ Show the sector as
 8 . . . . . . . . . .
 9 . . . . . . . . . S
 
+Under the sector map, when enemies are present, show a short enemy table from the state's "enemies": cell (y,x), range, bearing in degrees (clockwise from up: 0 up, 90 right, 180 down, 270 left) and clear shot (yes/no). For example
+  cell  range  bearing  clear
+  (2,7)  3.61     56    yes
+A clear shot says nothing about range: a blast reaches only 6, a torpedo any distance. Use the table rather than working out distances yourself.
+
 Omit any legend. The captain understands the nomenclature.
 
 Omit the star count. It's not important.

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::constants::*;
 use crate::galaxy::Galaxy;
-use crate::geometry::Yx;
+use crate::geometry::{euclid, Yx};
 use crate::rng::Rng;
 use crate::sector::ActiveSector;
 
@@ -96,6 +96,21 @@ impl Game {
         self.galaxy.record_mut(self.sector_yx).enemies = self.sector.enemies_yx.len() as u32;
     }
 
+    /// Each enemy as the ship sees it (ONTOLOGY EnemySight), in `enemies_yx` order.
+    fn enemy_sights(&self) -> Vec<EnemySight> {
+        let ship = self.sector.ship_yx;
+        self.sector
+            .enemies_yx
+            .iter()
+            .map(|&yx| EnemySight {
+                yx,
+                range: (euclid(ship, yx) * 100.0).round() / 100.0,
+                bearing: bearing(ship, yx),
+                clear_shot: self.sector.first_enemy(ship, yx).map(|(hit, _)| hit) == Some(yx),
+            })
+            .collect()
+    }
+
     pub fn state(&self) -> GameState {
         GameState {
             status: self.status,
@@ -110,7 +125,7 @@ impl Game {
             ship_quantorpedoes: self.ship.quantorpedoes,
             ship_max_quantorpedoes: self.ship.max_quantorpedoes,
             starbase_yx: self.sector.starbase_yx,
-            enemies_yx: self.sector.enemies_yx.clone(),
+            enemies: self.enemy_sights(),
             star_count: self.sector.stars,
             base_count: self.sector.starbase_yx.is_some() as u32,
             enemy_count: self.sector.enemies_yx.len() as u32,
@@ -130,6 +145,21 @@ pub fn format_stardate(stardate: f64) -> String {
     format!("{}-{}-{}", &digits[0..2], &digits[2..6], &digits[6..8])
 }
 
+/// Whole degrees clockwise from up (toward row 0), in `0..360`.
+fn bearing(from: Yx, to: Yx) -> i32 {
+    let up = (from.0 - to.0) as f64;
+    let right = (to.1 - from.1) as f64;
+    (right.atan2(up).to_degrees().rem_euclid(360.0).round() as i32) % 360
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EnemySight {
+    pub yx: Yx,
+    pub range: f64,
+    pub bearing: i32,
+    pub clear_shot: bool,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GameState {
     pub status: Status,
@@ -144,7 +174,7 @@ pub struct GameState {
     pub ship_quantorpedoes: i32,
     pub ship_max_quantorpedoes: i32,
     pub starbase_yx: Option<Yx>,
-    pub enemies_yx: Vec<Yx>,
+    pub enemies: Vec<EnemySight>,
     pub star_count: u32,
     pub base_count: u32,
     pub enemy_count: u32,

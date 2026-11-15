@@ -119,6 +119,18 @@ inferences, waiting for review.
   The same page, unchanged, followed a game on the Cloudflare adapter under `wrangler dev`
   (2026-11-14). Not yet watched alongside a real LLM session.
 
+### D-33 Enemy range, bearing and clear shot are computed in the core — *Decided*
+- **Alternatives:** leave the LLM and each display to work them out from the map; compute them
+  in the app layer or the page; a compass point for the bearing; degrees counter-clockwise or
+  from the x axis.
+- **Why:** Choosing blast or torpedo, or moving, turned on distances and lines of fire the LLM
+  had to work out by hand from a grid and often got wrong (F-danger, G-4). The core already has
+  the Euclidean distance and the ray, so `GameState.enemies` reuses them: the preview is the rule,
+  and a clear shot is exactly what a torpedo at that cell would hit. The bearing is whole degrees
+  clockwise from up because the board is drawn with row 0 on top, so "up" is what a captain and an
+  LLM both call north, and clockwise is how a compass and a clock read. No command takes a bearing
+  yet. The viewer page doesn't show the table; whether it should is open.
+
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
   (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call

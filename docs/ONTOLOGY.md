@@ -142,6 +142,22 @@ Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx 
 *Serves: F-danger.* [D] An occupant of one cell. Its only property is its position (an
 entry in `enemies_yx`). All enemies are alike, and one hit destroys one.
 
+### EnemySight
+*Serves: F-danger, G-4.* [D] One enemy as the ship sees it, made in the core for every
+GameState from `ship_yx` and the board, so every client reads one source. Not stored.
+
+| Field | Type | Notes |
+|---|---|---|
+| `yx` | Coordinate | The enemy's cell |
+| `range` | float | `euclid(ship_yx, yx)` rounded to two decimals: the distance Blast checks against `BLAST_RANGE` |
+| `bearing` | int | Whole degrees clockwise from up, in `0..359`: toward row 0 is 0, right 90, down 180, left 270 [D] |
+| `clear_shot` | bool | `first enemy on ray(ship_yx, yx) == yx`, the ray Blast and Torpedo use. Says nothing about range: a clear shot beyond `BLAST_RANGE` is torpedo-only |
+
+```
+dy = ship.y - yx.y;  dx = yx.x - ship.x          # up and right are positive
+bearing = round(degrees(atan2(dx, dy))) mod 360
+```
+
 ### Starbase
 *Serves: G-4, F-discovery.* [D] An occupant of one cell (`starbase_yx`). It can't be
 destroyed. It is an obstacle and the only source of resupply and of hull repair
@@ -511,7 +527,7 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 
 **GameState:** `status, sector_yx, ship_yx, ship_hull, ship_max_hull, ship_shields,
 ship_max_shields, ship_energy, ship_max_energy, ship_quantorpedoes,
-ship_max_quantorpedoes, starbase_yx, enemies_yx, star_count, base_count, enemy_count,
+ship_max_quantorpedoes, starbase_yx, enemies: EnemySight[], star_count, base_count, enemy_count,
 map: string[10], stardate: "99-9999-99"`.
 
 ### MCP tools (app layer) [D]
