@@ -48,12 +48,17 @@ Each recipe that runs a server builds the WASM core first. `cf-dev` keeps its ga
 
 `/mcp` on Cloudflare is an OAuth resource server for auth/ (D-41). An MCP client calling it without
 a token gets a 401 pointing at `/.well-known/oauth-protected-resource/mcp`, signs the player in at
-auth/ and comes back with a bearer token. auth/ has a pre-registered public client for Starreach,
-`cZpqWEBNv9M7xQRl` in production:
+auth/ and comes back with a bearer token. The MCP client identifies itself to auth/ with its own
+Client ID Metadata Document, so the URL is all a player needs:
 
-- claude.ai and Claude Desktop: add a custom connector with `https://starreach.yuwakisa.com/mcp`,
-  choose "Use your own OAuth client" and enter that client ID, with no secret.
-- Claude Code: `claude mcp add --transport http --client-id cZpqWEBNv9M7xQRl --callback-port 8574 starreach https://starreach.yuwakisa.com/mcp`, then `/mcp` to sign in.
+- claude.ai and Claude Desktop: add a custom connector with `https://starreach.yuwakisa.com/mcp`
+  and connect it.
+- Claude Code: `claude mcp add --transport http starreach https://starreach.yuwakisa.com/mcp`, then `/mcp` to sign in.
+
+The player signs in with Bluesky and, the first time, allows the client on auth/'s confirmation
+page. A client that cannot use a metadata document can use auth/'s pre-registered public client
+for Starreach instead: `cZpqWEBNv9M7xQRl` in production, with no secret and, for a local callback,
+port 8574.
 
 Locally, `just cf-up` signs in against auth/ running under yuwakisacloud's `just dev-up`, with
 the local client `D21zauaGSjnD3U77` from auth/'s dev seed; `just cc-dev-token` mints a token.

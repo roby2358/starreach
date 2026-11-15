@@ -352,10 +352,12 @@ inferences, waiting for review.
   player in at auth/ ("Sign in with Bluesky" there, which goes through bskyoidc to Bluesky) and
   comes back with a bearer token. Starreach verifies it offline with auth-client, copied in with
   its source commit, and requires the `starreach:play` scope; the token's `sub` is the player, which
-  a `whoami` tool reports. auth/ holds one public PKCE client for Starreach per environment
-  (`cZpqWEBNv9M7xQRl` in production, `D21zauaGSjnD3U77` in the local seed), shared by every MCP
-  client: claude.ai's "Use your own OAuth client", Claude Code's `--client-id` with
-  `--callback-port 8574`, and the MCP Inspector. A token is for Starreach when its `aud` is the
+  a `whoami` tool reports. An MCP client identifies itself to auth/ with its own Client ID
+  Metadata Document, which auth/ accepts for Starreach's resource because that resource is open
+  to such clients; the player adds only the MCP URL, and allows the client once on auth/'s
+  confirmation page. auth/ also holds one public PKCE client for Starreach per environment
+  (`cZpqWEBNv9M7xQRl` in production, `D21zauaGSjnD3U77` in the local seed) for clients that
+  cannot use a metadata document and for `just cc-dev-token`. A token is for Starreach when its `aud` is the
   MCP endpoint's canonical URL (`STARREACH_RESOURCE`, which auth/ writes when the client names
   the resource, as MCP clients do) or that client id (when it names none) [D]; both name Starreach
   and nothing else. The viewer stays open, and the Node adapter has no sign-in.
@@ -363,9 +365,9 @@ inferences, waiting for review.
   designer declined: no need to preserve open play); signing in directly against bskyoidc (no
   shared identity across yuwakisa apps, and its token output isn't built for a resource server);
   Starreach running its own OAuth flow (yuwakisacloud's rule: consumers only verify tokens);
-  dynamic client registration or Client ID Metadata Documents in auth/ (not built; the MCP spec
-  ranks a pre-registered client first, and claude.ai, Claude Code and the Inspector all accept a
-  static client id); one client id for every environment (the designer chose separate ones, so a
+  the pre-registered client alone (it works, but every player must paste a client id into
+  "Use your own OAuth client", and Claude Code needs a fixed callback port); dynamic client
+  registration (auth/ would keep a row per registration, written by anyone); one client id for every environment (the designer chose separate ones, so a
   local token can never pass production's audience check); accepting only the client id
   as audience (it worked while auth/ dropped `resource`, but the client id then does two jobs, and it
   cannot work once clients sign in under their own ids); accepting only the resource URL (tokens
@@ -380,10 +382,12 @@ inferences, waiting for review.
   passed end to end on 2026-11-15: a real auth/ token for the dev user, verified through the
   service binding, a game played over `/mcp`, and `whoami` gave its `sub`. In production on
   2026-11-15 the designer added the connector in claude.ai with "Use your own OAuth client" and
-  the production client id, signed in with Bluesky through auth/, and played: claude.ai signs in to
-  auth/ with a pre-registered public client, needing neither dynamic registration nor Client ID
-  Metadata Documents. Claude Desktop and Claude Code are documented to work the same way and not
-  yet tried.
+  the production client id, signed in with Bluesky through auth/, and played. Later that day,
+  with auth/ accepting metadata documents, the designer connected a Claude Desktop connector
+  that had only the URL: auth/'s log shows claude.ai's own document as the `client_id`,
+  `scope=starreach:play` and the resource URL, then the confirmation page, a token, and a game
+  started. Claude Code, added with only the URL, then signed in the same way: the log shows its
+  own document as the `client_id` and a loopback callback on a port it chose.
 
 ### D-40 A home page at `/` and the viewer at `/viewer` — *Decided; the `/viewer` path Proposed*
 - **Choice:** `public/index.html` is a short home page for new players (what the game is, how to

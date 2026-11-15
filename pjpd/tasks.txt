@@ -1,22 +1,3 @@
-Priority:   45
-Status: ToDo
-ID: confirmapp-x8ht
-Created: 2026-11-15T09:25:03Z
-Updated: 2026-11-15T09:25:03Z
-
-No silent sign-in for metadata-document clients: yuwakisacloud's auth/ must show a confirmation step the first time a player meets a client that registered itself with a Client ID Metadata Document, even when the player already has an auth/ session.
-
-The problem: auth/'s /authorize issues a code and redirects straight back when a valid session cookie exists, with nothing shown. That is fine for admin-created clients. With open registration of metadata-document clients, it becomes a zero-click attack: a signed-in player only has to load a link, and a client the attacker published gets a token to play Starreach as them, with no click and no page. Worst case today is someone playing as that player, so this is not urgent, but it must land with or before open registration.
-
-Work in auth/:
-- For a metadata-document client, /authorize never completes silently on first contact. Show a page naming the client (its `client_name` and the domain of its client id) and the resource it wants ("… wants to play Starreach as you"), with Allow and Cancel. `prompt=none` from such a client fails with `consent_required` or `interaction_required` unless already approved.
-- Remember the approval per (user, client id, resource), so the next sign-in with a live session is silent again. auth/'s `user_apps` table looks like the natural home; check what it records today.
-- Admin-created clients keep today's behaviour.
-- Let a player see and revoke approved clients later (may be a follow-up).
-- Tests: first contact with a session shows the page and issues no code; after Allow the code is issued and a second visit is silent; Cancel returns `access_denied` to the client; `prompt=none` on first contact fails.
-
-Update auth/'s ONTOLOGY (the /authorize rule), CRITERIA, RATIONALE and log. Ask the user before committing, deploying, or touching yuwakisacloud's production.
-----
 Priority:   40
 Status: ToDo
 ID: loginflow-96sy
@@ -69,40 +50,6 @@ Created: 2026-11-14T17:14:23Z
 Updated: 2026-11-14T17:14:23Z
 
 Move the Cloudflare game store from the Durable Object's key-value storage to a SQL table, as the game grows. Today each game's Durable Object (adapters/cloudflare/src/game_object.ts, one per view_id, SQLite-backed) keeps the whole game JSON under one key in ctx.storage.kv, recorded as a [P] decision in RATIONALE D-21. Replace that with a table in the object's SQLite storage (ctx.storage.sql), e.g. a games row holding the JSON plus columns worth querying (turn, status, updated time), so later work (per-player state for multiplayer, event history and replay for viewers, owner sub once login lands) can add tables and indexes instead of growing one blob. Read the object's existing key-value value on first access and write it into the table, or wipe local dev state if no deployed games need keeping (ask the user which; deployed games may exist by then). Keep the app's GameStore interface unchanged. Update the store tests in adapters/cloudflare/test, ONTOLOGY, RATIONALE D-21 (settle the [P] as [D]), CRITERIA Status, and an ARCHITECTURE_LOG entry. Ask the user before committing.
-----
-Priority:   35
-Status: ToDo
-ID: clientmeta-gbmw
-Created: 2026-11-15T08:36:07Z
-Updated: 2026-11-15T09:06:16Z
-
-Client ID Metadata Documents (CIMD) in yuwakisacloud's auth/, with tokens bound to the resource URL, so players add Starreach's MCP connector with just the URL: no client ID to type, no OAuth settings, no fixed callback port.
-
-Today auth/ only knows admin-created clients, so every MCP client shares Starreach's pre-registered public client: claude.ai needs "Use your own OAuth client" plus the client ID, and Claude Code needs `--client-id` and `--callback-port 8574`. With CIMD (the MCP spec's preferred registration after pre-registration), the client_id is an HTTPS URL to the client's own metadata document, e.g. claude.ai's `https://claude.ai/oauth/mcp-oauth-client-metadata` and Claude Code's `https://claude.ai/oauth/claude-code-client-metadata`. claude.ai picks CIMD by itself when the authorization server metadata advertises `client_id_metadata_document_supported: true` and `none` in `token_endpoint_auth_methods_supported`; Claude Code discovers it automatically too.
-
-Decided [D]: the token's audience is the resource URL. auth/ honours the RFC 8707 `resource` parameter MCP clients already send (`https://starreach.yuwakisa.com/mcp`) and writes that URL into `aud`; Starreach accepts its own resource URL as the audience, and [D] keeps accepting its pre-registered client id too (see below). This is the MCP spec's default shape, which suits Starreach as a reference implementation, and it separates the two roles the client id plays today: the client id says which app is asking (the grant: redirect URIs, binding the code, PKCE), and the resource URL says which server the token is for. Declined: auth/ translating the resource URL back to Starreach's existing id for `aud` (Starreach unchanged, but the client id keeps doing double duty).
-
-Part 1, resource binding in auth/ (needed before CIMD, and safe to ship alone):
-- A registry of resource servers in auth/ (admin-created): the exact resource URL, and the scopes it accepts. auth/ refuses a `resource` that isn't registered, so it never stamps a token for an arbitrary URL.
-- /authorize accepts `resource`, validates it, and binds it to the code; /token requires the same `resource` (or none) and sets `aud` to it. Without `resource`, `aud` stays the client_id as today, so existing consumers that pin a client id are unaffected.
-- Decide whether a pre-registered client is limited to particular resources (Starreach's own client should only get tokens for Starreach).
-- Advertise it (`resource_indicators_supported` or equivalent) if the spec calls for it.
-- Rollout: Starreach must accept the new audience before auth/ starts issuing it. Since Starreach accepts both audiences for good, deploy Starreach first, then auth/.
-
-Part 2, CIMD in auth/:
-- Accept a URL-shaped client_id at /authorize and /token: fetch the document (HTTPS only, size and time limits, cached), validate it (its client_id equals the URL, public client, redirect_uris), and match redirect_uri against it. Loopback redirects (`http://localhost/callback`, `http://127.0.0.1/callback`) match on any port (RFC 8252); consider applying that rule to pre-registered clients too, which alone removes `--callback-port`.
-- Require `resource` for CIMD clients: their client id says nothing about the target server, so a token without a resource audience must not be issued.
-- Decided [D]: open registration. auth/ accepts any HTTPS client metadata document; no allowlist of known clients. A phished player loses a Starreach session, which is only a game, and a consent screen wouldn't stop an inattentive player anyway. What limits the damage instead: the token is bound to the resource it was requested for, carries only that resource's scopes, and expires in 4 hours.
-- Because auth/ also serves other consumers, open registration is per resource: each registered resource server says whether metadata-document clients may request tokens for it (Starreach: yes; anything with an `admin` scope: no). A metadata-document client can never get a token without a resource, or for a resource that hasn't opted in.
-- Fetch documents safely: HTTPS only, no redirects, size and time limits, no private or internal addresses, cached.
-- Decided [D]: no player identity for metadata-document clients. They may request only the resource's own scopes (for Starreach, `starreach:play`). auth/ refuses `openid`, `email` and `profile` from them, issues them no ID token, and refuses their access tokens at /userinfo, so an open client can never learn a player's email or Bluesky handle. The MCP server needs only the token's `sub`. Tests: each of those scopes is refused, the token response has no `id_token`, and /userinfo refuses the token.
-- Show the client's name and the domain of its client id on the sign-in page.
-- Advertise `client_id_metadata_document_supported: true` in discovery (both paths).
-- Keep pre-registered clients working alongside.
-
-Then in Starreach [D]: accept a token whose audience is either Starreach's resource URL or its pre-registered client id, permanently, not only during rollout. Both name Starreach and nothing else (the client id is dedicated to it), so this is safe, and it keeps tokens from clients that send no `resource` working. The vendored auth-client takes a single `expected_audience`: don't edit the copy; either verify against the URL and, on `wrong_audience`, against the client id, or better, have auth-client accept a list of audiences at its source and re-copy. Add R-35 cases for each audience and for a third audience being refused, simplify the home page's and README's connection steps to "add the connector URL, sign in with Bluesky", and update the docs (the MCP sign-in decision, R-35, the log).
-
-Ask the user before committing, deploying, or touching yuwakisacloud's production.
 ----
 Priority:   30
 Status: ToDo

@@ -3,6 +3,15 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Players connect with only the MCP URL
+Every MCP client shared Starreach's pre-registered client id: players pasted it into claude.ai's
+"Use your own OAuth client", and Claude Code needed `--client-id` and `--callback-port 8574`.
+auth/ now accepts a client's own Client ID Metadata Document for Starreach's resource and
+confirms the client with the player once, so the home page and README give only the URL. Nothing
+in Starreach's code changed: it already accepted its resource URL as the audience. The
+pre-registered client stays for clients without a metadata document and for `just cc-dev-token`.
+D-41 updated.
+
 ### 2026-11-15 — A token's audience may be the MCP resource URL
 Starreach accepted only its pre-registered client id as a token's `aud`. auth/ now binds a token
 to the `resource` the MCP client names, so Starreach accepts either its canonical MCP URL (the
