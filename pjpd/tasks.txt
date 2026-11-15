@@ -1,32 +1,3 @@
-Priority:   45
-Status: ToDo
-ID: authspike-63sc
-Created: 2026-11-15T07:27:02Z
-Updated: 2026-11-15T07:45:46Z
-
-Spike for RATIONALE Q-15: can claude.ai and Claude Desktop custom connectors sign in to yuwakisacloud's auth/ service, with players choosing "Sign in with Bluesky", without dynamic client registration? This gates all auth work in Starreach (verifying tokens, game ownership, per-user achievements and goals). Starreach is also meant to be a worked example of an MCP server using auth, so record what was learned clearly.
-
-Scope: MCP only. The viewer page stays unauthenticated: its link carries a view hash, not the game_id, and it is read-only (D-32).
-
-The flow to prove [D: sign in with Bluesky through auth/, not directly against bskyoidc]:
-1. The player adds a custom connector with https://starreach.yuwakisa.com/mcp.
-2. Starreach answers 401 with a WWW-Authenticate header pointing at RFC 9728 metadata (/.well-known/oauth-protected-resource) naming auth.yuwakisa.com as the authorization server.
-3. The client opens auth/'s /authorize (PKCE S256, a pre-registered public "starreach" client).
-4. The player chooses "Sign in with Bluesky" on auth/'s page; auth/ goes through bskyoidc to Bluesky and back, provisioning the user on first sign-in.
-5. auth/ redirects to the client's callback; the client exchanges the code for an auth/ access token.
-6. Every /mcp call carries the bearer token; Starreach verifies it offline (auth-client's verifyAccessToken against auth/'s JWKS, fetched through a service binding to the auth Worker, never a public same-zone fetch) and the token's sub identifies the player.
-
-Background: auth/ clients are admin-created with exact redirect URIs; auth/ has no RFC 7591 dynamic registration (auth/ D-22). Access tokens are auth/'s own Ed25519/CBOR format, 4-hour TTL, no refresh tokens. Consumers only verify tokens; they never run OAuth flows or store credentials (yuwakisacloud rule).
-
-Steps:
-1. Read the current MCP authorization spec and Anthropic's custom-connector docs: the callback URL(s) claude.ai and Claude Desktop use, whether a static client ID can be entered when adding a connector, which metadata endpoints they fetch (RFC 8414 vs OIDC discovery), and how they handle an expired token with no refresh token.
-2. Read /work/yuwakisacloud (YUWAKISA.md, CLAUDE.md, auth/ docs) for registering a client, what metadata auth/ serves, and how its sign-in page offers Bluesky.
-3. Behind a flag or on a preview path, add the 401 + protected-resource metadata and token verification to Starreach's /mcp, plus a tool that echoes the verified sub. Keep the open behaviour as the default so the live game keeps working.
-4. Register the starreach client in auth/ (ask the user before changing anything in yuwakisacloud or its production config), then connect from claude.ai, Claude Desktop and Claude Code, signing in with Bluesky.
-5. Write up the outcome: what worked, what each client required, the token-expiry experience, and the gaps in auth/ if a static client fails. Resolve Q-15 into a decision in RATIONALE, update D-20 and the auth seam comment in adapters/cloudflare/src/auth.ts, add an ARCHITECTURE_LOG entry, and turn follow-up work in either repo into tracker items.
-
-Ask the user before committing, deploying, or touching yuwakisacloud.
-----
 Priority:   40
 Status: ToDo
 ID: loginflow-96sy

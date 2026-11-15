@@ -23,7 +23,7 @@ inferences, waiting for review.
   viewer can only see the LLM's game if one process holds both. Persistence is a non-goal.
 - **Evidence:** none recorded.
 
-### D-20 Deploy into yuwakisacloud from this repo: Rust core in WASM, thin TypeScript Worker, one Durable Object per game — *Decided, unbuilt; gated on Q-15*
+### D-20 Deploy into yuwakisacloud from this repo: Rust core in WASM, thin TypeScript Worker, one Durable Object per game — *Decided*
 - **Choice:** Starreach stays in this repo and deploys into the yuwakisacloud Cloudflare
   account and zone at `starreach.yuwakisa.com`. A Rust `starreach-core` crate holds the
   rules. It is deterministic with a seeded RNG (D-28) and is compiled to WASM behind one
@@ -374,8 +374,12 @@ inferences, waiting for review.
 - **Evidence:** R-35 (401, metadata, offline verification, scope, `whoami`).
   `SMOKE_TOKEN=$(just cc-dev-token) just cc-smoke http://localhost:8787` against a local auth/
   passed end to end on 2026-11-15: a real auth/ token for the dev user, verified through the
-  service binding, a game played over `/mcp`, and `whoami` gave its `sub`. claude.ai, Claude
-  Desktop and Claude Code against production are not yet tried, so Q-15 stays open.
+  service binding, a game played over `/mcp`, and `whoami` gave its `sub`. In production on
+  2026-11-15 the designer added the connector in claude.ai with "Use your own OAuth client" and
+  the production client id, signed in with Bluesky through auth/, and played: claude.ai signs in to
+  auth/ with a pre-registered public client, needing neither dynamic registration nor Client ID
+  Metadata Documents. Claude Desktop and Claude Code are documented to work the same way and not
+  yet tried.
 
 ### D-40 A home page at `/` and the viewer at `/viewer` — *Decided; the `/viewer` path Proposed*
 - **Choice:** `public/index.html` is a short home page for new players (what the game is, how to
@@ -474,15 +478,6 @@ Each question lists its options and Claude's recommendation.
   share what any ship uncovers, or give each player their own fog, which would make the view
   per player. Deferred by the designer to multiplayer design, where what is shared is a central
   question. The frame and `view` are the places that would change.
-- **Q-15 Can claude.ai and Claude Desktop connectors sign in to auth/ without dynamic
-  client registration?** auth/ clients are created by an admin, with exact redirect URIs and
-  no RFC 7591 registration (auth/ D-22). Options: (a) a pre-registered public PKCE client
-  with the claude.ai callback; (b) add RFC 7591 registration and the RFC 8414 alias to auth/
-  first. **Recommend (a)**, now built as D-41; what remains is signing in from
-  claude.ai, Claude Desktop and Claude Code against production. Documented client behaviour
-  (2026-11-15): claude.ai's connector dialog offers "Use your own OAuth client" with a static
-  client id and the callback `https://claude.ai/api/mcp/auth_callback`, and accepts OIDC
-  discovery; Claude Code takes `--client-id` and `--callback-port`.
 ---
 
 ## Deliberately left out

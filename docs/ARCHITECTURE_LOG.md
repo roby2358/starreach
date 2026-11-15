@@ -3,6 +3,11 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Q-15 settled: claude.ai signs in to auth/ with a pre-registered client
+The designer connected claude.ai to production `/mcp` with "Use your own OAuth client" and the
+production client id, signed in with Bluesky through auth/, and played. Q-15 (can claude.ai sign
+in to auth/ without dynamic client registration) is settled by D-41, and D-20 is no longer gated.
+
 ### 2026-11-15 — MCP needs sign-in through auth/
 The auth seam allowed every request to `/mcp` and to viewer sockets. Now, on Cloudflare, `/mcp`
 serves only a player signed in with auth/: 401 with RFC 9728 protected resource metadata naming
