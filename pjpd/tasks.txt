@@ -1,3 +1,22 @@
+Priority:   45
+Status: ToDo
+ID: confirmapp-x8ht
+Created: 2026-11-15T09:25:03Z
+Updated: 2026-11-15T09:25:03Z
+
+No silent sign-in for metadata-document clients: yuwakisacloud's auth/ must show a confirmation step the first time a player meets a client that registered itself with a Client ID Metadata Document, even when the player already has an auth/ session.
+
+The problem: auth/'s /authorize issues a code and redirects straight back when a valid session cookie exists, with nothing shown. That is fine for admin-created clients. With open registration of metadata-document clients, it becomes a zero-click attack: a signed-in player only has to load a link, and a client the attacker published gets a token to play Starreach as them, with no click and no page. Worst case today is someone playing as that player, so this is not urgent, but it must land with or before open registration.
+
+Work in auth/:
+- For a metadata-document client, /authorize never completes silently on first contact. Show a page naming the client (its `client_name` and the domain of its client id) and the resource it wants ("… wants to play Starreach as you"), with Allow and Cancel. `prompt=none` from such a client fails with `consent_required` or `interaction_required` unless already approved.
+- Remember the approval per (user, client id, resource), so the next sign-in with a live session is silent again. auth/'s `user_apps` table looks like the natural home; check what it records today.
+- Admin-created clients keep today's behaviour.
+- Let a player see and revoke approved clients later (may be a follow-up).
+- Tests: first contact with a session shows the page and issues no code; after Allow the code is issued and a second visit is silent; Cancel returns `access_denied` to the client; `prompt=none` on first contact fails.
+
+Update auth/'s ONTOLOGY (the /authorize rule), CRITERIA, RATIONALE and log. Ask the user before committing, deploying, or touching yuwakisacloud's production.
+----
 Priority:   40
 Status: ToDo
 ID: loginflow-96sy
@@ -76,6 +95,7 @@ Part 2, CIMD in auth/:
 - Decided [D]: open registration. auth/ accepts any HTTPS client metadata document; no allowlist of known clients. A phished player loses a Starreach session, which is only a game, and a consent screen wouldn't stop an inattentive player anyway. What limits the damage instead: the token is bound to the resource it was requested for, carries only that resource's scopes, and expires in 4 hours.
 - Because auth/ also serves other consumers, open registration is per resource: each registered resource server says whether metadata-document clients may request tokens for it (Starreach: yes; anything with an `admin` scope: no). A metadata-document client can never get a token without a resource, or for a resource that hasn't opted in.
 - Fetch documents safely: HTTPS only, no redirects, size and time limits, no private or internal addresses, cached.
+- Decided [D]: no player identity for metadata-document clients. They may request only the resource's own scopes (for Starreach, `starreach:play`). auth/ refuses `openid`, `email` and `profile` from them, issues them no ID token, and refuses their access tokens at /userinfo, so an open client can never learn a player's email or Bluesky handle. The MCP server needs only the token's `sub`. Tests: each of those scopes is refused, the token response has no `id_token`, and /userinfo refuses the token.
 - Show the client's name and the domain of its client id on the sign-in page.
 - Advertise `client_id_metadata_document_supported: true` in discovery (both paths).
 - Keep pre-registered clients working alongside.
@@ -83,6 +103,24 @@ Part 2, CIMD in auth/:
 Then in Starreach [D]: accept a token whose audience is either Starreach's resource URL or its pre-registered client id, permanently, not only during rollout. Both name Starreach and nothing else (the client id is dedicated to it), so this is safe, and it keeps tokens from clients that send no `resource` working. The vendored auth-client takes a single `expected_audience`: don't edit the copy; either verify against the URL and, on `wrong_audience`, against the client id, or better, have auth-client accept a list of audiences at its source and re-copy. Add R-35 cases for each audience and for a third audience being refused, simplify the home page's and README's connection steps to "add the connector URL, sign in with Bluesky", and update the docs (the MCP sign-in decision, R-35, the log).
 
 Ask the user before committing, deploying, or touching yuwakisacloud's production.
+----
+Priority:   30
+Status: ToDo
+ID: gamecleanup-m6n9
+Created: 2026-11-15T09:25:10Z
+Updated: 2026-11-15T09:25:10Z
+
+Clean up inactive games (data retention). On Cloudflare every `new_game` creates a SQLite Durable Object that is kept forever, and any signed-in player can create as many as they like. Delete games nobody has touched for a while.
+
+Design:
+- Each game's Durable Object records when it was last commanded, and sets an alarm for that time plus a retention period (a new [T] constant, e.g. GAME_RETENTION_DAYS = 30; finished games, won or lost, could use a shorter one). Each accepted command pushes the alarm out.
+- When the alarm fires and the game is still idle, the object closes any viewer sockets and deletes its storage (`deleteAll`), which removes the object. A later request for that game or its viewer link answers "Game not found" / the viewer's unknown-game notice, as for any unknown id.
+- Decide whether watching counts as activity (a viewer socket open or connecting), or only commands.
+- Games created before this ships have no alarm: either set one lazily on their next request, or run a one-off sweep.
+- The Node adapter keeps games in memory until the process exits; decide whether it needs the same rule or is exempt.
+- Say on the home page that idle games are removed after the retention period.
+
+Tests: an idle game past retention is gone and its viewer socket is closed; a command resets the clock (pin the clock; use the Durable Object alarm test helpers); a game inside retention survives. Update ONTOLOGY (Game's last-activity field, the retention rule, the numbers table), CRITERIA (an R-row), RATIONALE (the retention period and what counts as activity) and the log. Ask the user before committing or deploying.
 ----
 Priority:   20
 Status: ToDo
