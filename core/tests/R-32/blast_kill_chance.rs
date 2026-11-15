@@ -21,15 +21,25 @@ fn the_chance_is_the_near_chance_up_to_the_sure_range() {
 }
 
 #[test]
-fn the_chance_is_halfway_between_at_the_middle_of_the_falloff() {
+fn the_chance_at_the_middle_of_the_falloff_is_the_geometric_mean() {
     let middle = (BLAST_SURE_RANGE + BLAST_RANGE) / 2.0;
-    let halfway = (BLAST_KILL_CHANCE_NEAR + BLAST_KILL_CHANCE_FAR) / 2.0;
-    assert!(near(blast_kill_chance(middle), halfway));
+    let mean = (BLAST_KILL_CHANCE_NEAR * BLAST_KILL_CHANCE_FAR).sqrt();
+    assert!(near(blast_kill_chance(middle), mean));
 }
 
 #[test]
 fn the_chance_is_the_far_chance_at_blast_range() {
     assert!(near(blast_kill_chance(BLAST_RANGE), BLAST_KILL_CHANCE_FAR));
+}
+
+#[test]
+fn each_cell_of_range_multiplies_the_chance_by_the_same_ratio() {
+    let ratio = (BLAST_KILL_CHANCE_FAR / BLAST_KILL_CHANCE_NEAR).powf(1.0 / (BLAST_RANGE - BLAST_SURE_RANGE));
+    let mut r = BLAST_SURE_RANGE;
+    while r < BLAST_RANGE {
+        assert!(near(blast_kill_chance(r + 1.0) / blast_kill_chance(r), ratio), "range {r}");
+        r += 1.0;
+    }
 }
 
 #[test]

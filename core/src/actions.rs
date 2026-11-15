@@ -128,13 +128,13 @@ pub fn blast_by(game: &mut Game, target: Yx, roll: f64, events: &mut Vec<String>
 }
 
 /// The chance a blast destroys the enemy it hits: `BLAST_KILL_CHANCE_NEAR` up to
-/// `BLAST_SURE_RANGE`, then falling linearly to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`.
+/// `BLAST_SURE_RANGE`, then decaying exponentially to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`.
 pub fn blast_kill_chance(range: f64) -> f64 {
     if range <= BLAST_SURE_RANGE {
         return BLAST_KILL_CHANCE_NEAR;
     }
     let along = (range - BLAST_SURE_RANGE) / (BLAST_RANGE - BLAST_SURE_RANGE);
-    BLAST_KILL_CHANCE_NEAR + (BLAST_KILL_CHANCE_FAR - BLAST_KILL_CHANCE_NEAR) * along
+    BLAST_KILL_CHANCE_NEAR * (BLAST_KILL_CHANCE_FAR / BLAST_KILL_CHANCE_NEAR).powf(along)
 }
 
 /// Blast energy cost at a range: rises with its square root (D-9).

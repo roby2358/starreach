@@ -3,10 +3,16 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — The blast kill chance decays exponentially
+The kill chance between `BLAST_SURE_RANGE` and `BLAST_RANGE` fell linearly (0.77 at 4, 0.5 at 6).
+The designer replaced it with exponential decay between the same end points, `NEAR × (FAR /
+NEAR) ^ fraction of the way`: about 0.62 at 4, 0.43 at 5, 0.3 at 6, 0.1 at 9. No new constants.
+D-36 is now fully Decided; R-32 checks the geometric mean at the middle and a constant ratio per cell.
+
 ### 2026-11-15 — Blasts can miss; enemy fire varies
 Blasts always destroyed the enemy they hit within range 6, and enemy fire dealt a fixed amount
 per range. The designer kept blasts all-or-nothing, with no enemy hull: a blast now kills with
-`BLAST_KILL_CHANCE_NEAR` (0.9) up to `BLAST_SURE_RANGE` (3), falling linearly to
+`BLAST_KILL_CHANCE_NEAR` (0.9) up to `BLAST_SURE_RANGE` (3), falling to
 `BLAST_KILL_CHANCE_FAR` (0.1) at `BLAST_RANGE`, which goes from 6 to 9. A miss pays energy and
 time, leaves the enemy, adds a "Blaston beam misses" event, and shot reports gain `destroyed`.
 `enemy_fire` scales damage by a factor drawn in `ENEMY_FIRE_VARIANCE_MIN..MAX` (0.75..1.25), which

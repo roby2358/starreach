@@ -364,7 +364,7 @@ run stardate events
 
 kill_chance(r):
   r ≤ BLAST_SURE_RANGE: BLAST_KILL_CHANCE_NEAR
-  otherwise: linear from BLAST_KILL_CHANCE_NEAR at BLAST_SURE_RANGE to BLAST_KILL_CHANCE_FAR at BLAST_RANGE [P]
+  otherwise: BLAST_KILL_CHANCE_NEAR × (BLAST_KILL_CHANCE_FAR / BLAST_KILL_CHANCE_NEAR) ^ ((r − BLAST_SURE_RANGE) / (BLAST_RANGE − BLAST_SURE_RANGE)) [D]
 ```
 
 ### Torpedo — *Serves: F-danger, G-4* [D]
