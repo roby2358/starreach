@@ -48,7 +48,7 @@ export default {
       return env.GAMES.getByName(view).fetch(request);
     }
     if (isMetadataPath(url.pathname)) {
-      return protectedResourceMetadata(url.origin, env);
+      return protectedResourceMetadata(env);
     }
     if (url.pathname === MCP_PATH) {
       return signedInMcp(request, env, url.origin);

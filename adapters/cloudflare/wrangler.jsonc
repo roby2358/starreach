@@ -22,6 +22,8 @@
   "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
   "vars": {
     "AUTH_ISSUER": "http://localhost:8788",
+    // The MCP endpoint's canonical URL, registered as a resource in the local auth/ D1
+    "STARREACH_RESOURCE": "http://localhost:8787/mcp",
     // The starreach client row in the local auth/ D1 (auth/cf-d1/seed-local/seed_dev.sql)
     "STARREACH_CLIENT_ID": "D21zauaGSjnD3U77"
   },
@@ -39,6 +41,8 @@
       "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
       "vars": {
         "AUTH_ISSUER": "https://auth.yuwakisa.com",
+        // The MCP endpoint's canonical URL, registered as a resource in production auth/
+        "STARREACH_RESOURCE": "https://starreach.yuwakisa.com/mcp",
         // The starreach client row in production auth/
         "STARREACH_CLIENT_ID": "cZpqWEBNv9M7xQRl"
       }

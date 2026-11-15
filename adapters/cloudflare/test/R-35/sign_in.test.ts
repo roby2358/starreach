@@ -29,10 +29,10 @@ test("without a token, /mcp answers 401 pointing at the protected resource metad
   await response.text();
 });
 
-test("the metadata names /mcp and auth/, at the root and path-inserted URLs", async () => {
+test("the metadata names the MCP resource and auth/, at the root and path-inserted URLs", async () => {
   for (const path of ["/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp"]) {
     const metadata = (await (await exports.default.fetch(`${BASE}${path}`)).json()) as Record<string, unknown>;
-    expect(metadata.resource).toBe(`${BASE}/mcp`);
+    expect(metadata.resource).toBe(env.STARREACH_RESOURCE);
     expect(metadata.authorization_servers).toEqual([env.AUTH_ISSUER]);
     expect(metadata.scopes_supported).toEqual(["starreach:play"]);
   }
@@ -43,9 +43,16 @@ test("a valid token signs in its sub", async () => {
   expect(await signIn(withToken(token), BASE, env, NOW)).toEqual({ ok: true, player: PLAYER });
 });
 
+test("a token whose audience is Starreach's resource URL signs in too", async () => {
+  const token = await mint({ ...claimsAt(NOW), aud: env.STARREACH_RESOURCE });
+  expect(await signIn(withToken(token), BASE, env, NOW)).toEqual({ ok: true, player: PLAYER });
+});
+
 test("a token for another client, from another issuer, or expired is refused with 401", async () => {
   const cases = [
     { ...claimsAt(NOW), aud: "someone-else" },
+    { ...claimsAt(NOW), aud: "https://another.example/mcp" },
+    { ...claimsAt(NOW), aud: `${env.STARREACH_RESOURCE}/` },
     { ...claimsAt(NOW), iss: "https://elsewhere.test" },
     { ...claimsAt(NOW - 7200), exp: NOW - 3600 },
   ];

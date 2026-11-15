@@ -8,7 +8,7 @@
 // AUTH_SERVICE binding, not a public fetch to auth.yuwakisa.com: a Worker-to-Worker fetch within
 // the zone returned an edge 522 in production for jsonsolver.
 
-import { verifyAccessToken } from "../vendor/auth-client/index.ts";
+import { verifyAccessToken, type VerifyResult } from "../vendor/auth-client/index.ts";
 
 export const MCP_PATH = "/mcp";
 export const METADATA_PATH = "/.well-known/oauth-protected-resource";
@@ -24,9 +24,9 @@ export function isMetadataPath(path: string): boolean {
   return path === METADATA_PATH || path === `${METADATA_PATH}${MCP_PATH}`;
 }
 
-export function protectedResourceMetadata(origin: string, env: Env): Response {
+export function protectedResourceMetadata(env: Env): Response {
   const body = {
-    resource: `${origin}${MCP_PATH}`,
+    resource: env.STARREACH_RESOURCE,
     authorization_servers: [env.AUTH_ISSUER],
     scopes_supported: [PLAY_SCOPE],
     bearer_methods_supported: ["header"],
@@ -41,13 +41,7 @@ export async function signIn(request: Request, origin: string, env: Env, nowSeco
   if (token === undefined) {
     return refuse(origin, "invalid_request", "Sign in to play");
   }
-  const result = await verifyAccessToken(token, {
-    expected_issuer: env.AUTH_ISSUER,
-    expected_audience: env.STARREACH_CLIENT_ID,
-    fetcher: (input, init) => env.AUTH_SERVICE.fetch(input, init),
-    now_s: nowSeconds,
-    clock_skew_s: CLOCK_SKEW_S,
-  });
+  const result = await verifyForStarreach(token, env, nowSeconds);
   if (!result.valid) {
     return refuse(origin, "invalid_token", result.reason);
   }
@@ -55,6 +49,29 @@ export async function signIn(request: Request, origin: string, env: Env, nowSeco
     return refuse(origin, "insufficient_scope", `The token lacks ${PLAY_SCOPE}`);
   }
   return { ok: true, player: result.claims.sub };
+}
+
+/**
+ * A token is for Starreach when its audience is Starreach's resource URL (what auth/ writes when
+ * the MCP client names the resource, RFC 8707) or Starreach's own pre-registered client id (what
+ * it writes when the client names none). Both name Starreach and nothing else (D-41).
+ */
+async function verifyForStarreach(token: string, env: Env, nowSeconds: number): Promise<VerifyResult> {
+  const forResource = await verifyFor(token, env.STARREACH_RESOURCE, env, nowSeconds);
+  if (forResource.valid || forResource.reason !== "wrong_audience") {
+    return forResource;
+  }
+  return verifyFor(token, env.STARREACH_CLIENT_ID, env, nowSeconds);
+}
+
+function verifyFor(token: string, audience: string, env: Env, nowSeconds: number): Promise<VerifyResult> {
+  return verifyAccessToken(token, {
+    expected_issuer: env.AUTH_ISSUER,
+    expected_audience: audience,
+    fetcher: (input, init) => env.AUTH_SERVICE.fetch(input, init),
+    now_s: nowSeconds,
+    clock_skew_s: CLOCK_SKEW_S,
+  });
 }
 
 function bearerToken(request: Request): string | undefined {

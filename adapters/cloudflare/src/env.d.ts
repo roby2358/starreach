@@ -13,7 +13,9 @@ declare namespace Cloudflare {
     AUTH_SERVICE: Fetcher;
     /** auth/'s issuer, the `iss` every access token must carry. */
     AUTH_ISSUER: string;
-    /** Starreach's client_id in auth/, the `aud` every access token must carry. */
+    /** The MCP endpoint's canonical URL: the `resource` clients name, and a token audience auth/ writes for it. */
+    STARREACH_RESOURCE: string;
+    /** Starreach's client_id in auth/: the token audience when a client names no resource. */
     STARREACH_CLIENT_ID: string;
   }
 }

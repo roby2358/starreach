@@ -3,6 +3,14 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — A token's audience may be the MCP resource URL
+Starreach accepted only its pre-registered client id as a token's `aud`. auth/ now binds a token
+to the `resource` the MCP client names, so Starreach accepts either its canonical MCP URL (the
+new `STARREACH_RESOURCE` var, also what the protected resource metadata now gives as `resource`,
+formerly built from the request's origin) or the client id, for good. The vendored auth-client
+checks one audience, so the Worker verifies against the URL and, on a wrong audience, against the
+client id. `just cc-dev-token` names the resource by default. D-41 and R-35 updated.
+
 ### 2026-11-15 — Q-15 settled: claude.ai signs in to auth/ with a pre-registered client
 The designer connected claude.ai to production `/mcp` with "Use your own OAuth client" and the
 production client id, signed in with Bluesky through auth/, and played. Q-15 (can claude.ai sign

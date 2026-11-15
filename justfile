@@ -165,9 +165,14 @@ cc-test-page: cc-build-wasm
 # just migrate-local && just dev-up`). POST /signin signs in, authorizes and issues the code in one
 # hop; the code is exchanged at /token with PKCE. Prints the bare token, for
 # `Authorization: Bearer <token>` against /mcp (e.g. SMOKE_TOKEN=$(just cc-dev-token) just cc-smoke ...).
+# The request names Starreach's local MCP URL as its `resource`, as MCP clients do, so the token's
+# audience is that URL; pass an empty string for a token whose audience is the client id.
 [script]
-cc-dev-token:
+cc-dev-token resource='http://localhost:8787/mcp':
     auth=http://localhost:8788
+    resource='{{resource}}'
+    resource_arg=""
+    if [ -n "$resource" ]; then resource_arg="--data-urlencode resource=$resource"; fi
     client=D21zauaGSjnD3U77
     redirect=http://localhost:8574/callback
     verifier=$(openssl rand -hex 48)
@@ -176,13 +181,13 @@ cc-dev-token:
       --data-urlencode "response_type=code" --data-urlencode "client_id=$client" \
       --data-urlencode "redirect_uri=$redirect" --data-urlencode "scope=starreach:play" \
       --data-urlencode "state=$(openssl rand -hex 8)" --data-urlencode "code_challenge=$challenge" \
-      --data-urlencode "code_challenge_method=S256" \
+      --data-urlencode "code_challenge_method=S256" $resource_arg \
       --data-urlencode "email=dev@yuwakisa.com" --data-urlencode "password=localyk!" | tr -d '\r')
     code=$(printf '%s' "$headers" | sed -n 's#^[Ll]ocation:.*[?&]code=\([^&]*\).*#\1#p' | head -1)
     if [ -z "$code" ]; then echo "cc-dev-token: no code from $auth/signin; is auth/ up and seeded?" >&2; exit 1; fi
     token=$(curl -sS -X POST "$auth/token" --data-urlencode "grant_type=authorization_code" \
       --data-urlencode "code=$code" --data-urlencode "redirect_uri=$redirect" \
-      --data-urlencode "client_id=$client" --data-urlencode "code_verifier=$verifier" \
+      --data-urlencode "client_id=$client" --data-urlencode "code_verifier=$verifier" $resource_arg \
       | grep -o '"access_token":"[^"]*"' | head -1 | cut -d'"' -f4)
     if [ -z "$token" ]; then echo "cc-dev-token: /token returned no access_token" >&2; exit 1; fi
     printf '%s' "$token"

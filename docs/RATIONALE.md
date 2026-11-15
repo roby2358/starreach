@@ -355,8 +355,10 @@ inferences, waiting for review.
   a `whoami` tool reports. auth/ holds one public PKCE client for Starreach per environment
   (`cZpqWEBNv9M7xQRl` in production, `D21zauaGSjnD3U77` in the local seed), shared by every MCP
   client: claude.ai's "Use your own OAuth client", Claude Code's `--client-id` with
-  `--callback-port 8574`, and the MCP Inspector. The token's `aud` is that id. The viewer stays
-  open, and the Node adapter has no sign-in.
+  `--callback-port 8574`, and the MCP Inspector. A token is for Starreach when its `aud` is the
+  MCP endpoint's canonical URL (`STARREACH_RESOURCE`, which auth/ writes when the client names
+  the resource, as MCP clients do) or that client id (when it names none) [D]; both name Starreach
+  and nothing else. The viewer stays open, and the Node adapter has no sign-in.
 - **Alternatives:** keeping `/mcp` open beside a signed-in endpoint while sign-in was tried (the
   designer declined: no need to preserve open play); signing in directly against bskyoidc (no
   shared identity across yuwakisa apps, and its token output isn't built for a resource server);
@@ -364,10 +366,12 @@ inferences, waiting for review.
   dynamic client registration or Client ID Metadata Documents in auth/ (not built; the MCP spec
   ranks a pre-registered client first, and claude.ai, Claude Code and the Inspector all accept a
   static client id); one client id for every environment (the designer chose separate ones, so a
-  local token can never pass production's audience check); binding tokens to the `resource`
-  parameter (auth/ sets `aud` to the client id and drops `resource`, which the MCP spec allows as
-  long as the server otherwise verifies it is the intended recipient; with one dedicated client id,
-  `aud` does that).
+  local token can never pass production's audience check); accepting only the client id
+  as audience (it worked while auth/ dropped `resource`, but the client id then does two jobs, and it
+  cannot work once clients sign in under their own ids); accepting only the resource URL (tokens
+  from clients that name no resource, and those issued before auth/ bound resources, would fail);
+  auth/ translating the resource back to the client id for `aud` (declined: the URL is the MCP
+  spec's default shape, which suits a reference implementation).
 - **Why:** Designer decisions: sign in through auth/ with Bluesky, MCP only, on `/mcp` itself.
   Starreach is meant to be a worked example of an MCP server using auth, and achievements will track
   players by `sub`.
