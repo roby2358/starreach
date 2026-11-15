@@ -16,7 +16,8 @@ export async function handleHttp(request: Request, deps: McpDeps): Promise<Respo
   return new Response("Not found", { status: 404 });
 }
 
-async function handleMcp(request: Request, deps: McpDeps): Promise<Response> {
+/** One MCP request, statelessly. Adapters call it directly for endpoints they guard with sign-in. */
+export async function handleMcp(request: Request, deps: McpDeps): Promise<Response> {
   const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
   const server = createMcpServer(deps);
   await server.connect(transport);

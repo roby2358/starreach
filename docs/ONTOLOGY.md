@@ -582,6 +582,7 @@ the core Result. Plus:
 | Tool / prompt | Args | Returns |
 |---|---|---|
 | `new_game` | — | Result with `report: {game_id, viewer_url}`. `viewer_url` is the viewer's link, `<origin>/viewer?view=<view_id>`; it never holds the `game_id` [D] |
+| `whoami` | — | `{signed_in: true, player: <sub>}` on a signed-in endpoint, `{signed_in: false}` otherwise (D-41) [P] |
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM, which `initialize` also returns as the server's instructions |
 
 The instructions reach the LLM as soon as its client connects, since `initialize` returns them;
@@ -600,11 +601,12 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 
 | Route | Returns |
 |---|---|
-| `POST /mcp` | Streamable-HTTP MCP |
+| `POST /mcp` | Streamable-HTTP MCP. On Cloudflare it needs a signed-in player (D-41): without a valid auth/ access token carrying `starreach:play`, 401 (403 for a missing scope) with `WWW-Authenticate: Bearer resource_metadata=…, scope="starreach:play"` [D, the details P]. The Node adapter is open |
+| `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-protected-resource/mcp` | RFC 9728 metadata for `/mcp`: `resource`, `authorization_servers: [AUTH_ISSUER]`, `scopes_supported: ["starreach:play"]` (Cloudflare only) [P] |
 | `GET /health` | `{status: "ok"}` |
 | `GET /` | The home page: a short briefing with how to connect (D-40). Cloudflare redirects `/index.html` to `/` [P] |
 | `GET /viewer` | The viewer page. `?view=<view_id>` chooses the game. Cloudflare redirects `/viewer.html` to `/viewer` [P]. With no game, its notice links to `/` |
-| `GET /css/styles.css`, `GET /css/home.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2` | The pages' files |
+| `GET /css/styles.css`, `GET /css/home.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2`, `GET /images/viewer.jpg` | The pages' files |
 | WebSocket `/live/<view_id>` | The game's frames, read-only [P] |
 | any other path | 404 |
 
@@ -618,14 +620,15 @@ holds every client's games, and refuses to start if anything else holds it. A st
 exits when its client closes stdin, which ends the games it holds. [P]
 
 The Cloudflare adapter is a Worker that serves `/mcp` and `/health` through the app layer's
-handler, and takes the viewer link's origin from the request. [D] Before `/mcp` it calls an auth
-seam, which allows every request until auth exists (Q-15). [D] `/health` doesn't pass through
-the seam, and the seam answers with the response that refuses a request, or nothing to let it
-through. [P] Locally it runs under `wrangler dev` (`just cf-dev`). Its production environment
+handler, and takes the viewer link's origin from the request. [D] `/mcp` serves only a signed-in
+player [D]: Starreach is an OAuth resource server only and never runs a sign-in flow. It verifies auth/'s access token offline with the vendored auth-client
+(`adapters/cloudflare/vendor/auth-client/`), pinning `iss` = `AUTH_ISSUER` and `aud` =
+`STARREACH_CLIENT_ID`, and fetches auth/'s keys through the `AUTH_SERVICE` service binding, never a
+public same-zone fetch (D-41). [P] Locally it runs under `wrangler dev` (`just cf-dev`). Its production environment
 is routed to `starreach.yuwakisa.com` (D-20) and deployed there with `just cf-deploy`. [D]
 
-The Worker calls the same seam before a viewer's socket upgrade, then hands the upgrade to the
-Durable Object named by the path's `view_id`. [D] A `/live/` request that isn't a WebSocket
+The Worker hands a viewer's socket upgrade to the Durable Object named by the path's `view_id`,
+with no sign-in: the link carries a hash, not the `game_id`, and the socket is read-only. [D] A `/live/` request that isn't a WebSocket
 upgrade, or whose id isn't a `view_id`, gets the 404 of any other path. [P] The pages are
 `public/` served as Workers static assets: a request that matches a file is answered without
 running the Worker, and every other request reaches it. [D] `public/.assetsignore` keeps

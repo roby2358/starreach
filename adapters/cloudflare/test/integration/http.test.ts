@@ -45,10 +45,10 @@ test("the viewer's link uses the request's origin", async () => {
   expect(created.report.viewer_url).toMatch(/^http:\/\/starreach\.test\/viewer\?view=[0-9a-f]{64}$/);
 });
 
-test("tools/list names new_game and every command", async () => {
+test("tools/list names new_game, whoami and every command", async () => {
   const result = await rpcResult("tools/list", {});
   const names = result.tools.map((tool: { name: string }) => tool.name).sort();
-  expect(names).toEqual(["blast", "dock", "galaxy_map", "galaxy_warp", "long_range_scan", "new_game", "state", "subwarp", "torpedo"]);
+  expect(names).toEqual(["blast", "dock", "galaxy_map", "galaxy_warp", "long_range_scan", "new_game", "state", "subwarp", "torpedo", "whoami"]);
 });
 
 test("the instructions prompt carries the text the page's folder holds", async () => {

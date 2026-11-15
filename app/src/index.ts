@@ -14,4 +14,4 @@ export {
 } from "./view.ts";
 export { newGame, runCommand, type Games } from "./games.ts";
 export { createMcpServer, type McpDeps } from "./mcp.ts";
-export { handleHttp } from "./http.ts";
+export { handleHttp, handleMcp } from "./http.ts";

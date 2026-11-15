@@ -28,6 +28,7 @@ export function testDeps(): McpDeps & { viewers: RecordingViewers } {
     viewers: new RecordingViewers(),
     viewOrigin: "http://viewer.test",
     instructions: "Test instructions",
+    player: null,
   };
 }
 

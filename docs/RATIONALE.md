@@ -345,6 +345,38 @@ inferences, waiting for review.
   1500–2500 at range 1, 1350–2250 at 2, 893–1489 at 3, 259–431 at 6, 75–125 at 9. Tested by R-14
   and R-33.
 
+### D-41 MCP sign-in through auth/, with Starreach as an OAuth resource server — *Decided; the protocol details Proposed*
+- **Choice:** on Cloudflare, `/mcp` serves only a signed-in player. Without a token it answers 401
+  with `WWW-Authenticate: Bearer resource_metadata="<origin>/.well-known/oauth-protected-resource/mcp", scope="starreach:play"`;
+  that RFC 9728 metadata names auth/ as the only authorization server. The MCP client signs the
+  player in at auth/ ("Sign in with Bluesky" there, which goes through bskyoidc to Bluesky) and
+  comes back with a bearer token. Starreach verifies it offline with auth-client, copied in with
+  its source commit, and requires the `starreach:play` scope; the token's `sub` is the player, which
+  a `whoami` tool reports. auth/ holds one public PKCE client for Starreach per environment
+  (`cZpqWEBNv9M7xQRl` in production, `D21zauaGSjnD3U77` in the local seed), shared by every MCP
+  client: claude.ai's "Use your own OAuth client", Claude Code's `--client-id` with
+  `--callback-port 8574`, and the MCP Inspector. The token's `aud` is that id. The viewer stays
+  open, and the Node adapter has no sign-in.
+- **Alternatives:** keeping `/mcp` open beside a signed-in endpoint while sign-in was tried (the
+  designer declined: no need to preserve open play); signing in directly against bskyoidc (no
+  shared identity across yuwakisa apps, and its token output isn't built for a resource server);
+  Starreach running its own OAuth flow (yuwakisacloud's rule: consumers only verify tokens);
+  dynamic client registration or Client ID Metadata Documents in auth/ (not built; the MCP spec
+  ranks a pre-registered client first, and claude.ai, Claude Code and the Inspector all accept a
+  static client id); one client id for every environment (the designer chose separate ones, so a
+  local token can never pass production's audience check); binding tokens to the `resource`
+  parameter (auth/ sets `aud` to the client id and drops `resource`, which the MCP spec allows as
+  long as the server otherwise verifies it is the intended recipient; with one dedicated client id,
+  `aud` does that).
+- **Why:** Designer decisions: sign in through auth/ with Bluesky, MCP only, on `/mcp` itself.
+  Starreach is meant to be a worked example of an MCP server using auth, and achievements will track
+  players by `sub`.
+- **Evidence:** R-35 (401, metadata, offline verification, scope, `whoami`).
+  `SMOKE_TOKEN=$(just cc-dev-token) just cc-smoke http://localhost:8787` against a local auth/
+  passed end to end on 2026-11-15: a real auth/ token for the dev user, verified through the
+  service binding, a game played over `/mcp`, and `whoami` gave its `sub`. claude.ai, Claude
+  Desktop and Claude Code against production are not yet tried, so Q-15 stays open.
+
 ### D-40 A home page at `/` and the viewer at `/viewer` — *Decided; the `/viewer` path Proposed*
 - **Choice:** `public/index.html` is a short home page for new players (what the game is, how to
   connect, a loose field guide, a prominent line to ask the computer what it can do). The viewer
@@ -446,9 +478,11 @@ Each question lists its options and Claude's recommendation.
   client registration?** auth/ clients are created by an admin, with exact redirect URIs and
   no RFC 7591 registration (auth/ D-22). Options: (a) a pre-registered public PKCE client
   with the claude.ai callback; (b) add RFC 7591 registration and the RFC 8414 alias to auth/
-  first. **Recommend testing (a)** with a stub Worker at `starreach.yuwakisa.com`, which
-  serves RFC 9728 metadata and a `/mcp` that returns 401 or echoes `sub`. This gates
-  deploying D-20.
+  first. **Recommend (a)**, now built as D-41; what remains is signing in from
+  claude.ai, Claude Desktop and Claude Code against production. Documented client behaviour
+  (2026-11-15): claude.ai's connector dialog offers "Use your own OAuth client" with a static
+  client id and the callback `https://claude.ai/api/mcp/auth_callback`, and accepts OIDC
+  discovery; Claude Code takes `--client-id` and `--callback-port`.
 ---
 
 ## Deliberately left out

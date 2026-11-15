@@ -160,6 +160,33 @@ cc-test-cloudflare: cc-build-wasm
 cc-test-page: cc-build-wasm
     if [ -f {{CONTAINER_TOOLS}}/env ]; then . {{CONTAINER_TOOLS}}/env; fi; node --test 'adapters/node/test-browser/*.test.ts'
 
+# Mint a local auth/ access token for Starreach's client, as auth/'s seeded dev user
+# (dev@yuwakisa.com). Needs yuwakisacloud's auth/ running on :8788 (`cd /work/yuwakisacloud/auth &&
+# just migrate-local && just dev-up`). POST /signin signs in, authorizes and issues the code in one
+# hop; the code is exchanged at /token with PKCE. Prints the bare token, for
+# `Authorization: Bearer <token>` against /mcp (e.g. SMOKE_TOKEN=$(just cc-dev-token) just cc-smoke ...).
+[script]
+cc-dev-token:
+    auth=http://localhost:8788
+    client=D21zauaGSjnD3U77
+    redirect=http://localhost:8574/callback
+    verifier=$(openssl rand -hex 48)
+    challenge=$(printf '%s' "$verifier" | openssl dgst -sha256 -binary | openssl base64 -A | tr '+/' '-_' | tr -d '=')
+    headers=$(curl -sS -o /dev/null -D - -X POST "$auth/signin" \
+      --data-urlencode "response_type=code" --data-urlencode "client_id=$client" \
+      --data-urlencode "redirect_uri=$redirect" --data-urlencode "scope=starreach:play" \
+      --data-urlencode "state=$(openssl rand -hex 8)" --data-urlencode "code_challenge=$challenge" \
+      --data-urlencode "code_challenge_method=S256" \
+      --data-urlencode "email=dev@yuwakisa.com" --data-urlencode "password=localyk!" | tr -d '\r')
+    code=$(printf '%s' "$headers" | sed -n 's#^[Ll]ocation:.*[?&]code=\([^&]*\).*#\1#p' | head -1)
+    if [ -z "$code" ]; then echo "cc-dev-token: no code from $auth/signin; is auth/ up and seeded?" >&2; exit 1; fi
+    token=$(curl -sS -X POST "$auth/token" --data-urlencode "grant_type=authorization_code" \
+      --data-urlencode "code=$code" --data-urlencode "redirect_uri=$redirect" \
+      --data-urlencode "client_id=$client" --data-urlencode "code_verifier=$verifier" \
+      | grep -o '"access_token":"[^"]*"' | head -1 | cut -d'"' -f4)
+    if [ -z "$token" ]; then echo "cc-dev-token: /token returned no access_token" >&2; exit 1; fi
+    printf '%s' "$token"
+
 # Screenshot a page in headless Chromium, e.g. just cc-screenshot 'https://starreach.yuwakisa.com/viewer?view=<id>' public/images/viewer.jpg 1100 800
 cc-screenshot url out width height:
     if [ -f {{CONTAINER_TOOLS}}/env ]; then . {{CONTAINER_TOOLS}}/env; fi; node tools/screenshot.ts '{{url}}' '{{out}}' {{width}} {{height}}

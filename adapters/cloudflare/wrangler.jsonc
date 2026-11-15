@@ -16,6 +16,15 @@
     "bindings": [{ "name": "GAMES", "class_name": "GameObject" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameObject"] }],
+  // Sign-in for /mcp (D-41): auth/ is the authorization server, reached for its keys
+  // through a service binding (a public same-zone fetch returned an edge 522 for jsonsolver).
+  // Locally, auth/ runs under `just dev-up` in yuwakisacloud on :8788.
+  "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
+  "vars": {
+    "AUTH_ISSUER": "http://localhost:8788",
+    // The starreach client row in the local auth/ D1 (auth/cf-d1/seed-local/seed_dev.sql)
+    "STARREACH_CLIENT_ID": "D21zauaGSjnD3U77"
+  },
   "env": {
     // Deployed with `wrangler deploy --env production`. The route is in this block only, so
     // `wrangler dev` carries none.
@@ -26,6 +35,12 @@
       // Bindings aren't inherited by an environment, so they are repeated here
       "durable_objects": {
         "bindings": [{ "name": "GAMES", "class_name": "GameObject" }]
+      },
+      "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
+      "vars": {
+        "AUTH_ISSUER": "https://auth.yuwakisa.com",
+        // The starreach client row in production auth/
+        "STARREACH_CLIENT_ID": "cZpqWEBNv9M7xQRl"
       }
     }
   }

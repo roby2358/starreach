@@ -29,6 +29,7 @@ export async function startServer(): Promise<Running> {
     viewers: new SocketViewers(),
     viewOrigin: "http://viewer.test",
     instructions: "Test instructions",
+    player: null,
   };
   const server = await serveHttp(deps, "127.0.0.1", 0);
   const connections = new Set<Socket>();

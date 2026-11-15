@@ -38,12 +38,15 @@
             <p>Starreach runs as an MCP server. Add it to your AI assistant:</p>
             <p><code>https://starreach.yuwakisa.com/mcp</code></p>
             <ul>
+                <li>claude.ai or Claude Desktop: add a custom connector with the URL above. Under its OAuth
+                    client setting, choose <q>Use your own OAuth client</q> and enter the client ID
+                    <code>cZpqWEBNv9M7xQRl</code>, with no secret. Free plans allow one custom connector.</li>
                 <li>Claude Code:
-                    <pre><code>claude mcp add --transport http starreach https://starreach.yuwakisa.com/mcp</code></pre></li>
-                <li>claude.ai or Claude Desktop: add a custom connector with the URL above. It needs no sign-in.
-                    Free plans allow one custom connector.</li>
-                <li>Any other MCP client that speaks streamable HTTP works too.</li>
+                    <pre><code>claude mcp add --transport http --client-id cZpqWEBNv9M7xQRl --callback-port 8574 starreach https://starreach.yuwakisa.com/mcp</code></pre>
+                    then run <code>/mcp</code> to sign in.</li>
             </ul>
+            <p>The first time you connect, you'll sign in with your Bluesky account. Fleet only needs to
+               know which captain you are.</p>
             <p>Then tell the computer to start a game. It will give you a viewer link. Open it for a live,
                read-only view of your ship, the sector and the galaxy while you play.</p>
         </section>

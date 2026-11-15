@@ -5,7 +5,7 @@ The game is in three layers (D-21):
 - `core/`: the rules, in Rust compiled to WASM.
 - `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
 - `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the home page, the viewer page and its sockets, and games kept in memory.
-- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), without sign-in for now.
+- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), where MCP needs sign-in through yuwakisacloud's auth/ ("Sign in with Bluesky"); the Node adapter has no sign-in.
 
 ## Design docs
 
@@ -38,10 +38,25 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just cf-tail      # stream the production Worker's live logs
     just cf-undeploy  # kill switch: delete the production Worker AND every deployed game
 
-    just cc-smoke http://localhost:8787               # check a running server: /health, a game over /mcp, a viewer socket
-    just cc-smoke https://starreach.yuwakisa.com      # the same against production (leaves one game there)
+    just cc-smoke http://localhost:8787               # check a running server: /health, sign-in, a game over /mcp, a viewer socket
+    just cc-smoke https://starreach.yuwakisa.com      # the same against production (game checks only with SMOKE_TOKEN)
+    SMOKE_TOKEN=$(just cc-dev-token) just cc-smoke http://localhost:8787   # signed in against a local auth/
 
 Each recipe that runs a server builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart.
+
+## Sign in to the deployed server
+
+`/mcp` on Cloudflare is an OAuth resource server for auth/ (D-41). An MCP client calling it without
+a token gets a 401 pointing at `/.well-known/oauth-protected-resource/mcp`, signs the player in at
+auth/ and comes back with a bearer token. auth/ has a pre-registered public client for Starreach,
+`cZpqWEBNv9M7xQRl` in production:
+
+- claude.ai and Claude Desktop: add a custom connector with `https://starreach.yuwakisa.com/mcp`,
+  choose "Use your own OAuth client" and enter that client ID, with no secret.
+- Claude Code: `claude mcp add --transport http --client-id cZpqWEBNv9M7xQRl --callback-port 8574 starreach https://starreach.yuwakisa.com/mcp`, then `/mcp` to sign in.
+
+Locally, `just cf-up` signs in against auth/ running under yuwakisacloud's `just dev-up`, with
+the local client `D21zauaGSjnD3U77` from auth/'s dev seed; `just cc-dev-token` mints a token.
 
 ## Run in Claude Desktop
 

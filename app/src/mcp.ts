@@ -10,6 +10,8 @@ import { newGame, runCommand, type Games } from "./games.ts";
 export interface McpDeps extends Games {
   /** The decorum and rendering instructions for the LLM (public/instructions.txt). */
   instructions: string;
+  /** The signed-in player's auth/ `sub`, or null on an endpoint without sign-in. */
+  player: string | null;
 }
 
 const GAME_ID = { game_id: z.string().describe("The game_id that new_game returned") };
@@ -30,6 +32,10 @@ const COMMAND_TOOLS = [
   { type: "torpedo", args: COORDINATES, description: "Fire a quantorpedo toward cell (y, x); it hits the first enemy on the line, at any range" },
 ] as const;
 
+function whoami(player: string | null) {
+  return player === null ? { signed_in: false } : { signed_in: true, player };
+}
+
 function asToolResult(result: CommandResult) {
   return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
 }
@@ -47,6 +53,12 @@ export function createMcpServer(deps: McpDeps): McpServer {
     "new_game",
     { description: "Start a new game; pass report.game_id to every other tool. report.viewer_url is the live viewer's link" },
     async () => asToolResult(await newGame(deps)),
+  );
+
+  server.registerTool(
+    "whoami",
+    { description: "Who the ship's computer is serving: the signed-in player's id, or signed_in false when this connection has no sign-in" },
+    async () => ({ content: [{ type: "text" as const, text: JSON.stringify(whoami(deps.player)) }] }),
   );
 
   for (const tool of COMMAND_TOOLS) {

@@ -1,8 +1,10 @@
-// Shared setup for the adapter's tests: MCP calls to the Worker, and a viewer socket whose
-// frames can be awaited in order.
+// Shared setup for the adapter's tests: MCP calls to the Worker as a signed-in player, and a
+// viewer socket whose frames can be awaited in order.
 
 import { exports } from "cloudflare:workers";
 import { expect } from "vitest";
+
+import { claimsAt, mint, nowSeconds } from "./tokens.ts";
 
 // Loads the Worker before the tests start. The first load takes workerd several seconds,
 // which would otherwise count against the first test's timeout.
@@ -10,16 +12,17 @@ import "../../src/worker.ts";
 
 export const BASE = "http://starreach.test";
 
-function rpc(method: string, params: Record<string, unknown>): Request {
+async function rpc(method: string, params: Record<string, unknown>): Promise<Request> {
+  const token = await mint(claimsAt(nowSeconds()));
   return new Request(`${BASE}/mcp`, {
     method: "POST",
-    headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json", accept: "application/json, text/event-stream" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
   });
 }
 
 export async function rpcResult(method: string, params: Record<string, unknown>): Promise<any> {
-  const response = await exports.default.fetch(rpc(method, params));
+  const response = await exports.default.fetch(await rpc(method, params));
   expect(response.status).toBe(200);
   const body: any = await response.json();
   return body.result;

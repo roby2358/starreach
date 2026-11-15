@@ -26,7 +26,7 @@ after(async () => {
 test("U-12: the home page shows the briefing", async () => {
   const page = await browser.newPage({ viewport: { width: 375, height: 700 } });
   await page.goto(`${running.base}/`);
-  assert.match((await page.locator(".ask").textContent())!, /Ask the computer/);
+  assert.match((await page.locator(".ask").textContent())!, /What can you do\?/);
   assert.ok((await page.locator("body").textContent())!.includes("https://starreach.yuwakisa.com/mcp"));
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no horizontal scroll");
   await page.close();

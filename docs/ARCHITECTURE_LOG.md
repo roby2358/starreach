@@ -3,6 +3,19 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — MCP needs sign-in through auth/
+The auth seam allowed every request to `/mcp` and to viewer sockets. Now, on Cloudflare, `/mcp`
+serves only a player signed in with auth/: 401 with RFC 9728 protected resource metadata naming
+auth/, offline verification with auth-client (vendored from yuwakisacloud at its source commit,
+adding the `cbor-x` dependency pinned exactly and installed without scripts), the `starreach:play`
+scope, and a `whoami` tool. Viewer sockets carry no sign-in (their links hold a hash and are
+read-only), and the Node adapter stays open. The Worker gains the `AUTH_SERVICE` binding and
+`AUTH_ISSUER` and `STARREACH_CLIENT_ID` vars, with a different client id locally and in
+production. In yuwakisacloud, auth/ serves its discovery at the RFC 8414 path too, and its local
+seed has the local starreach client. New D-41 and R-35; Q-15 narrowed to trying real clients. The
+home page's connection steps give the client id. `just cc-dev-token` mints a local token, and the
+smoke test checks sign-in and plays only with `SMOKE_TOKEN` where sign-in is required.
+
 ### 2026-11-15 — Home page at `/`, viewer moved to `/viewer`
 `public/index.html` was the viewer, served at `/` and linked as `/?view=<view_id>`. It is now a
 home page for new players (D-40, U-12), and the viewer is `public/viewer.html`, linked as

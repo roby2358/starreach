@@ -52,8 +52,8 @@ test("initialize hands the client the instructions", async () => {
   assert.equal((await response.json()).result.instructions, deps.instructions);
 });
 
-test("tools/list names new_game and every command", async () => {
+test("tools/list names new_game, whoami and every command", async () => {
   const response = await handleHttp(rpc("tools/list", {}), testDeps());
   const names = (await response.json()).result.tools.map((t: { name: string }) => t.name).sort();
-  assert.deepEqual(names, ["blast", "dock", "galaxy_map", "galaxy_warp", "long_range_scan", "new_game", "state", "subwarp", "torpedo"]);
+  assert.deepEqual(names, ["blast", "dock", "galaxy_map", "galaxy_warp", "long_range_scan", "new_game", "state", "subwarp", "torpedo", "whoami"]);
 });

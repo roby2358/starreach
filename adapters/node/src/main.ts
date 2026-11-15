@@ -32,6 +32,7 @@ function loadDeps(viewOrigin: string): NodeDeps {
     viewers: new SocketViewers(),
     viewOrigin,
     instructions: readFileSync(INSTRUCTIONS_PATH, "utf8").trim(),
+    player: null,
   };
 }
 

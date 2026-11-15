@@ -1,7 +1,9 @@
 // Smoke test against a running Starreach server, local or deployed: /health answers, the home
 // page is 200 HTML, new_game over MCP returns a game_id and viewer_url, the viewer_url's path is
 // 200 HTML on this server, a command succeeds, and a viewer socket gets a frame
-// on connecting and another after the command. Exits non-zero with a message on any failure.
+// on connecting and another after the command. Where MCP needs sign-in, /mcp without a token
+// answers 401 with its protected resource metadata, and the game checks run only with SMOKE_TOKEN.
+// Exits non-zero with a message on any failure.
 // Creates one game on the server and leaves it there.
 //
 //   node tools/smoke.ts http://localhost:8787
@@ -70,16 +72,18 @@ class Viewer {
 
 class Mcp {
   private readonly endpoint: string;
+  private readonly headers: Record<string, string>;
   private nextId = 1;
 
-  constructor(endpoint: string) {
+  constructor(endpoint: string, headers: Record<string, string>) {
     this.endpoint = endpoint;
+    this.headers = headers;
   }
 
   async request(method: string, params: Record<string, unknown>): Promise<Record<string, any>> {
     const response = await fetch(this.endpoint, {
       method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+      headers: { ...this.headers, "content-type": "application/json", accept: "application/json, text/event-stream" },
       body: JSON.stringify({ jsonrpc: "2.0", id: this.nextId++, method, params }),
     });
     check(response.ok, `MCP ${method}: HTTP ${response.status} ${await response.clone().text()}`);
@@ -110,12 +114,54 @@ async function checkPage(base: string, path: string): Promise<void> {
   pass(`${path} is 200 HTML`);
 }
 
-async function startGame(mcp: Mcp): Promise<{ gameId: string; viewId: string; viewerPath: string }> {
+async function initialize(mcp: Mcp): Promise<void> {
   await mcp.request("initialize", {
     protocolVersion: "2025-06-18",
     capabilities: {},
     clientInfo: { name: "starreach-smoke", version: "0.1.0" },
   });
+}
+
+/**
+ * MCP's sign-in, where the server has it (Cloudflare; the Node server is open): a 401 pointing at
+ * the protected resource metadata, and metadata naming /mcp. Returns the headers to play with:
+ * none on an open server, the bearer SMOKE_TOKEN (e.g. from `just cc-dev-token`) on a signed-in
+ * one, or undefined when sign-in is required and no token was given, which skips the game checks.
+ */
+async function signInHeaders(base: string, token: string | undefined): Promise<Record<string, string> | undefined> {
+  const metadataUrl = `${base}/.well-known/oauth-protected-resource/mcp`;
+  const metadataResponse = await fetch(metadataUrl);
+  if (metadataResponse.status === 404) {
+    await metadataResponse.text();
+    pass("MCP is open on this server (no protected resource metadata)");
+    return {};
+  }
+  const metadata = (await metadataResponse.json()) as Record<string, any>;
+  check(metadata.resource === `${base}/mcp`, `metadata resource ${metadata.resource}, expected ${base}/mcp`);
+  pass(`sign-in metadata names ${metadata.authorization_servers?.[0]}`);
+  const refused = await fetch(`${base}/mcp`, { method: "POST", body: "{}" });
+  await refused.text();
+  const challenge = refused.headers.get("www-authenticate") ?? "";
+  check(refused.status === 401, `/mcp without a token: HTTP ${refused.status}, expected 401`);
+  check(challenge.includes(`resource_metadata="${metadataUrl}"`), `/mcp challenge ${challenge} doesn't name the metadata`);
+  pass("/mcp without a token is 401 with the metadata URL");
+  if (token === undefined) {
+    pass("no SMOKE_TOKEN: skipping the game checks");
+    return undefined;
+  }
+  return { authorization: `Bearer ${token}` };
+}
+
+/** whoami names the player when signed in, and says there is no sign-in on an open server. */
+async function checkWhoami(mcp: Mcp, headers: Record<string, string>): Promise<void> {
+  const who = await mcp.callTool("whoami", {});
+  const signedIn = headers.authorization !== undefined;
+  check(who.signed_in === signedIn, `whoami: ${JSON.stringify(who)}, expected signed_in ${signedIn}`);
+  pass(signedIn ? `whoami: player ${who.player}` : "whoami: no sign-in");
+}
+
+async function startGame(mcp: Mcp): Promise<{ gameId: string; viewId: string; viewerPath: string }> {
+  await initialize(mcp);
   pass("MCP initialize");
   const result = await mcp.callTool("new_game", {});
   const gameId = result.report?.game_id;
@@ -145,8 +191,13 @@ async function checkFrame(viewer: Viewer, what: string): Promise<Record<string, 
 async function smoke(base: string): Promise<void> {
   await checkHealth(base);
   await checkPage(base, "/");
-  const mcp = new Mcp(`${base}/mcp`);
+  const headers = await signInHeaders(base, process.env.SMOKE_TOKEN);
+  if (headers === undefined) {
+    return;
+  }
+  const mcp = new Mcp(`${base}/mcp`, headers);
   const { gameId, viewId, viewerPath } = await startGame(mcp);
+  await checkWhoami(mcp, headers);
   await checkPage(base, viewerPath);
   const viewer = new Viewer(liveUrl(base, viewId));
   try {

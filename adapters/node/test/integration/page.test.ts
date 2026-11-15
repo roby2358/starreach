@@ -32,7 +32,7 @@ test("the home page is at / with its key content, and the viewer is at /viewer",
   for (const path of ["/"]) {
     const html = await (await fetch(`${running.base}${path}`)).text();
     assert.ok(html.includes("https://starreach.yuwakisa.com/mcp"), `${path} has the MCP URL`);
-    assert.match(html, /Ask the computer/);
+    assert.match(html, /What can you do\?/);
     assert.ok(html.includes("css/home.css"));
   }
   const shot = await fetch(`${running.base}/images/viewer.jpg`);
