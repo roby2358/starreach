@@ -5,6 +5,23 @@ Updated: 2026-11-14T15:48:48Z
 
 Player goals page and goals per game. A page where a player sees their goals, plus goals set for each game. Details to be worked out with the designer: what a goal is (for example clear N enemies, finish by a stardate, lose no starbase), whether goals are fixed, generated per game or chosen by the player, how progress is tracked and shown (on the viewer, in the MCP results), and whether goals carry across games on a player's own page, which needs sign-in and a player identity.
 ----
+Score:   60
+ID: balance-9fj4
+Created: 2026-11-15T00:02:35Z
+Updated: 2026-11-15T00:02:49Z
+
+Rebalance combat so it's harder. The designer's target: a sector of 6 enemies should be a nail-biter. To think through before it becomes a task.
+
+Evidence from the first full live game (2026-11-14/15, Claude playing under the captain's orders on starreach.yuwakisa.com): 42 enemies destroyed across a dozen sectors, including fights against 4, 5 and 6, and the hull was never touched. Shields absorbed every hit. The per-action shield recharge and docking undid all damage. Every blast killed in one hit. Enemy shots did about 55-130 from 6-10 cells, about 230 at 4, about 400 at 3, and 674 at 2, so standing off at 4+ made combat nearly free. Enemies often advance instead of firing; on a warp out, all four survivors advanced and none fired. Enemies never pursue between sectors, and the starbase is never threatened, so retreating to dock is always safe. Energy was the only resource that ran down, and docking refilled it. The near-miss and loss-aversion drivers never fired.
+
+What did feel good and should survive a rebalance: the choice between blast (range 6, cost rising with distance, unlimited) and torpedo (any range, 100 energy, 7 of them); stars as cover in both directions, with a refused blocked shot costing nothing; the danger of closing in (the captain's own rule became "blast anything 4 or closer, torpedo the rest"); and the run-down-and-resupply rhythm.
+
+Questions for the designer: What does a nail-biter mean mechanically? E.g. a fresh, fully supplied ship clearing a 6-enemy sector carelessly loses a large share of its hull and sometimes dies, while careful play (cover, range discipline, torpedoes on the far ones) gets through damaged. Should damage persist so that losses accumulate (repair only at a starbase, or a hull that docking doesn't fully restore)? Should escalation be tied to progress (enemies stronger or more numerous as sectors are cleared), per the game-design skill's escalating-commitment driver? Should survivors pursue between sectors, or threaten the starbase, so retreat costs something?
+
+Candidate levers, to change one at a time with a controlled comparison, halving and doubling first: enemy damage and its falloff with distance; shield capacity and the per-action shield recharge; enemies needing more than one blast (enemy hull); how often enemies fire versus advance; enemies firing together versus one at a time; enemy count per sector and how it escalates; what docking restores.
+
+How to do it once it's a task: write the nail-biter as a failable X-criterion in CRITERIA (and the reasoning in DYNAMICS); measure the current numbers with the committed harness (`just cc-model-balance`, extending core/examples/model_balance to simulate a fight against N enemies with a simple careless policy and a simple careful one) before changing anything; bring the proposed numbers and measurements to the user before changing rules; record the numbers as [T] in ONTOLOGY's Numbers table, the decisions and Evidence in RATIONALE, and an ARCHITECTURE_LOG entry.
+----
 Score:   50
 ID: starcentral-rixp
 Created: 2026-11-14T15:47:45Z
