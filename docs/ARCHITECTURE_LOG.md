@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Enemies sometimes approach obliquely
+Advancing enemies always stepped down the same Bresenham ray that blasts and torpedoes use, so they
+often walked into a shot already aimed at them. `enemy_advance` now draws an approach from the
+game's rng: oblique left and right each `ENEMY_OBLIQUE_CHANCE / 2` (0.25), else head-on. Oblique
+steps turn the head-on step one octant, never get farther from the ship, and stay put when blocked.
+New decision D-34 and row R-30; R-13 now covers the head-on path (`advance_by`).
+
 ### 2026-11-15 — Enemy range, bearing and clear shot in GameState
 The LLM worked out distances and lines of fire by hand before choosing blast or torpedo.
 `GameState.enemies` (replacing `enemies_yx`) now lists each enemy as `{yx, range, bearing,

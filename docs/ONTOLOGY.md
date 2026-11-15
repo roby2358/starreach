@@ -399,7 +399,15 @@ for each enemy in enemies_yx order:
 
 ### EnemyAdvance — *Serves: F-danger* [D]
 ```
-r = ray(enemy, ship_yx);  dest = r[min(ENEMY_ADVANCE_STEPS, len(r) − 1)]
+roll = rng.unit()    # one draw per advance
+approach = left if roll < ENEMY_OBLIQUE_CHANCE/2, right if roll ≥ 1 − ENEMY_OBLIQUE_CHANCE/2, else head-on [D]
+head-on:  r = ray(enemy, ship_yx);  dest = r[min(ENEMY_ADVANCE_STEPS, len(r) − 1)]
+oblique [P]:  repeat ENEMY_ADVANCE_STEPS times from `at`:
+                head = ray(at, ship_yx)[1];  side = at + (head − at) turned one octant left or right
+                next = head if euclid(side, ship_yx) > euclid(at, ship_yx) else side
+                if next is not empty: stay (no fallback)
+                at = next
+              dest = at
 if dest is empty: move enemy to dest   else: stay
 ```
 
@@ -475,6 +483,7 @@ Referred to by name everywhere else.
 | `EVENT_INTERVAL` | 3 | stardate | D-10 |
 | `ENEMY_ADVANCE_FRACTION` | 1/3 | probability per enemy | D-10 |
 | `ENEMY_ADVANCE_STEPS` | 2 | cells | D-10 |
+| `ENEMY_OBLIQUE_CHANCE` | 0.5 | probability an advance is oblique, split evenly left and right | D-34 |
 | `ENEMY_FIRE_BASE` | 2000 | damage at 1 cell | D-10 |
 | `ENEMY_FIRE_FALLOFF` | 1.57 | exponent | D-10 |
 | `SHIP_MAX_HULL` | 2000 | hp | D-11 |

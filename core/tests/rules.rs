@@ -79,3 +79,6 @@ mod r_28_view;
 
 #[path = "R-29/enemy_sights.rs"]
 mod r_29_enemy_sights;
+
+#[path = "R-30/oblique_advance.rs"]
+mod r_30_oblique_advance;

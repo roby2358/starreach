@@ -5,7 +5,7 @@
 
 use crate::constants::*;
 use crate::game::Game;
-use crate::geometry::{euclid, format_yx};
+use crate::geometry::{euclid, format_yx, Yx};
 
 pub struct Event {
     pub can_occur: fn(&Game) -> bool,
@@ -88,16 +88,78 @@ pub fn enemies_turn(game: &mut Game) -> Vec<String> {
     messages
 }
 
+/// How an advancing enemy heads for the ship: straight down the ray, or with each step
+/// turned one octant (45 degrees) to the left or right of it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Approach {
+    Left,
+    HeadOn,
+    Right,
+}
+
+/// The 8 neighbour steps (dy, dx) in clockwise order, starting up.
+const OCTANTS: [Yx; 8] = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)];
+
+/// Draws the approach: `ENEMY_OBLIQUE_CHANCE` is split evenly between left and right.
+fn choose_approach(game: &mut Game) -> Approach {
+    let roll = game.rng.unit();
+    match roll {
+        r if r < ENEMY_OBLIQUE_CHANCE / 2.0 => Approach::Left,
+        r if r >= 1.0 - ENEMY_OBLIQUE_CHANCE / 2.0 => Approach::Right,
+        _ => Approach::HeadOn,
+    }
+}
+
 pub fn enemy_advance(game: &mut Game, index: usize) -> Vec<String> {
+    let approach = choose_approach(game);
+    advance_by(game, index, approach)
+}
+
+/// Moves the enemy by `approach`, only onto empty cells; otherwise it stays and reports blocked.
+pub fn advance_by(game: &mut Game, index: usize, approach: Approach) -> Vec<String> {
     let from = game.sector.enemies_yx[index];
-    let ray = game.sector.ray(from, game.sector.ship_yx);
-    let dest = ray[ENEMY_ADVANCE_STEPS.min(ray.len() - 1)];
-    if !game.sector.is_empty(dest) {
+    let dest = match approach {
+        Approach::HeadOn => head_on_dest(game, from),
+        _ => oblique_dest(game, from, approach),
+    };
+    let blocked = match dest {
+        Some(dest) => !game.sector.is_empty(dest),
+        None => true,
+    };
+    if blocked {
         return vec!["Enemy attempted to advance but path was blocked".to_string()];
     }
+    let dest = dest.unwrap();
     game.sector.move_occupant(from, dest);
     game.sector.enemies_yx[index] = dest;
     vec![format!("Enemy advanced from {} to {}", format_yx(from), format_yx(dest))]
+}
+
+fn head_on_dest(game: &Game, from: Yx) -> Option<Yx> {
+    let ray = game.sector.ray(from, game.sector.ship_yx);
+    Some(ray[ENEMY_ADVANCE_STEPS.min(ray.len() - 1)])
+}
+
+/// Each of `ENEMY_ADVANCE_STEPS` steps is the head-on step turned one octant. A step that
+/// would be farther from the ship than where it stands is taken head-on instead. None when
+/// a step is blocked.
+fn oblique_dest(game: &Game, from: Yx, approach: Approach) -> Option<Yx> {
+    let ship = game.sector.ship_yx;
+    let mut at = from;
+    for _ in 0..ENEMY_ADVANCE_STEPS {
+        let head = game.sector.ray(at, ship).get(1).copied()?;
+        let (dy, dx) = (head.0 - at.0, head.1 - at.1);
+        let slot = OCTANTS.iter().position(|&o| o == (dy, dx))?;
+        let turn = if approach == Approach::Left { 7 } else { 1 };
+        let (oy, ox) = OCTANTS[(slot + turn) % 8];
+        let side = (at.0 + oy, at.1 + ox);
+        let next = if euclid(side, ship) > euclid(at, ship) { head } else { side };
+        if !game.sector.is_empty(next) {
+            return None;
+        }
+        at = next;
+    }
+    Some(at)
 }
 
 pub fn enemy_fire(game: &mut Game, index: usize) -> Vec<String> {

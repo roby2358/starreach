@@ -39,6 +39,7 @@ pub const TORPEDO_TIME: f64 = 1.0;
 pub const EVENT_INTERVAL: f64 = 3.0;
 pub const ENEMY_ADVANCE_FRACTION: f64 = 1.0 / 3.0;
 pub const ENEMY_ADVANCE_STEPS: usize = 2;
+pub const ENEMY_OBLIQUE_CHANCE: f64 = 0.5;
 pub const ENEMY_FIRE_BASE: f64 = 2000.0;
 pub const ENEMY_FIRE_FALLOFF: f64 = 1.57;
 

@@ -1,12 +1,12 @@
 //! R-13: enemy advance moves up to ENEMY_ADVANCE_STEPS along the ray, only onto an empty cell.
 use crate::helpers::*;
 use starreach_core::constants::*;
-use starreach_core::events::enemy_advance;
+use starreach_core::events::{advance_by, Approach};
 use starreach_core::sector::ENEMY;
 
 fn advance(rows: [&str; 10], index: usize) -> starreach_core::Game {
     let mut game = board(rows);
-    enemy_advance(&mut game, index);
+    advance_by(&mut game, index, Approach::HeadOn);
     game
 }
 

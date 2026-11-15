@@ -276,6 +276,11 @@ inferences, waiting for review.
 - **Evidence:** Modeled by: `just cc-model-balance 2000` — 2000 damage at range 1, 674 at 2, 356 at 3, 120
   at 6. With 5000 shields plus hull, about 2.5 point-blank hits destroy the ship.
 
+### D-34 An advancing enemy approaches 25% oblique left, 50% head-on, 25% oblique right — *Decided; the geometry is Proposed*
+- **Alternatives:** always head-on (the old rule: an enemy often stepped into the line of a shot already aimed at it, easy to predict and cover); a target cell offset perpendicular to the ray; a sidestep then advance; a different split.
+- **Why:** Raxxon fire is more range-sensitive than our blasters, so enemies want to close, but not predictably down the shot line. The choice uses the game's seeded rng, so the same seed and commands give the same state. Serves readable consequences (still always closer or no farther, never through obstacles) with some variable reinforcement. [P] Geometry: each step is the head-on step turned one octant (45 degrees) left or right, or head-on when the turned step would be farther from the ship; a blocked step means it stays.
+- **Evidence:** Tested by R-30 (shares over 4000 seeds, never farther, never through obstacles).
+
 ### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided*
 - **Alternatives:** a stardate deadline; open-ended play.
 - **Why:** G-2 and F-danger need stakes. After the end, actions are refused and queries
