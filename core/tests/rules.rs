@@ -91,3 +91,6 @@ mod r_32_blast_kill_chance;
 
 #[path = "R-33/fire_variance.rs"]
 mod r_33_fire_variance;
+
+#[path = "R-34/starbase_placement.rs"]
+mod r_34_starbase_placement;

@@ -20,7 +20,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 
 | ID | Given | Expect | Instrument |
 |---|---|---|---|
-| R-1 | A newly generated galaxy | The `GALAXY_CENTER` record is `(visible, 0, 1, START_SECTOR_STARS)`. Every other record is hidden, enemies in `0..ENEMY_MAX_PER_SECTOR`, starbases in `{0,1}`, stars in `STARS_PER_SECTOR`. Over many seeds, mean enemies rise with distance from the center | automated |
+| R-1 | A newly generated galaxy | The `GALAXY_CENTER` record is `(visible, 0, 1, START_SECTOR_STARS)`. Every other record is hidden, enemies in `0..ENEMY_MAX_PER_SECTOR`, starbases in `{0,1}` (placement is R-34), stars in `STARS_PER_SECTOR`. Over many seeds, mean enemies rise with distance from the center | automated |
 | R-2 | Instantiating a sector from its record and the seed | Exactly one `S`. `B` cells match the record's starbase, `E` cells match `enemies_yx` and the record's enemies, `*` cells match its stars. No cell holds two things. The same seed, sector and record give the same board | automated |
 | R-3 | `ray(start, dest)` on hand-built maps | `start == dest` → `[start]`. A clear line ends at `dest`. A line through an obstacle ends **at** the first obstacle (included). Leaving the board ends at the first out-of-bounds cell. The start cell is never checked | automated |
 | R-4 | `galaxy_warp(y, x)` | The current sector, or energy below the cost → refused, no change. With enemies present, EnemiesTurn runs first, and if the hull reaches 0 the warp doesn't happen and the game is lost. Otherwise: target marked visible; `distance = int(euclid × WARP_DISTANCE_SCALE)`; energy drops by `distance × WARP_ENERGY_PER_DISTANCE`; stardate rises by `distance × WARP_TIME_PER_DISTANCE`; new ActiveSector built; `last_event_stardate = stardate`; StarbaseHail fires iff the sector has a starbase | automated |
@@ -80,7 +80,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 
 ## Status — 2026-11-15
 
-- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28 – R-33.
+- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28 – R-34.
   The coverage test runs with them.
 - **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result, and
   R-21's publishing and link.
@@ -102,3 +102,4 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | R-31 | Warp into a sector with enemies | Each enemy, in order, fires once with probability `ENEMY_AMBUSH_CHANCE` (over many seeds the share of shots is near it; same seed, same result), by the enemy fire rule: damage is enemy fire's (R-14, R-33), a blocked shot does no damage. An empty sector draws no fire. If the hull reaches 0 the game is lost | automated |
 | R-32 | A blast's kill chance at range `r` | `BLAST_KILL_CHANCE_NEAR` for `r ≤ BLAST_SURE_RANGE`; `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`; the geometric mean of the two at the middle of the falloff, the same ratio for each cell of range across it, and strictly falling. Over many seeds the share of kills at one range is near its chance; same seed, same result | automated |
 | R-33 | Enemy fire's damage factor | The factor is drawn from the game's rng in `ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX`. Damage taken stays between the damage at those two factors, varies across seeds, and is the same for the same seed | automated |
+| R-34 | A newly generated galaxy's starbases | Besides the `GALAXY_CENTER` one there are `STARBASE_EXTRA_MIN..=STARBASE_EXTRA_MAX` extra ones over many seeds (every count occurs), at most one per sector. Every pair, home base included, is at least `STARBASE_MIN_SPACING` apart (Euclidean). The same seed gives the same placement. When a placement finds no fit within its tries, placement stops with the starbases so far (forced with zero tries), and never goes above the maximum | automated |

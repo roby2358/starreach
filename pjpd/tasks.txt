@@ -1,29 +1,3 @@
-Priority:   90
-Status: ToDo
-ID: starbases-rezr
-Created: 2026-11-15T01:30:19Z
-Updated: 2026-11-15T01:30:19Z
-
-Place 3–5 extra starbases at galaxy generation, spread out, instead of rolling each sector independently. Today `generate_record` (core/src/galaxy.rs) gives the start sector (GALAXY_CENTER) one starbase and every other sector a STARBASE_CHANCE (0.02) roll, so a galaxy can have no others, or several bunched together.
-
-Rule [D]:
-- After the sectors are generated, choose a target count of extra starbases (beyond the home base at GALAXY_CENTER), uniformly 3..=5, from the game's seeded rng (new [T] constants, e.g. STARBASE_EXTRA_MIN = 3 and STARBASE_EXTRA_MAX = 5).
-- Place them one at a time. Each must be at least STARBASE_MIN_SPACING = 3 sectors [T] from every starbase already placed, the home base included.
-- To place one, draw random sectors up to a [T] limit of tries (e.g. STARBASE_PLACE_TRIES). If none fits within the limit, stop: the galaxy keeps the starbases placed so far, and no more are attempted.
-
-Proposed [P], confirm with the designer: spacing is Euclidean distance between sector coordinates (the same euclid warp distance uses); at most one starbase per sector; a starbase sector's enemies and stars are left as generated.
-
-Remove the per-sector STARBASE_CHANCE roll and its constant. Determinism must hold: same seed = same galaxy. Changing generation changes every seeded galaxy, so tests that rely on a particular seed's layout will need updating to assert their own rule. Existing stored games keep their saved galaxy; tell the user about anything that breaks stored state.
-
-Update:
-- ONTOLOGY: the galaxy generation rule as pseudocode, and the Numbers table.
-- RATIONALE: a decision with alternatives (e.g. rejection sampling vs. Poisson-disc; fixed vs. random count) and why stopping early beats retrying forever.
-- CRITERIA: a row with test/R-n tests. Every pair of starbases is at least STARBASE_MIN_SPACING apart. The extra count is within 3..=5 whenever placement succeeds, and never above the maximum. Placement stops when the tries run out (force this with a crowded or tiny case, or a tries limit passed in). The result is reproducible from the seed.
-- The balance harness, if it counts starbases.
-- An ARCHITECTURE_LOG entry.
-
-Ask the user before committing or deploying.
-----
 Priority:   80
 Status: ToDo
 ID: homepage-88xw

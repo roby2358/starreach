@@ -37,7 +37,38 @@ impl Galaxy {
         for yx in all_cells() {
             sectors[yx.0 as usize].push(generate_record(yx, rng));
         }
-        Galaxy { sectors }
+        let mut galaxy = Galaxy { sectors };
+        galaxy.place_extra_starbases(rng, STARBASE_PLACE_TRIES);
+        galaxy
+    }
+
+    /// Places a target count of extra starbases, each at least `STARBASE_MIN_SPACING` from every
+    /// starbase already placed. Stops at the first placement that finds no fit within `tries`.
+    pub fn place_extra_starbases(&mut self, rng: &mut Rng, tries: u32) {
+        let target = rng.int_in((STARBASE_EXTRA_MIN, STARBASE_EXTRA_MAX));
+        for _ in 0..target {
+            match self.find_starbase_spot(rng, tries) {
+                Some(yx) => self.record_mut(yx).starbases = 1,
+                None => return,
+            }
+        }
+    }
+
+    fn find_starbase_spot(&self, rng: &mut Rng, tries: u32) -> Option<Yx> {
+        (0..tries)
+            .map(|_| (rng.index(GALAXY_SIZE as usize) as i32, rng.index(GALAXY_SIZE as usize) as i32))
+            .find(|&yx| self.is_spaced_from_starbases(yx))
+    }
+
+    fn is_spaced_from_starbases(&self, yx: Yx) -> bool {
+        all_cells()
+            .filter(|&other| self.record(other).starbases > 0)
+            .all(|other| euclid(yx, other) >= STARBASE_MIN_SPACING)
+    }
+
+    /// Every sector with a starbase, visible or not.
+    pub fn starbase_sectors(&self) -> Vec<Yx> {
+        all_cells().filter(|&yx| self.record(yx).starbases > 0).collect()
     }
 
     pub fn record(&self, yx: Yx) -> &SectorRecord {
@@ -97,7 +128,6 @@ fn generate_record(yx: Yx, rng: &mut Rng) -> SectorRecord {
     let factor = ENEMY_DISTANCE_FLOOR + euclid(yx, GALAXY_CENTER) / ENEMY_DISTANCE_NORM * ENEMY_DISTANCE_SCALE;
     let scaled = (factor * rng.int_in(ENEMY_BASE_ROLL) as f64) as i32;
     let enemies = scaled.clamp(0, ENEMY_MAX_PER_SECTOR as i32) as u32;
-    let starbases = rng.chance(STARBASE_CHANCE) as u32;
     let stars = rng.int_in(STARS_PER_SECTOR) as u32;
-    SectorRecord { visible: false, enemies, starbases, stars }
+    SectorRecord { visible: false, enemies, starbases: 0, stars }
 }

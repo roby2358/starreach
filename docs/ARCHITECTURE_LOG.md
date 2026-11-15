@@ -3,6 +3,15 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Starbases are placed after generation, spread apart
+Every sector except Star Central used to roll `STARBASE_CHANCE` (0.02) for a starbase, so a
+galaxy could have none beyond home, or several bunched together. Generation now draws a count in
+`STARBASE_EXTRA_MIN..=STARBASE_EXTRA_MAX` and places each at least `STARBASE_MIN_SPACING` from
+every earlier one, trying `STARBASE_PLACE_TRIES` random sectors per starbase and stopping short
+if none fits. `STARBASE_CHANCE` is removed. New decision D-38, row R-34; D-4 now points to it.
+The balance harness prints the starbase range. Every seeded galaxy changes; saved games keep
+their stored galaxy and are unaffected.
+
 ### 2026-11-15 — Blasts are sure out to range 4
 `BLAST_SURE_RANGE` goes from 3 to 4, so a blast kills with `BLAST_KILL_CHANCE_NEAR` one cell
 farther than raxxon fire's effective range, giving the player the edge in a busy sector. The

@@ -14,7 +14,13 @@ pub const ENEMY_DISTANCE_SCALE: f64 = 0.7;
 pub const ENEMY_DISTANCE_NORM: f64 = 7.0710678118654755;
 pub const ENEMY_MAX_PER_SECTOR: u32 = 9;
 pub const STARS_PER_SECTOR: (i32, i32) = (2, 8);
-pub const STARBASE_CHANCE: f64 = 0.02;
+/// Extra starbases beyond the home base: the target count is uniform in this inclusive range
+pub const STARBASE_EXTRA_MIN: i32 = 3;
+pub const STARBASE_EXTRA_MAX: i32 = 5;
+/// Minimum Euclidean distance between any two starbases, in sectors
+pub const STARBASE_MIN_SPACING: f64 = 3.0;
+/// Random sectors drawn per starbase before placement gives up
+pub const STARBASE_PLACE_TRIES: u32 = 100;
 
 pub const WARP_DISTANCE_SCALE: f64 = 10.0;
 pub const WARP_ENERGY_PER_DISTANCE: i32 = 10;

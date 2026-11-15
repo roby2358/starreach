@@ -34,7 +34,7 @@ fn mean(values: impl Iterator<Item = u32>, n: u32) -> f64 {
 fn print_generation(n: u32) {
     let counts: Vec<GalaxyCounts> = (0..n).map(|seed| count(&Galaxy::generate(&mut Rng::seeded(seed)))).collect();
     let enemies = || counts.iter().map(|c| c.enemies);
-    let central_only = counts.iter().filter(|c| c.starbases == 1).count() as f64 / f64::from(n);
+    let starbases = || counts.iter().map(|c| c.starbases);
     println!("galaxies: {n}");
     println!(
         "enemies/galaxy mean {:.0} range {}-{}",
@@ -43,9 +43,10 @@ fn print_generation(n: u32) {
         enemies().max().unwrap()
     );
     println!(
-        "starbases/galaxy mean {:.2}; P(Star Central only) {:.0}%",
-        mean(counts.iter().map(|c| c.starbases), n),
-        central_only * 100.0
+        "starbases/galaxy (with Star Central) mean {:.2} range {}-{}",
+        mean(starbases(), n),
+        starbases().min().unwrap(),
+        starbases().max().unwrap()
     );
     println!("enemy-free sectors mean {:.0}", mean(counts.iter().map(|c| c.enemy_free_sectors), n));
 }

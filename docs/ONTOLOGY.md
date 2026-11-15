@@ -301,9 +301,19 @@ for each sector s in row order:
   center:     (visible, 0, 1, START_SECTOR_STARS)
   otherwise:  f = ENEMY_DISTANCE_FLOOR + euclid(s, GALAXY_CENTER)/ENEMY_DISTANCE_NORM × ENEMY_DISTANCE_SCALE
               enemies   = clamp(int(f × uniform(ENEMY_BASE_ROLL)), 0, ENEMY_MAX_PER_SECTOR)
-              starbases = 1 with probability STARBASE_CHANCE, else 0
+              starbases = 0
               stars     = uniform(STARS_PER_SECTOR);  visible = false
+
+then, from the game stream (D-38):
+  target = uniform(STARBASE_EXTRA_MIN..=STARBASE_EXTRA_MAX)
+  repeat target times:
+    draw up to STARBASE_PLACE_TRIES random sectors s, until
+      euclid(s, b) >= STARBASE_MIN_SPACING for every starbase b already placed (home base included)
+    none fits:  stop, keeping the starbases placed so far
+    otherwise:  starbases[s] = 1
 ```
+At most one starbase per sector [P]; spacing is Euclidean, the metric warp distance uses [P]; a
+starbase sector's enemies and stars are left as generated [P]. Constants are [T].
 
 ### Sector instantiation — *Serves: G-2, F-discovery* [D]
 ```
@@ -473,7 +483,10 @@ Referred to by name everywhere else.
 | `ENEMY_DISTANCE_NORM` | √50 | sectors | D-3 |
 | `ENEMY_MAX_PER_SECTOR` | 9 | enemies | D-3 |
 | `STARS_PER_SECTOR` | 2..8 | uniform int | D-3 |
-| `STARBASE_CHANCE` | 0.02 | per sector | D-4 |
+| `STARBASE_EXTRA_MIN` | 3 | starbases | D-38 |
+| `STARBASE_EXTRA_MAX` | 5 | starbases | D-38 |
+| `STARBASE_MIN_SPACING` | 3 | sectors, Euclidean | D-38 |
+| `STARBASE_PLACE_TRIES` | 100 | random draws per starbase | D-38 |
 | `WARP_DISTANCE_SCALE` | 10 | distance per sector | D-5 |
 | `WARP_ENERGY_PER_DISTANCE` | 10 | energy | D-5 |
 | `WARP_TIME_PER_DISTANCE` | 0.01 | stardate | D-5 |

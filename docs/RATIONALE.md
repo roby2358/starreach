@@ -203,8 +203,23 @@ inferences, waiting for review.
 ### D-4 Starbases are rare — *Decided, tuned by none yet*
 - **Alternatives:** a fixed number of starbases; one per galaxy region.
 - **Why:** Resupply should be a destination (G-4).
-- **Evidence:** Modeled by: `just cc-model-balance 2000` (unverified in play): about 3 starbases
-  per galaxy including Star Central. In about 13% of galaxies Star Central is the only one.
+- **Evidence:** see D-38 for the count and the placement that now make them rare.
+
+### D-38 Three to five extra starbases, placed apart by rejection sampling — *Decided; metric, one per sector and enemy handling Proposed*
+- **Alternatives:** an independent roll per sector (a galaxy could have none beyond Star
+  Central, or several bunched together); a fixed count; Poisson-disc sampling; retrying until
+  every starbase fits.
+- **Why:** Designer decision. A count drawn from `STARBASE_EXTRA_MIN..=STARBASE_EXTRA_MAX`
+  guarantees resupply exists to be found (G-4) while keeping it rare (D-4). Each starbase keeps
+  `STARBASE_MIN_SPACING` from the others, so they spread over the galaxy instead of clustering.
+  Rejection sampling is the simplest way to get that. Stopping after `STARBASE_PLACE_TRIES`
+  misses, with fewer starbases, bounds generation time and cannot hang on a crowded board. It
+  costs only a rare shortfall. Euclidean distance matches warp distance; a sector holds at most
+  one starbase; a starbase sector keeps its generated enemies and stars (the player must clear it
+  to dock).
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (unverified in play): 5.01 starbases per
+  galaxy including Star Central, range 4–6 (the full 3–5 extra, so placement never ran out of
+  tries).
 
 ### D-16 Fog of war over the galaxy — *Decided*
 - **Alternatives:** a fully revealed galaxy.
