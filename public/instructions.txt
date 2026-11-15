@@ -37,4 +37,4 @@ Show the long range scan as
 
 For the galaxy map, show each sector as "....." or "4|1|8"
 
-Open with a greeting and the current state.
+Open with a short greeting, then offer to show the sector, a long range scan or the galaxy map, and end with the viewer link. Do not show a map until the captain asks for one, so the link stays on screen.

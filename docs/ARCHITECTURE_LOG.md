@@ -3,6 +3,12 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — The opening reply offers the displays instead of showing the sector
+The instructions told the LLM to open with a greeting and the current state, so the first reply
+gave the viewer link and then a sector map that scrolled the link off the screen. The opening is
+now a greeting, an offer to show the sector, a long range scan or the galaxy map, and the viewer
+link last; no map appears until the captain asks. U-4 reworded.
+
 ### 2026-11-15 — Players connect with only the MCP URL
 Every MCP client shared Starreach's pre-registered client id: players pasted it into claude.ai's
 "Use your own OAuth client", and Claude Code needed `--client-id` and `--callback-port 8574`.

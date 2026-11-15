@@ -62,7 +62,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | U-11 | The hologram plays one animation on a warp and one when an enemy is gone from the ship's sector, and none on the first frame | automated |
 | U-12 | The home page shows the briefing: the MCP URL and the line telling players to ask the computer. It fits a phone width without horizontal scroll | automated |
 | U-3 | The LLM shows the sector in the instructions format: column header, row numbers, no legend, no star count | manual — run a session in Claude Desktop and compare with `public/instructions.txt` |
-| U-4 | The LLM opens a session with a greeting and the current state | manual — first reply of a fresh session |
+| U-4 | The LLM opens a session with a greeting, an offer to show the sector, a long range scan or the galaxy map, and the viewer link last; it shows no map until asked | manual — first reply of a fresh session |
 | U-5 | The LLM keeps naval decorum ("Aye aye, captain") | manual — read a 10-turn session |
 | U-6 | Long-range scan and galaxy map are shown as `E\|B\|S` grids with sector headers | manual — call both tools in a session |
 | U-7 | Every event message in a result is narrated to the player | manual — check combat turns in a session: no fire or damage message goes unmentioned |
