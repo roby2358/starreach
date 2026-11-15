@@ -188,3 +188,24 @@ Design notes:
 - The end-of-game report lists achievements earned; the LLM announces them in character, perhaps as commendations from Star Central.
 - Persisting them across games needs player identity, so it depends on sign-in. Per-game achievements can come first.
 - Every achievement should reward a play pattern the design wants (serves a driver). None should reward degenerate play, such as stalling.
+----
+Score:   50
+ID: telemetry-9x2j
+Created: 2026-11-15T07:17:15Z
+Updated: 2026-11-15T07:17:15Z
+
+Game telemetry: record what players actually do, so tuning and design decisions rest on real play rather than the balance model alone.
+
+What to capture (per game, anonymous; no player identity or conversation text):
+- Each accepted command: type, args (target cell or sector), stardate, and outcome (kill or miss, damage taken, energy and torpedoes left).
+- Refusals and their reasons (what players try that the rules don't allow; a sign of unclear instructions or missing commands).
+- Game lifecycle: started, won, lost (and what killed the ship), abandoned (no command for a long time), length in commands and stardates.
+- Derived: blast ranges actually used, how often ambushes hit, docking frequency, sectors explored before the first fight.
+
+Questions to answer with it: Are blasts fired at the ranges the design expects? How often do games end in a loss, and where? Do players scan before warping? Which commands are never used? How long does a game last?
+
+Design questions:
+- Where to store it: a log line per command read through Workers Logs or Logpush, Workers Analytics Engine (cheap, queryable with SQL, fits per-event counters), or the game's own Durable Object storage summarised at game end. Analytics Engine looks like the natural fit on Cloudflare.
+- Privacy: no personal data, no MCP client identity beyond what is needed to count distinct games; state this on the home page.
+- A small recipe or report to query it (e.g. per-day games, win rate, blast range histogram) so it feeds RATIONALE Evidence as "Measured by".
+- Keep it out of the Rust core's rules: the app layer records Results it already has, so the core stays pure and deterministic.
