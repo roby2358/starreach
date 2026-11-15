@@ -3,6 +3,12 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Blasts are sure out to range 4
+`BLAST_SURE_RANGE` goes from 3 to 4, so a blast kills with `BLAST_KILL_CHANCE_NEAR` one cell
+farther than raxxon fire's effective range, giving the player the edge in a busy sector. The
+exponential falloff to `BLAST_RANGE` is unchanged in form and now runs 0.58 at 5, 0.37 at 6,
+0.1 at 9. D-36 updated; the `blast` description and `instructions.txt` give the new range.
+
 ### 2026-11-15 — The blast kill chance decays exponentially
 The kill chance between `BLAST_SURE_RANGE` and `BLAST_RANGE` fell linearly (0.77 at 4, 0.5 at 6).
 The designer replaced it with exponential decay between the same end points, `NEAR × (FAR /

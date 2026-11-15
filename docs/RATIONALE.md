@@ -289,29 +289,33 @@ inferences, waiting for review.
 - **Why:** Designer decision: 30% of enemies fire when you enter the sector. Entering a hostile sector should cost something, but a full turn would make warping into a crowd near-certain ruin. Rolls use the game's seeded rng, and shots reuse the enemy fire rule, so range and cover still matter. [P] The ambush runs after the sector is instantiated and before the starbase hail, enemies in `enemies_yx` order, and stops once the hull is 0; the usual end-of-action check then loses the game.
 - **Evidence:** Tested by R-31 (share over 4000 seeds, damage equals the fire formula, a fatal ambush loses).
 
-### D-36 A blast kills with a chance that decays exponentially from 0.9 at range 3 to 0.1 at range 9 — *Decided*
+### D-36 A blast kills with a chance that decays exponentially from 0.9 at range 4 to 0.1 at range 9 — *Decided*
 - **Choice:** Blasts stay all-or-nothing (D-19). A blast kills with `BLAST_KILL_CHANCE_NEAR` up to
   `BLAST_SURE_RANGE`, falling to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`, which moves out to 9 so
   the far end of that falloff is reachable. A miss still costs the energy and the time, leaves the
   enemy where it was, and is reported as an event and as `report.destroyed`. One draw from the
   game's rng per accepted blast. Between `BLAST_SURE_RANGE` and `BLAST_RANGE` the chance decays
-  exponentially, multiplied by the same ratio for each cell: about 0.62 at 4, 0.43 at 5, 0.3 at 6.
+  exponentially, multiplied by the same ratio for each cell: about 0.58 at 5, 0.37 at 6, 0.24 at 7.
 - **Alternatives:** enemies with a hull and blasts that deal randomized damage falling with range,
   so a long blast may only wound (more state to track, which the designer declined); randomizing
   only the blast's energy cost (no change in the fight); keeping certain kills within range 6 (the
   first live game: every blast killed and standing off at 4+ made combat nearly free); a linear
   falloff (0.77 at 4, 0.5 at 6: long shots stay too good, and standing off stays cheap); a sigmoid
-  (holds near 0.9 past 3 and drops late, which blurs the effective range of 3 and needs a midpoint
+  (holds near 0.9 past 4 and drops late, which blurs the effective range and needs a midpoint
   and steepness to tune).
-- **Why:** Designer decision: the effective range is 3, but 4 or 5 is still a decent shot, and a
-  long shot is a gamble. Exponential decay drops fastest just past 3, so closing that first cell or
+  An effective range of 3, the same as raxxon fire's (the old rule: the player had no reach
+  advantage in a crowded sector).
+- **Why:** Designer decision: the effective range is 4, but 5 or 6 is still a decent shot, and a
+  long shot is a gamble. Raxxon fire is effective to about 3 and falls off after it (D-10), so the
+  extra cell gives the player the edge in a busy sector: at range 4 a blast is as sure as at 1,
+  while an enemy shot deals about 227 against 356 at 3. Exponential decay drops fastest just past 4, so closing that first cell or
   two pays most, and it needs no constants beyond the two end points. Missing makes closing in worth its danger (enemy fire falls off steeply,
   D-10), gives torpedoes, which always kill, a reason to be saved, and brings the near-miss into
   play. A paid miss keeps every action costing something (G-4).
 - **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — kill chance
-  90% to range 3, 62% at 4, 43% at 5, 30% at 6, 21% at 7, 14% at 8, 10% at 9. Expected energy per
-  kill (cost ÷ chance): 1111 at range 1, 1924 at 3, 3205 at 4, 5168 at 5, 8163 at 6, 12716 at 7,
-  19608 at 8, 30000 at 9.
+  90% to range 4, 58% at 5, 37% at 6, 24% at 7, 16% at 8, 10% at 9. Expected energy per
+  kill (cost ÷ chance): 1111 at range 1, 1924 at 3, 2222 at 4, 3855 at 5, 6553 at 6, 10983 at 7,
+  18223 at 8, 30000 at 9.
   Before, every blast killed: 2449 per kill at range 6. Tested by R-9 and R-32.
 
 ### D-37 Enemy fire damage varies by a factor in 0.75..1.25 — *Decided; the band is Proposed*

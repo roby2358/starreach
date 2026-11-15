@@ -32,7 +32,7 @@ pub const LRS_TIME: f64 = 3.0;
 pub const BLAST_RANGE: f64 = 9.0;
 /// Up to this range a blast kills with `BLAST_KILL_CHANCE_NEAR`; beyond it the chance falls
 /// exponentially to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`.
-pub const BLAST_SURE_RANGE: f64 = 3.0;
+pub const BLAST_SURE_RANGE: f64 = 4.0;
 pub const BLAST_KILL_CHANCE_NEAR: f64 = 0.9;
 pub const BLAST_KILL_CHANCE_FAR: f64 = 0.1;
 pub const BLAST_ENERGY_BASE: f64 = 1000.0;

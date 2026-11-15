@@ -485,7 +485,7 @@ Referred to by name everywhere else.
 | `LRS_ENERGY` | 500 | energy | D-8 |
 | `LRS_TIME` | 3 | stardate | D-8 |
 | `BLAST_RANGE` | 9 | cells; also where the kill chance reaches `BLAST_KILL_CHANCE_FAR` | D-9, D-36 |
-| `BLAST_SURE_RANGE` | 3 | cells, up to which a blast kills with `BLAST_KILL_CHANCE_NEAR` | D-36 |
+| `BLAST_SURE_RANGE` | 4 | cells, up to which a blast kills with `BLAST_KILL_CHANCE_NEAR` | D-36 |
 | `BLAST_KILL_CHANCE_NEAR` | 0.9 | probability a blast kills, up to `BLAST_SURE_RANGE` | D-36 |
 | `BLAST_KILL_CHANCE_FAR` | 0.1 | probability a blast kills at `BLAST_RANGE` | D-36 |
 | `BLAST_ENERGY_BASE` | 1000 | energy per √cell | D-9 |
