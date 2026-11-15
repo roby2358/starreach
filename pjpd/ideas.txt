@@ -22,6 +22,40 @@ Candidate levers, to change one at a time with a controlled comparison, halving 
 
 How to do it once it's a task: write the nail-biter as a failable X-criterion in CRITERIA (and the reasoning in DYNAMICS); measure the current numbers with the committed harness (`just cc-model-balance`, extending core/examples/model_balance to simulate a fight against N enemies with a simple careless policy and a simple careful one) before changing anything; bring the proposed numbers and measurements to the user before changing rules; record the numbers as [T] in ONTOLOGY's Numbers table, the decisions and Evidence in RATIONALE, and an ARCHITECTURE_LOG entry.
 ----
+Score:   60
+ID: siege-zr8n
+Created: 2026-11-15T01:26:08Z
+Updated: 2026-11-15T01:26:08Z
+
+Time sensitivity: starbases come under siege. On each galactic tick (galaxy time, not combat rounds inside a sector), there is a [T] chance (e.g. SIEGE_CHANCE) that an enemy attack force starts converging on a starbase. Star Central radios the ship: "Starbase at sector (y, x) is under attack and can hold out for N stardates" (a [T] SIEGE_HOLD_TIME, perhaps with seeded variance). If that sector isn't on the galaxy map yet, it is revealed, but only that sector, not its neighbours. Serves: escalating commitment and guardianship (a starbase worth protecting, a clock that forces the ship to leave safety); scarcity of agency (the siege pulls the ship away from its current plan).
+
+Open design questions for the designer:
+- What a "galactic tick" is: a fixed stardate interval, or each galaxy_warp? It must not be the in-sector EVENT_INTERVAL.
+- What the attack force is: extra enemies spawned in or moving into that sector, and how many?
+- What happens at the deadline if the ship hasn't arrived: the starbase is destroyed (no more docking or torpedo resupply there), the sector turns hostile, or the game is lost if the last starbase falls.
+- What happens if the ship arrives in time: does the siege end only once the sector is cleared, and does the clock stop on arrival?
+- Can there be more than one siege at a time, and should sieges be rarer early or get more likely as the galaxy is cleared?
+- How it interacts with ambush on arrival (D-35): a besieged sector is a likely ambush.
+- Deterministic from the game's seeded rng; the message arrives as an event the LLM relays in character.
+
+Shape to propose: GameState gets a list of sieges (sector yx, deadline stardate); the stardate-advance path rolls for a new siege on each galactic tick; a starbase whose deadline passes is removed. Docs: an ONTOLOGY rule with pseudocode, constants in the Numbers table, a RATIONALE decision with alternatives, CRITERIA rows and tests, and a log entry.
+----
+Score:   60
+ID: warptime-6g9e
+Created: 2026-11-15T01:28:06Z
+Updated: 2026-11-15T01:28:06Z
+
+Fix galactic travel time so that a full battle takes less time than travelling between sectors. Today warp time is nearly free: time = floor(euclid(sectors) * WARP_DISTANCE_SCALE) * WARP_TIME_PER_DISTANCE (core/src/actions.rs), which comes to about 0.1 stardate per sector. Crossing the whole 10x10 galaxy (about 1.27) takes less time than two subwarp cells (SUBWARP_TIME_PER_STEP = 1.0 each), and far less than one long-range scan (LRS_TIME = 3) or one enemy turn interval (EVENT_INTERVAL = 3). Distance between sectors therefore hardly matters for anything time-based.
+
+Goal [D]: warping even to an adjacent sector should take longer than a typical full battle in a sector, so the galaxy feels big, and time spent fighting is small next to time spent getting there. This also lets distance matter to anything time-limited, such as a starbase holding out for a set number of stardates: how far away the ship is should decide whether it can get there.
+
+Steps:
+1. Measure first. Add to the committed balance harness (`just cc-model-balance`), or a new recipe, the stardates a typical battle takes (e.g. clearing a sector of 1–6 enemies with blasts and torpedoes under current rules, including LRS_TIME and EVENT_INTERVAL). Today that number isn't known.
+2. Set WARP_TIME_PER_DISTANCE (and possibly a fixed per-warp base time, e.g. WARP_TIME_BASE) so that one adjacent warp is longer than the measured typical battle. Halve and double to check the feel.
+3. Check the knock-on effects: game length in stardates; whether anything else is time-limited (STARDATE_START, any game deadline, starbase resupply timing); stardate events triggered during a warp (warp_events: does a long warp run many EVENT_INTERVALs of enemy actions in the sector being left or entered? It probably must not); and the stardate display.
+
+Docs: Warp rule and Numbers table in ONTOLOGY; a RATIONALE decision with alternatives (scale time per distance vs. a fixed per-jump cost vs. both) and measured Evidence; CRITERIA and tests (an adjacent warp's time is greater than the battle benchmark constant, or at least warp time is monotone in distance); an ARCHITECTURE_LOG entry; and the galaxy_warp tool description if a player should know.
+----
 Score:   50
 ID: starcentral-rixp
 Created: 2026-11-14T15:47:45Z
@@ -70,3 +104,87 @@ Created: 2026-11-15T00:34:03Z
 Updated: 2026-11-15T00:34:03Z
 
 Think about tactical advantages to approaching and keeping distance, so range is a real decision on both sides rather than "stand off at 4-6 and blast". Today, from the first full live game: enemy damage falls off steeply with distance (about 55-130 at 6-10 cells, 230 at 4, 400 at 3, 674 at 2); blast energy rises with range (about 1000 at 1, 2000 at 4, 2450 at 6) and blasts reach only 6; torpedoes ignore range; every move gives all enemies a turn; and moving is capped at 3 cells in a hostile sector. So the dominant play was: stay at range, torpedo the far ones, blast the near ones, and close in only when cover forces it. Questions and ideas to explore: Should closing in pay off, e.g. blasts more likely to kill or doing more damage up close, a point-blank bonus, or torpedoes that can be dodged at long range? Should distance pay off for the enemy too, e.g. some enemy types that snipe from range or prefer to keep away? Should stars give cover bonuses for the ship as well as blocking lines? Should retreating out of range let shields recharge faster? Should an enemy adjacent to the ship block or slow its movement? Name which driver each option serves (scarcity of agency, readable consequences, double-edged mechanics), check it against the game-design skill's anti-strategy review, and measure with the committed balance harness before deciding. Related open work: the combat rebalance idea (6 enemies should be a nail-biter), randomized blaster and raxxon damage, oblique enemy approach, and enemies firing on arrival.
+----
+Score:   50
+ID: scoring-xijr
+Created: 2026-11-15T01:32:06Z
+Updated: 2026-11-15T01:32:06Z
+
+Scoring and advancement: give each game a score, and let scores across games advance the captain in rank. Details to be settled with the designer.
+
+Starting points:
+- What earns points: enemies destroyed (weighted by size or danger if enemy ships vary), sectors cleared, stardates taken (faster is better), energy and torpedoes left, hull intact, starbases protected. A loss could still score partial credit.
+- Show the score in the end-of-game report and the viewer, with the breakdown so the captain can see where points came from (readable consequences).
+- The score feeds rank: Ensign, Lieutenant, Commander, Captain, Commodore, Admiral; thresholds are [T].
+- Needs a player identity to persist across games, so it depends on sign-in. Until then, a per-game score only.
+- Scoring must come from the core, computed from game state, so every client shows one number. Deterministic.
+- Anti-strategies to check: farming easy sectors forever, stalling for points, quitting a losing game to protect an average.
+----
+Score:   50
+ID: enemysizes-zvxn
+Created: 2026-11-15T01:32:11Z
+Updated: 2026-11-15T01:32:11Z
+
+Enemy ship sizes: not every enemy is the same ship. Sizes might be scout, cruiser, battleship (names to be chosen), each a parameter set on one enemy template rather than a separate code path.
+
+Things a size could change:
+- Fire strength (scale on the raxxon damage).
+- Toughness without tracking hull: e.g. a lower blast kill chance, or a battleship needs a torpedo, or survives one blast with a set chance. The designer prefers all-or-nothing blasts.
+- Speed: how many cells it advances per enemy turn, and how often it approaches obliquely.
+- Points, if scoring arrives.
+
+Also decide:
+- How sizes show on the sector map and in the enemy table, e.g. a different letter per size.
+- Whether long-range scans show sizes or only counts (information as currency).
+- How generation chooses sizes, e.g. bigger ships farther from the galaxy centre, fitting the existing enemy-distance scaling.
+- How sizes interact with combat balance, so a sector of mixed sizes is a real triage decision. Serves: scarcity of agency, readable consequences, enemy identity.
+
+Needs an Enemy field in the core (today enemies are only cells), so state must fit in a struct. Deterministic from the seed.
+----
+Score:   50
+ID: advancement-rm2g
+Created: 2026-11-15T01:32:17Z
+Updated: 2026-11-15T01:32:17Z
+
+Advancement: what a captain gains by rising in rank or completing goals, so progress across games means something in play. Details to be settled with the designer.
+
+Possibilities:
+- Harder commands: bigger galaxies, more enemies, tighter siege clocks.
+- Ship refits chosen between games, e.g. more torpedo capacity, better blaster reach or kill chance, faster warp, stronger hull. Keep these as small parameter changes on existing constants, and keep each a trade-off rather than pure power (double-edged mechanics).
+- New ship classes or crew specialists that each break one rule.
+- Cosmetic only: titles, ship names, a service record page.
+
+Guardrails:
+- Advancement must not trivialise the game. Higher rank should probably bring harder assignments as well as better ships, keeping near-miss tension (escalating commitment).
+- Needs persistent player identity, so it depends on sign-in. It also relates to scoring and to per-player goals.
+- In a shared multiplayer galaxy, decide whether advanced ships coexist with new players fairly.
+----
+Score:   50
+ID: achievements-ktus
+Created: 2026-11-15T01:32:23Z
+Updated: 2026-11-15T01:32:23Z
+
+Achievements and game goals: named accomplishments earned in play, plus a stated goal for each game beyond "destroy every enemy". This complements the existing idea for a player-goals page.
+
+Achievement examples:
+- Flawless: win with the hull never damaged.
+- Marksman: N kills in a row without a miss.
+- Long shot: a blast kill at range 7 or more.
+- No torpedoes: win without firing one.
+- Relief of the starbase: break a siege with less than 10% of the clock left.
+- Comedy ones: an enemy steps into a torpedo already in flight; win with one unit of energy left.
+- The hidden one: beat the no-win training scenario.
+
+Game goal examples:
+- Clear the galaxy (today's goal).
+- Clear it by a set stardate.
+- Protect every starbase.
+- Escort or survey missions.
+- Clear only a marked region.
+Each goal changes the win condition and the end-of-game report.
+
+Design notes:
+- Achievements are detected in the core from events and state, so they are deterministic and every client agrees.
+- The end-of-game report lists achievements earned; the LLM announces them in character, perhaps as commendations from Star Central.
+- Persisting them across games needs player identity, so it depends on sign-in. Per-game achievements can come first.
+- Every achievement should reward a play pattern the design wants (serves a driver). None should reward degenerate play, such as stalling.
