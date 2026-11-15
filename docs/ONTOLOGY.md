@@ -324,12 +324,13 @@ hull, shields, energy, quantorpedoes := max;  stardate += DOCK_TIME
 run stardate events
 ```
 
-### Long-range scan — *Serves: F-discovery* [D]
+### Long-range scan — *Serves: F-discovery, F-danger* [D]
 ```
 illegal if energy < LRS_ENERGY
 energy -= LRS_ENERGY
 for each sector in the 3×3 block around sector_yx: mark visible, report "E|B|S"; off-galaxy → "....."
-run stardate events
+stardate += LRS_TIME [T]
+run stardate events      # enemies present act; in a cleared sector the stardate still advances, no one acts [D]
 ```
 
 ### Blast — *Serves: F-danger, G-4* [D]
@@ -448,6 +449,7 @@ Referred to by name everywhere else.
 | `SUBWARP_TIME_PER_STEP` | 1 | stardate | D-6 |
 | `DOCK_TIME` | 5 | stardate | D-7 |
 | `LRS_ENERGY` | 500 | energy | D-8 |
+| `LRS_TIME` | 3 | stardate | D-8 |
 | `BLAST_RANGE` | 6 | cells | D-9 |
 | `BLAST_ENERGY_BASE` | 1000 | energy per √cell | D-9 |
 | `BLAST_TIME_A` | −0.37840 | stardate | D-9 |
@@ -501,7 +503,7 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 | `galaxy_warp` | `y, x` | action | Warp | `{sector_yx, distance, energy_cost, time}` |
 | `subwarp` | `y, x` | action | Subwarp | `{ship_yx, path, energy_cost, time}` |
 | `dock` | — | action | Dock | `{time}` |
-| `long_range_scan` | — | action | Long-range scan | `{scan: string[3], energy_cost}` |
+| `long_range_scan` | — | action | Long-range scan | `{scan: string[3], energy_cost, time}` |
 | `blast` | `y, x` | action | Blast | `{hit_yx, path, energy_cost, time}` |
 | `torpedo` | `y, x` | action | Torpedo | `{hit_yx, path, energy_cost, time}` |
 

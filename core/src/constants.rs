@@ -27,6 +27,7 @@ pub const SUBWARP_TIME_PER_STEP: f64 = 1.0;
 
 pub const DOCK_TIME: f64 = 5.0;
 pub const LRS_ENERGY: i32 = 500;
+pub const LRS_TIME: f64 = 3.0;
 
 pub const BLAST_RANGE: f64 = 6.0;
 pub const BLAST_ENERGY_BASE: f64 = 1000.0;

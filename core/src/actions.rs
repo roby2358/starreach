@@ -20,7 +20,7 @@ pub enum Report {
     Warp { sector_yx: Yx, distance: i32, energy_cost: i32, time: f64 },
     Subwarp { ship_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: f64 },
     Dock { time: f64 },
-    Scan { scan: Vec<String>, energy_cost: i32 },
+    Scan { scan: Vec<String>, energy_cost: i32, time: f64 },
     Shot { hit_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: f64 },
 }
 
@@ -97,8 +97,9 @@ pub fn long_range_scan(game: &mut Game, events: &mut Vec<String>) -> Result<Repo
     afford(game, LRS_ENERGY, "a long-range scan")?;
     game.ship.energy -= LRS_ENERGY;
     let scan = game.galaxy.scan(game.sector_yx);
+    game.stardate += LRS_TIME;
     events.extend(stardate_events(game));
-    Ok(Report::Scan { scan, energy_cost: LRS_ENERGY })
+    Ok(Report::Scan { scan, energy_cost: LRS_ENERGY, time: LRS_TIME })
 }
 
 pub fn blast(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {

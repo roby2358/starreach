@@ -1,12 +1,4 @@
-Priority:   65
-Status: ToDo
-ID: lrsturn-q2fy
-Created: 2026-11-14T23:58:27Z
-Updated: 2026-11-14T23:58:27Z
-
-Make the long-range scan take a full round, so scanning in combat has a cost. Today `long_range_scan` (core/src/actions.rs) spends LRS_ENERGY but no time, so enemies in the sector never get a turn and the scan is free in the middle of a fight. Give it a time cost (a new [T] constant, e.g. LRS_TIME, likely 1 stardate unit) so it advances the stardate and runs the same stardate events as other timed actions, which is where enemies present fire or advance. Return `time` in its report like the other actions. Update: the Long-range scan rule in ONTOLOGY (and its report row in the Commands table and the Numbers table), a RATIONALE decision with alternatives (e.g. enemies act only while the sector is hostile; a scan is still free in a cleared sector because no one is there to act), the CRITERIA row for the scan and its test/R-n tests (an enemy present acts after a scan; no enemy, no events), the `long_range_scan` tool description in app/src/mcp.ts (say it takes a turn, so enemies present act), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
-----
-Priority:   60
+Priority:   70
 Status: ToDo
 ID: enemyrange-4e6f
 Created: 2026-11-14T23:58:32Z
@@ -14,29 +6,31 @@ Updated: 2026-11-15T00:01:38Z
 
 Make the sector display give, for each enemy, its range, its bearing and whether the ship has a clear shot at it, so the LLM (and the captain) don't have to work out distances and lines of fire by hand before choosing blast versus torpedo, or before deciding to move. Range is the same Euclidean distance the blast range check uses (BLAST_RANGE) and enemy fire uses for damage. Bearing is included even though no command takes one yet. Clear shot is true when the ship's ray toward that enemy (the same `first_enemy` / Bresenham ray that blast and torpedo use) ends on that enemy, so a star or another enemy in the way makes it false. It says nothing about range: a clear shot beyond BLAST_RANGE is still torpedo-only. Likely shape: GameState gains an enemy list with each enemy's yx, range (two decimals), bearing (decide the convention with the user, e.g. degrees clockwise from up/north, or a compass point) and clear_shot, computed in the core from the ship's cell, so every client reads one source and the preview is the rule. Then: public/instructions.txt shows a short enemy table (cell, range, bearing, clear shot) under the sector map; decide with the user whether the viewer page shows it too. Update ONTOLOGY (GameState fields, and that range and clear shot come from the blast/torpedo rules), CRITERIA with a row and test/R-n tests (range matches the blast check's distance; bearing for the four axis directions and a diagonal; clear shot false behind a star and behind another enemy, true on an open line, and equal to whether a torpedo at that cell would hit it), RATIONALE for the bearing convention, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
 ----
-Priority:   50
+Priority:   65
 Status: ToDo
 ID: oblique-sxti
 Created: 2026-11-15T00:33:46Z
 Updated: 2026-11-15T00:33:46Z
 
 Enemies sometimes approach obliquely instead of straight down the line to the ship. Today `enemy_advance` (core/src/events.rs) always moves ENEMY_ADVANCE_STEPS along the Bresenham ray from the enemy to the ship. Because torpedoes and blasts use that same ray, an enemy that advances often steps straight into the line of a shot already aimed at it; in the first full live game this happened four times. That is funny but predictable, and a straight approach is also easy to cover. Change: when an enemy advances, with a [T] probability (new constant, e.g. ENEMY_OBLIQUE_CHANCE) it heads for a cell beside the ship's line instead, e.g. toward a target offset one or two cells perpendicular to the ray, or a sidestep then advance, chosen with the game's seeded rng so determinism holds (same seed + same commands = same state). It still never passes through stars or other enemies, and still stops when blocked. Decide the exact oblique rule with the designer (offset target vs. lateral step; how far off-line). Update the EnemiesTurn / enemy advance rule in ONTOLOGY with pseudocode, the Numbers table, a RATIONALE decision with alternatives (Serves: readable consequences vs. variable reinforcement), the CRITERIA row and test/R-n tests (an oblique advance still gets closer or no farther, never moves through obstacles, and is reproducible from the seed), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
-----
-Priority:   50
-Status: ToDo
-ID: dmgvariance-s2cg
-Created: 2026-11-15T00:33:52Z
-Updated: 2026-11-15T00:33:52Z
 
-Randomize blaster (blaston) and raxxon damage to add variability. Raxxon (enemy fire) damage today is deterministic: `ENEMY_FIRE_BASE * (1/distance)^ENEMY_FIRE_FALLOFF`, rounded (core/src/events.rs, enemy_fire); add a random factor drawn from the game's seeded rng, e.g. multiply by a uniform roll in a [T] band such as 0.75..1.25 (new constants), so the same seed + same commands still give the same state. Blasts today always destroy the enemy they hit; enemies have no hull, so randomizing blaster damage needs a design decision first. Options to bring to the designer: (a) give enemies a hull (a [T] constant, possibly varying per enemy) and have a blast deal randomized damage that falls off with range, so a long blast may only wound; (b) keep one-hit kills but give a blast a kill chance that falls with range; (c) randomize only the energy cost. Note this interacts with the open combat-rebalance idea (6 enemies should be a nail-biter). Update ONTOLOGY (the Blast rule, enemy fire in EnemiesTurn, any new Enemy field, the Numbers table), RATIONALE decisions with alternatives and Evidence from the committed balance harness (`just cc-model-balance`), CRITERIA rows and test/R-n tests (damage stays within the band; reproducible from the seed), the tool descriptions if behavior a player relies on changes, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+Note: Raxxon rays are more range-sensitive than our blastors, so the closing logic should be 25% oblique left, 50% head-on, 25% oblique right
 ----
-Priority:   50
+Priority:   65
 Status: ToDo
 ID: ambush-zx7y
 Created: 2026-11-15T00:33:58Z
 Updated: 2026-11-15T00:33:58Z
 
 When the ship warps into a sector with enemies, 30% of them fire on arrival. Today arrival is free: the Warp rule runs EnemiesTurn in the sector being left, then instantiates the new sector, and nothing there acts until the player's next timed action, so the player always gets the first shot (in the first full live game, every hostile sector was entered without taking fire). Change: after instantiating the target sector in the Warp rule, each enemy present fires at the ship with probability ENEMY_AMBUSH_CHANCE = 0.3 (new [T] constant), using the same enemy fire rule (damage by distance, blocked by stars and other enemies), the seeded rng for the rolls so determinism holds, and the same events ("Enemy at (y, x) fires raxxon beam! ..."). If the hull reaches 0 the game ends. Update the Warp rule pseudocode in ONTOLOGY, the Numbers table, a RATIONALE decision with alternatives (e.g. all enemies get a full turn on arrival; only enemies within a range fire; scanning first lowers the chance), the CRITERIA row for warp and its test/R-n tests (with a seeded game: about 30% of enemies fire over many arrivals; blocked shots do no damage; arrival in an empty sector produces no fire), the `galaxy_warp` tool description so the LLM knows arriving can draw fire, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
+Priority:   60
+Status: ToDo
+ID: dmgvariance-s2cg
+Created: 2026-11-15T00:33:52Z
+Updated: 2026-11-15T00:33:52Z
+
+Randomize blaster (blaston) and raxxon damage to add variability. Raxxon (enemy fire) damage today is deterministic: `ENEMY_FIRE_BASE * (1/distance)^ENEMY_FIRE_FALLOFF`, rounded (core/src/events.rs, enemy_fire); add a random factor drawn from the game's seeded rng, e.g. multiply by a uniform roll in a [T] band such as 0.75..1.25 (new constants), so the same seed + same commands still give the same state. Blasts today always destroy the enemy they hit; enemies have no hull, so randomizing blaster damage needs a design decision first. Options to bring to the designer: (a) give enemies a hull (a [T] constant, possibly varying per enemy) and have a blast deal randomized damage that falls off with range, so a long blast may only wound; (b) keep one-hit kills but give a blast a kill chance that falls with range; (c) randomize only the energy cost. Note this interacts with the open combat-rebalance idea (6 enemies should be a nail-biter). Update ONTOLOGY (the Blast rule, enemy fire in EnemiesTurn, any new Enemy field, the Numbers table), RATIONALE decisions with alternatives and Evidence from the committed balance harness (`just cc-model-balance`), CRITERIA rows and test/R-n tests (damage stays within the band; reproducible from the seed), the tool descriptions if behavior a player relies on changes, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
 ----
 Priority:   40
 Status: ToDo
@@ -48,21 +42,21 @@ Login flow, in this order: (1) the player opens the web page, (2) signs in, (3) 
 ----
 Priority:   40
 Status: ToDo
-ID: sqlstore-dmew
-Created: 2026-11-14T17:14:23Z
-Updated: 2026-11-14T17:14:23Z
-
-Move the Cloudflare game store from the Durable Object's key-value storage to a SQL table, as the game grows. Today each game's Durable Object (adapters/cloudflare/src/game_object.ts, one per view_id, SQLite-backed) keeps the whole game JSON under one key in ctx.storage.kv, recorded as a [P] decision in RATIONALE D-21. Replace that with a table in the object's SQLite storage (ctx.storage.sql), e.g. a games row holding the JSON plus columns worth querying (turn, status, updated time), so later work (per-player state for multiplayer, event history and replay for viewers, owner sub once login lands) can add tables and indexes instead of growing one blob. Read the object's existing key-value value on first access and write it into the table, or wipe local dev state if no deployed games need keeping (ask the user which; deployed games may exist by then). Keep the app's GameStore interface unchanged. Update the store tests in adapters/cloudflare/test, ONTOLOGY, RATIONALE D-21 (settle the [P] as [D]), CRITERIA Status, and an ARCHITECTURE_LOG entry. Ask the user before committing.
-----
-Priority:   35
-Status: ToDo
 ID: authclient-ze87
 Created: 2026-11-05T00:41:07Z
 Updated: 2026-11-14T15:47:45Z
 
 Publish yuwakisacloud's auth-client and switch Starreach to consume it. Today auth-client is a private workspace package inside /work/yuwakisacloud/jsonsolver/auth-client ("private": true, version 0.0.0, depends on cbor-x 1.6.4); it verifies auth/'s bespoke Ed25519/CBOR access tokens offline (verifyAccessToken, JWKS cache, pins iss/aud/exp). Short-term plan (decided): Starreach COPIES auth-client into this repo (vendored, with a note recording the source path and git commit it was copied from) so the Cloudflare deployment isn't blocked. This task: (1) in yuwakisacloud, make auth-client publishable — give it a real version, move it out of jsonsolver to a shared location or keep it there, and publish as a git dependency or private npm package; update jsonsolver to depend on the published version; (2) in Starreach, replace the vendored copy with the published package and delete the copy; (3) add an ARCHITECTURE_LOG entry. Risk while vendored: the copy silently drifts if auth/ changes its token format — check the source commit before each Starreach deploy.
 ----
-Priority:   30
+Priority:   35
+Status: ToDo
+ID: sqlstore-dmew
+Created: 2026-11-14T17:14:23Z
+Updated: 2026-11-14T17:14:23Z
+
+Move the Cloudflare game store from the Durable Object's key-value storage to a SQL table, as the game grows. Today each game's Durable Object (adapters/cloudflare/src/game_object.ts, one per view_id, SQLite-backed) keeps the whole game JSON under one key in ctx.storage.kv, recorded as a [P] decision in RATIONALE D-21. Replace that with a table in the object's SQLite storage (ctx.storage.sql), e.g. a games row holding the JSON plus columns worth querying (turn, status, updated time), so later work (per-player state for multiplayer, event history and replay for viewers, owner sub once login lands) can add tables and indexes instead of growing one blob. Read the object's existing key-value value on first access and write it into the table, or wipe local dev state if no deployed games need keeping (ask the user which; deployed games may exist by then). Keep the app's GameStore interface unchanged. Update the store tests in adapters/cloudflare/test, ONTOLOGY, RATIONALE D-21 (settle the [P] as [D]), CRITERIA Status, and an ARCHITECTURE_LOG entry. Ask the user before committing.
+----
+Priority:   20
 Status: ToDo
 ID: eventarch-rm5g
 Created: 2026-11-07T02:15:40Z

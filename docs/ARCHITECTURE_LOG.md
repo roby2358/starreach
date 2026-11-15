@@ -3,6 +3,13 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — The long-range scan takes a round of time
+`long_range_scan` spent `LRS_ENERGY` but no time, so enemies never acted and a scan in the
+middle of a fight was free. It now advances the stardate by the new `LRS_TIME` (3, equal to
+`EVENT_INTERVAL`, so a scan always completes a round) and runs `stardate_events`, the same path
+subwarp, dock and the weapons use; `report.time` is added. In a cleared sector the stardate
+advances and nothing else happens. D-8 and R-7 updated; the tool description says it takes a turn.
+
 ### 2026-11-14 — Server instructions; wait for orders; the subwarp cap; viewer_url
 In the first live game the LLM played several sectors before the player had opened the viewer, and
 was surprised when a subwarp stopped after 3 cells. `instructions.txt`, until now only an MCP

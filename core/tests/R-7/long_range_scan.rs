@@ -11,12 +11,11 @@ fn energy_below_the_cost_is_refused() {
 }
 
 #[test]
-fn reveals_the_block_and_pays_without_taking_time() {
+fn reveals_the_block_and_pays_energy() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
     let applied = run(&game, Command::LongRangeScan);
     let next = &applied.game;
     assert_eq!(next.ship.energy, game.ship.energy - LRS_ENERGY);
-    assert_eq!(next.stardate, game.stardate);
     for dy in -1..=1 {
         for dx in -1..=1 {
             assert!(next.galaxy.record((TEST_SECTOR.0 + dy, TEST_SECTOR.1 + dx)).visible);
@@ -35,4 +34,32 @@ fn sectors_off_the_galaxy_show_dots() {
     let scan = report(&run(&game, Command::LongRangeScan))["scan"].clone();
     assert_eq!(scan[0], "..... ..... .....");
     assert!(scan[1].as_str().unwrap().starts_with("..... "));
+}
+
+#[test]
+fn takes_lrs_time_and_reports_it() {
+    let game = board(EMPTY_WITH_SHIP_AT_00);
+    let applied = run(&game, Command::LongRangeScan);
+    assert_eq!(applied.game.stardate, game.stardate + LRS_TIME);
+    assert_eq!(report(&applied)["time"], LRS_TIME);
+}
+
+#[test]
+fn an_enemy_present_acts_after_the_scan() {
+    let mut game = board([
+        "S.........", "..........", "..........", "..........", "..........",
+        "..........", "..........", "..........", "..........", ".........E",
+    ]);
+    game.ship.shields = SHIP_MAX_SHIELDS;
+    let applied = run(&game, Command::LongRangeScan);
+    assert_eq!(applied.result.events.iter().filter(|e| e.starts_with("Enemy")).count(), 1);
+}
+
+#[test]
+fn a_cleared_sector_advances_the_stardate_with_no_enemy_events() {
+    let mut game = board(EMPTY_WITH_SHIP_AT_00);
+    game.ship.shields = SHIP_MAX_SHIELDS;
+    let applied = run(&game, Command::LongRangeScan);
+    assert_eq!(applied.game.stardate, game.stardate + LRS_TIME);
+    assert!(applied.result.events.is_empty());
 }

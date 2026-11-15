@@ -232,10 +232,15 @@ inferences, waiting for review.
   the hull too, because otherwise hull damage is a countdown with no counterplay, and
   "retreat to resupply" (DYNAMICS) needs a resupply that matters.
 
-### D-8 A long-range scan costs energy and reveals the 3×3 block — *Decided*
-- **Alternatives:** free scans; scans that cost time.
+### D-8 A long-range scan costs energy and a round of time, and reveals the 3×3 block — *Decided*
+- **Alternatives:** free scans; scans that cost energy only (the earlier rule); a scan that
+  gives enemies a turn only while the sector is hostile, with no time passing in a cleared one.
 - **Why:** Information as currency (F-discovery). `LRS_ENERGY` is small next to
-  `SHIP_MAX_ENERGY`, so the price is mild.
+  `SHIP_MAX_ENERGY`, so the energy price is mild. With no time cost, scanning mid-fight was
+  free: the enemies never acted (F-danger). `LRS_TIME` equals `EVENT_INTERVAL`, a full round,
+  so enemies present always act after a scan [T]. In a cleared sector the stardate still
+  advances, by the same rule as every other timed action; nobody is there to act, so nothing
+  happens [D]. One path (`stardate_events`) serves all timed actions.
 
 ### D-9 Two weapons: blast (ranged, energy) and torpedo (unlimited range, limited ammo) — *Decided*
 - **Alternatives:** a single weapon.
