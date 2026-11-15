@@ -10,7 +10,6 @@ Needs:
 - Store the owner's sub with each game when new_game runs (the Cloudflare Durable Object and the Node adapter's store).
 - An owner check on every MCP tool: a game_id belonging to someone else answers "Game not found", the same as an unknown game, so game_ids can't be probed.
 - What the local Node adapter does with no auth: a single implicit player, so local play and tests keep working.
-- Optionally, a way for a player to find their own games without keeping the game_id (for example a list_games tool), since the game_id is the only handle today.
 
 Out of scope [D]: the viewer page stays unauthenticated. Its link carries a view hash rather than the game_id and it is read-only, so it needs no sign-in, no cookie, and no Origin check on its socket.
 
@@ -94,6 +93,26 @@ Work in auth/:
 - Clients not on the list can still use a pre-registered client id with their callback registered.
 
 Record the choice per resource server in auth/'s docs, and in Starreach's docs if its setting changes. Ask the user before committing, deploying, or touching yuwakisacloud's production.
+----
+Priority:   20
+Status: ToDo
+ID: listgames-q8eh
+Created: 2026-11-15T23:12:02Z
+Updated: 2026-11-15T23:12:02Z
+
+A way for a signed-in player to find their own games without keeping the game_id: a `list_games` MCP tool. Today the game_id that new_game returns is the only handle on a game, so a player who starts a new conversation, or whose assistant loses the id, can't get back to a game in progress.
+
+Needs game ownership first: each game stored with its owner (the auth/ token's sub) and commands limited to the owner.
+
+Do:
+- An index from player to their games. On Cloudflare each game is its own Durable Object, so one object can't list the others: decide where the index lives (for example one Durable Object per player holding that player's game ids, written when new_game runs). The Node adapter's in-memory store can scan.
+- A `list_games` tool that returns the caller's games only: game_id, viewer link, stardate or turn, status (in progress, won, lost) and when it was last played, newest first. Never another player's games.
+- With no sign-in (the local Node adapter), list the games of the single implicit player.
+- Cap the list length (a [T] constant) and decide whether finished games are listed.
+- Tell the LLM in public/instructions.txt when to use it, for example when the captain asks to resume a game.
+- If idle games are ever deleted, a deleted game must also leave the index.
+
+Tests: a player sees their own games and not another player's; a new game appears in the list; the cap holds. Update ONTOLOGY (the MCP tools table, the index), CRITERIA (an R-row), RATIONALE (where the index lives and why), README and the log. Ask the user before committing or deploying.
 ----
 Priority:   10
 Status: ToDo
