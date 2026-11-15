@@ -4,12 +4,13 @@
 //! same generation a new game uses. Modeled only: these are formula and sampling results, not
 //! play measurements.
 
-use starreach_core::actions::{blast_energy, blast_time};
+use starreach_core::actions::{blast_energy, blast_kill_chance, blast_time};
+use starreach_core::constants::{ENEMY_FIRE_VARIANCE_MAX, ENEMY_FIRE_VARIANCE_MIN};
 use starreach_core::events::fire_damage;
 use starreach_core::galaxy::{Galaxy, SectorRecord};
 use starreach_core::rng::Rng;
 
-const RANGES: [f64; 7] = [1.0, std::f64::consts::SQRT_2, 2.0, 3.0, 4.0, 5.0, 6.0];
+const RANGES: [f64; 10] = [1.0, std::f64::consts::SQRT_2, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0];
 
 struct GalaxyCounts {
     enemies: u32,
@@ -49,13 +50,20 @@ fn print_generation(n: u32) {
     println!("enemy-free sectors mean {:.0}", mean(counts.iter().map(|c| c.enemy_free_sectors), n));
 }
 
+/// Per range: enemy fire at the band's low end, middle and high end; the blast's cost, time
+/// and kill chance, and its expected energy per kill (cost / chance, since a miss still pays).
 fn print_combat() {
     for range in RANGES {
+        let chance = blast_kill_chance(range);
         println!(
-            "range {range:4.2}: enemy fire {:5} dmg | blast {} energy, time {}",
-            fire_damage(range),
+            "range {range:4.2}: enemy fire {:4}-{:4}-{:4} dmg | blast {} energy, time {}, kill {:.0}%, {:.0} energy/kill",
+            fire_damage(range, ENEMY_FIRE_VARIANCE_MIN),
+            fire_damage(range, 1.0),
+            fire_damage(range, ENEMY_FIRE_VARIANCE_MAX),
             blast_energy(range),
-            blast_time(range)
+            blast_time(range),
+            chance * 100.0,
+            f64::from(blast_energy(range)) / chance
         );
     }
 }

@@ -26,7 +26,7 @@ const COMMAND_TOOLS = [
   { type: "subwarp", args: COORDINATES, description: "Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present" },
   { type: "dock", args: {}, description: "Dock with an adjacent starbase in a cleared sector: restores hull, shields, energy and quantorpedoes" },
   { type: "long_range_scan", args: {}, description: "Reveal E|B|S for the 3x3 block of sectors around the ship. Takes a turn (LRS_TIME stardates), so enemies present act after it" },
-  { type: "blast", args: COORDINATES, description: "Fire a blaston beam toward cell (y, x); it hits the first enemy on the line, within range" },
+  { type: "blast", args: COORDINATES, description: "Fire a blaston beam toward cell (y, x); it hits the first enemy on the line, up to range 9. It kills 90% of the time up to range 3, falling to 10% at 9; a miss still costs its energy and time (report.destroyed)" },
   { type: "torpedo", args: COORDINATES, description: "Fire a quantorpedo toward cell (y, x); it hits the first enemy on the line, at any range" },
 ] as const;
 

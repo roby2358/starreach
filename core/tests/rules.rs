@@ -85,3 +85,9 @@ mod r_30_oblique_advance;
 
 #[path = "R-31/ambush.rs"]
 mod r_31_ambush;
+
+#[path = "R-32/blast_kill_chance.rs"]
+mod r_32_blast_kill_chance;
+
+#[path = "R-33/fire_variance.rs"]
+mod r_33_fire_variance;

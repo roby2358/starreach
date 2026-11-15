@@ -29,7 +29,12 @@ pub const DOCK_TIME: f64 = 5.0;
 pub const LRS_ENERGY: i32 = 500;
 pub const LRS_TIME: f64 = 3.0;
 
-pub const BLAST_RANGE: f64 = 6.0;
+pub const BLAST_RANGE: f64 = 9.0;
+/// Up to this range a blast kills with `BLAST_KILL_CHANCE_NEAR`; beyond it the chance falls
+/// linearly to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`.
+pub const BLAST_SURE_RANGE: f64 = 3.0;
+pub const BLAST_KILL_CHANCE_NEAR: f64 = 0.9;
+pub const BLAST_KILL_CHANCE_FAR: f64 = 0.1;
 pub const BLAST_ENERGY_BASE: f64 = 1000.0;
 pub const BLAST_TIME_A: f64 = -0.37840;
 pub const BLAST_TIME_B: f64 = 1.37840;
@@ -43,6 +48,9 @@ pub const ENEMY_OBLIQUE_CHANCE: f64 = 0.5;
 pub const ENEMY_AMBUSH_CHANCE: f64 = 0.3;
 pub const ENEMY_FIRE_BASE: f64 = 2000.0;
 pub const ENEMY_FIRE_FALLOFF: f64 = 1.57;
+/// Enemy fire damage is multiplied by a uniform factor in this band.
+pub const ENEMY_FIRE_VARIANCE_MIN: f64 = 0.75;
+pub const ENEMY_FIRE_VARIANCE_MAX: f64 = 1.25;
 
 pub const SHIP_MAX_HULL: i32 = 2000;
 pub const SHIP_MAX_SHIELDS: i32 = 3000;

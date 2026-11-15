@@ -1,15 +1,15 @@
-//! R-14: enemy fire.
+//! R-14: enemy fire, at a given damage factor (the factor's band is R-33).
 use crate::helpers::*;
 use starreach_core::constants::*;
-use starreach_core::events::{enemy_fire, fire_damage};
+use starreach_core::events::{enemy_fire, enemy_fire_by, fire_damage};
 
 const TWO_AWAY: [&str; 10] = [
     "S.E.......", "..........", "..........", "..........", "..........",
     "..........", "..........", "..........", "..........", "..........",
 ];
 
-fn expected(distance: f64) -> i32 {
-    (ENEMY_FIRE_BASE * (1.0 / distance).powf(ENEMY_FIRE_FALLOFF)).round() as i32
+fn expected(distance: f64, factor: f64) -> i32 {
+    (ENEMY_FIRE_BASE * (1.0 / distance).powf(ENEMY_FIRE_FALLOFF) * factor).round() as i32
 }
 
 #[test]
@@ -27,9 +27,9 @@ fn a_blocked_ray_deals_no_damage() {
 fn shields_absorb_first_and_the_rest_goes_to_hull() {
     let mut game = board(TWO_AWAY);
     game.ship.shields = 100;
-    enemy_fire(&mut game, 0);
+    enemy_fire_by(&mut game, 0, 1.0);
     assert_eq!(game.ship.shields, 0);
-    assert_eq!(game.ship.hull, SHIP_MAX_HULL - (expected(2.0) - 100));
+    assert_eq!(game.ship.hull, SHIP_MAX_HULL - (expected(2.0, 1.0) - 100));
 }
 
 #[test]
@@ -43,8 +43,10 @@ fn neither_drops_below_zero() {
 
 #[test]
 fn damage_follows_the_formula_and_falls_with_distance() {
-    for d in 1..12 {
-        assert_eq!(fire_damage(d as f64), expected(d as f64));
-        assert!(fire_damage(d as f64) > fire_damage(d as f64 + 1.0));
+    for factor in [ENEMY_FIRE_VARIANCE_MIN, 1.0, ENEMY_FIRE_VARIANCE_MAX] {
+        for d in 1..12 {
+            assert_eq!(fire_damage(d as f64, factor), expected(d as f64, factor));
+            assert!(fire_damage(d as f64, factor) > fire_damage(d as f64 + 1.0, factor));
+        }
     }
 }

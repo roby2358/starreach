@@ -38,7 +38,8 @@ where you come back to resupply.
 |---|---|---|
 | Single ray rule: stars and ships block movement and fire | Combat positioning, cover | Scarcity of Agency, Readable Consequences |
 | Damage falls off steeply with distance (`ENEMY_FIRE_FALLOFF`) | Range as protection | Scarcity of Agency |
-| Blast: limited range, energy cost rising with √range | Weapon choice | Scarcity of Agency |
+| Blast: limited range, energy cost rising with √range, kill chance falling with range | Weapon choice; the gamble of a long shot | Scarcity of Agency, Near Miss |
+| Enemy fire damage varies within a band | "Can I take one more volley?" | Variable Reinforcement |
 | Torpedo: unlimited range, limited ammo | Weapon choice; the long shot | Scarcity of Agency |
 | Enemy density rises with distance from home | Venturing out is a commitment | Escalating Commitment |
 | Rare starbases; docking only in a cleared sector; docking repairs the hull | Resupply as a goal you earn | Landmarks, Loss Aversion |

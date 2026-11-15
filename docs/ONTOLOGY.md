@@ -140,7 +140,9 @@ Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx 
 
 ### Enemy
 *Serves: F-danger.* [D] An occupant of one cell. Its only property is its position (an
-entry in `enemies_yx`). All enemies are alike, and one hit destroys one.
+entry in `enemies_yx`). All enemies are alike and have no hull: a hit either destroys one or
+leaves it untouched. A torpedo always destroys it; a blast does with a chance that falls with range
+(Blast).
 
 ### EnemySight
 *Serves: F-danger, G-4.* [D] One enemy as the ship sees it, made in the core for every
@@ -274,7 +276,7 @@ when a long-range scan covers it.
 ### Random streams
 *Serves: G-2, F-discovery.* [D] Two kinds of stream, both deterministic:
 - **The game stream** `rng`, seeded from `seed` at creation and carried in the Game. Galaxy
-  generation, `STARDATE_START` and enemy choices draw from it.
+  generation, `STARDATE_START`, enemy choices, blast kill rolls and enemy fire damage draw from it.
 - **A sector stream** `sector_rng(seed, sector_yx)`, fresh each time a sector is built, so a
   sector's layout depends only on the seed, the sector and its record.
 
@@ -355,8 +357,14 @@ run stardate events      # enemies present act; in a cleared sector the stardate
 hit = first enemy on ray(ship_yx, target);  illegal if none
 r = euclid(ship_yx, hit);  illegal if r > BLAST_RANGE
 cost = int(BLAST_ENERGY_BASE × √r);  illegal if energy < cost
-destroy hit;  energy -= cost;  stardate += int(BLAST_TIME_A + BLAST_TIME_B × √r)
+destroyed = rng.unit() < kill_chance(r)      # one draw per blast [D]
+if destroyed: destroy hit   else: report the miss (the enemy is untouched)
+energy -= cost;  stardate += int(BLAST_TIME_A + BLAST_TIME_B × √r)      # paid hit or miss [D]
 run stardate events
+
+kill_chance(r):
+  r ≤ BLAST_SURE_RANGE: BLAST_KILL_CHANCE_NEAR
+  otherwise: linear from BLAST_KILL_CHANCE_NEAR at BLAST_SURE_RANGE to BLAST_KILL_CHANCE_FAR at BLAST_RANGE [P]
 ```
 
 ### Torpedo — *Serves: F-danger, G-4* [D]
@@ -415,7 +423,8 @@ if dest is empty: move enemy to dest   else: stay
 ### EnemyFire — *Serves: F-danger* [D]
 ```
 if ray(enemy, ship_yx) doesn't end at ship_yx: no effect
-damage = round(ENEMY_FIRE_BASE × (1 / euclid(enemy, ship_yx)) ^ ENEMY_FIRE_FALLOFF)
+factor = uniform(rng, ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX)      # one draw per shot, blocked or not
+damage = round(ENEMY_FIRE_BASE × (1 / euclid(enemy, ship_yx)) ^ ENEMY_FIRE_FALLOFF × factor)
 shields absorb up to their value; hull absorbs the rest up to its value
 ```
 
@@ -475,7 +484,10 @@ Referred to by name everywhere else.
 | `DOCK_TIME` | 5 | stardate | D-7 |
 | `LRS_ENERGY` | 500 | energy | D-8 |
 | `LRS_TIME` | 3 | stardate | D-8 |
-| `BLAST_RANGE` | 6 | cells | D-9 |
+| `BLAST_RANGE` | 9 | cells; also where the kill chance reaches `BLAST_KILL_CHANCE_FAR` | D-9, D-36 |
+| `BLAST_SURE_RANGE` | 3 | cells, up to which a blast kills with `BLAST_KILL_CHANCE_NEAR` | D-36 |
+| `BLAST_KILL_CHANCE_NEAR` | 0.9 | probability a blast kills, up to `BLAST_SURE_RANGE` | D-36 |
+| `BLAST_KILL_CHANCE_FAR` | 0.1 | probability a blast kills at `BLAST_RANGE` | D-36 |
 | `BLAST_ENERGY_BASE` | 1000 | energy per √cell | D-9 |
 | `BLAST_TIME_A` | −0.37840 | stardate | D-9 |
 | `BLAST_TIME_B` | 1.37840 | stardate per √cell | D-9 |
@@ -488,6 +500,8 @@ Referred to by name everywhere else.
 | `ENEMY_AMBUSH_CHANCE` | 0.3 | probability per enemy that it fires when the ship arrives | D-35 |
 | `ENEMY_FIRE_BASE` | 2000 | damage at 1 cell | D-10 |
 | `ENEMY_FIRE_FALLOFF` | 1.57 | exponent | D-10 |
+| `ENEMY_FIRE_VARIANCE_MIN` | 0.75 | lowest damage factor of a shot | D-37 |
+| `ENEMY_FIRE_VARIANCE_MAX` | 1.25 | highest damage factor of a shot | D-37 |
 | `SHIP_MAX_HULL` | 2000 | hp | D-11 |
 | `SHIP_MAX_SHIELDS` | 3000 | hp | D-11 |
 | `SHIP_MAX_ENERGY` | 50000 | energy | D-11 |
@@ -531,8 +545,8 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 | `subwarp` | `y, x` | action | Subwarp | `{ship_yx, path, energy_cost, time}` |
 | `dock` | — | action | Dock | `{time}` |
 | `long_range_scan` | — | action | Long-range scan | `{scan: string[3], energy_cost, time}` |
-| `blast` | `y, x` | action | Blast | `{hit_yx, path, energy_cost, time}` |
-| `torpedo` | `y, x` | action | Torpedo | `{hit_yx, path, energy_cost, time}` |
+| `blast` | `y, x` | action | Blast | `{hit_yx, path, destroyed, energy_cost, time}` |
+| `torpedo` | `y, x` | action | Torpedo | `{hit_yx, path, destroyed, energy_cost, time}`; `destroyed` is always true |
 
 `galaxy_map` rows are 10 space-separated entries: visible `E|B|S`, hidden `.....`.
 
@@ -614,6 +628,7 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Event | Messages |
 |---|---|
 | StarbaseHail | `Starbase communication: all clear, approach for docking` · `… under attack, needs assistance` |
+| Blast miss | `Blaston beam misses the enemy at (y, x)! Distance: d` |
 | ShieldReplenish | `Shields recharged by n using n energy` |
 | EnemyFire | `Enemy at (y, x) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
 | EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |

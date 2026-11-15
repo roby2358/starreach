@@ -21,7 +21,7 @@ pub enum Report {
     Subwarp { ship_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: f64 },
     Dock { time: f64 },
     Scan { scan: Vec<String>, energy_cost: i32, time: f64 },
-    Shot { hit_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: f64 },
+    Shot { hit_yx: Yx, path: Vec<Yx>, destroyed: bool, energy_cost: i32, time: f64 },
 }
 
 pub fn warp_distance(from: Yx, to: Yx) -> i32 {
@@ -104,6 +104,13 @@ pub fn long_range_scan(game: &mut Game, events: &mut Vec<String>) -> Result<Repo
 }
 
 pub fn blast(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
+    let roll = game.rng.unit();
+    blast_by(game, target, roll, events)
+}
+
+/// The Blast rule with its kill roll given: the hit enemy is destroyed iff
+/// `roll < blast_kill_chance(range)`. A miss still costs the energy and the time.
+pub fn blast_by(game: &mut Game, target: Yx, roll: f64, events: &mut Vec<String>) -> Result<Report, Refusal> {
     let (hit_yx, path) = first_enemy(game, target, "beam")?;
     let range = euclid(game.sector.ship_yx, hit_yx);
     if range > BLAST_RANGE {
@@ -112,8 +119,22 @@ pub fn blast(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Re
     let energy_cost = blast_energy(range);
     afford(game, energy_cost, "this blast")?;
     let time = blast_time(range);
-    fire(game, hit_yx, energy_cost, time, events);
-    Ok(Report::Shot { hit_yx, path, energy_cost, time })
+    let destroyed = roll < blast_kill_chance(range);
+    if !destroyed {
+        events.push(format!("Blaston beam misses the enemy at {}! Distance: {range:.2}", format_yx(hit_yx)));
+    }
+    fire(game, hit_yx, destroyed, energy_cost, time, events);
+    Ok(Report::Shot { hit_yx, path, destroyed, energy_cost, time })
+}
+
+/// The chance a blast destroys the enemy it hits: `BLAST_KILL_CHANCE_NEAR` up to
+/// `BLAST_SURE_RANGE`, then falling linearly to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`.
+pub fn blast_kill_chance(range: f64) -> f64 {
+    if range <= BLAST_SURE_RANGE {
+        return BLAST_KILL_CHANCE_NEAR;
+    }
+    let along = (range - BLAST_SURE_RANGE) / (BLAST_RANGE - BLAST_SURE_RANGE);
+    BLAST_KILL_CHANCE_NEAR + (BLAST_KILL_CHANCE_FAR - BLAST_KILL_CHANCE_NEAR) * along
 }
 
 /// Blast energy cost at a range: rises with its square root (D-9).
@@ -133,8 +154,8 @@ pub fn torpedo(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<
     afford(game, TORPEDO_ENERGY, "a torpedo")?;
     let (hit_yx, path) = first_enemy(game, target, "torpedo")?;
     game.ship.quantorpedoes -= 1;
-    fire(game, hit_yx, TORPEDO_ENERGY, TORPEDO_TIME, events);
-    Ok(Report::Shot { hit_yx, path, energy_cost: TORPEDO_ENERGY, time: TORPEDO_TIME })
+    fire(game, hit_yx, true, TORPEDO_ENERGY, TORPEDO_TIME, events);
+    Ok(Report::Shot { hit_yx, path, destroyed: true, energy_cost: TORPEDO_ENERGY, time: TORPEDO_TIME })
 }
 
 fn afford(game: &Game, cost: i32, what: &str) -> Result<(), Refusal> {
@@ -151,8 +172,10 @@ fn first_enemy(game: &Game, target: Yx, weapon: &str) -> Result<(Yx, Vec<Yx>), R
 }
 
 /// The shared tail of blast and torpedo.
-fn fire(game: &mut Game, hit_yx: Yx, energy_cost: i32, time: f64, events: &mut Vec<String>) {
-    game.destroy_enemy(hit_yx);
+fn fire(game: &mut Game, hit_yx: Yx, destroyed: bool, energy_cost: i32, time: f64, events: &mut Vec<String>) {
+    if destroyed {
+        game.destroy_enemy(hit_yx);
+    }
     game.ship.energy -= energy_cost;
     game.stardate += time;
     events.extend(stardate_events(game));

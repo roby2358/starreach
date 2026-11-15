@@ -33,7 +33,7 @@ fn destroying_the_last_enemy_wins() {
     for yx in all_cells().filter(|&yx| yx != game.sector_yx) {
         game.galaxy.record_mut(yx).enemies = 0;
     }
-    let applied = run(&game, blast(0, 3));
+    let applied = run(&game, torpedo(0, 3));
     assert_eq!(applied.game.status, Status::Won);
     assert!(applied.result.events.contains(&"Every enemy in the galaxy is destroyed".to_string()));
 }

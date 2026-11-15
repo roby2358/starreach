@@ -49,7 +49,9 @@ fn ambush_damage_is_the_enemy_fire_damage_for_the_distance() {
     let shields = game.ship.shields;
     ambush(&mut game, 1.0);
     let distance = euclid((0, 0), (3, 3));
-    assert_eq!(game.ship.shields, shields - fire_damage(distance));
+    let taken = shields - game.ship.shields;
+    assert!(taken >= fire_damage(distance, ENEMY_FIRE_VARIANCE_MIN), "{taken}");
+    assert!(taken <= fire_damage(distance, ENEMY_FIRE_VARIANCE_MAX), "{taken}");
 }
 
 #[test]

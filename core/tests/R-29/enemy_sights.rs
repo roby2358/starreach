@@ -72,7 +72,7 @@ fn clear_shot_is_false_behind_another_enemy_and_true_for_the_one_in_front() {
 
 #[test]
 fn clear_shot_says_nothing_about_range() {
-    let game = with((5, 0), &[(5, 9)], &[]);
+    let game = with((0, 0), &[(9, 9)], &[]);
     assert!(sights(&game)[0].range > starreach_core::constants::BLAST_RANGE);
     assert!(sights(&game)[0].clear_shot);
 }

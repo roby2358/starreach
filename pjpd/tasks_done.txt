@@ -122,6 +122,14 @@ Q-14 (docs/RATIONALE.md): Warping out of a sector with enemies never triggers an
 ----
 Priority:   60
 Status: Done
+ID: dmgvariance-s2cg
+Created: 2026-11-15T00:33:52Z
+Updated: 2026-11-15T01:08:40Z
+
+Randomize blaster (blaston) and raxxon damage to add variability. Raxxon (enemy fire) damage today is deterministic: `ENEMY_FIRE_BASE * (1/distance)^ENEMY_FIRE_FALLOFF`, rounded (core/src/events.rs, enemy_fire); add a random factor drawn from the game's seeded rng, e.g. multiply by a uniform roll in a [T] band such as 0.75..1.25 (new constants), so the same seed + same commands still give the same state. Blasts today always destroy the enemy they hit; enemies have no hull, so randomizing blaster damage needs a design decision first. Options to bring to the designer: (a) give enemies a hull (a [T] constant, possibly varying per enemy) and have a blast deal randomized damage that falls off with range, so a long blast may only wound; (b) keep one-hit kills but give a blast a kill chance that falls with range; (c) randomize only the energy cost. Note this interacts with the open combat-rebalance idea (6 enemies should be a nail-biter). Update ONTOLOGY (the Blast rule, enemy fire in EnemiesTurn, any new Enemy field, the Numbers table), RATIONALE decisions with alternatives and Evidence from the committed balance harness (`just cc-model-balance`), CRITERIA rows and test/R-n tests (damage stays within the band; reproducible from the seed), the tool descriptions if behavior a player relies on changes, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
+Priority:   60
+Status: Done
 ID: cfdeploy-axub
 Created: 2026-11-14T16:44:03Z
 Updated: 2026-11-14T17:15:46Z

@@ -178,13 +178,19 @@ fn oblique_dest(game: &Game, from: Yx, approach: Approach) -> Option<Yx> {
 }
 
 pub fn enemy_fire(game: &mut Game, index: usize) -> Vec<String> {
+    let factor = fire_factor(game.rng.unit());
+    enemy_fire_by(game, index, factor)
+}
+
+/// The EnemyFire rule with its damage factor given.
+pub fn enemy_fire_by(game: &mut Game, index: usize, factor: f64) -> Vec<String> {
     let from = game.sector.enemies_yx[index];
     let ship_yx = game.sector.ship_yx;
     if game.sector.ray(from, ship_yx).last() != Some(&ship_yx) {
         return vec![format!("Enemy at {} fires raxxon beam but path is blocked", format_yx(from))];
     }
     let distance = euclid(from, ship_yx);
-    let damage = fire_damage(distance);
+    let damage = fire_damage(distance, factor);
     let dealt = absorb(game, damage);
     vec![
         format!("Enemy at {} fires raxxon beam! Distance: {distance:.2}, Damage: {damage}", format_yx(from)),
@@ -192,8 +198,13 @@ pub fn enemy_fire(game: &mut Game, index: usize) -> Vec<String> {
     ]
 }
 
-pub fn fire_damage(distance: f64) -> i32 {
-    (ENEMY_FIRE_BASE * (1.0 / distance).powf(ENEMY_FIRE_FALLOFF)).round() as i32
+/// A roll in [0, 1) mapped onto the band `ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX`.
+pub fn fire_factor(roll: f64) -> f64 {
+    ENEMY_FIRE_VARIANCE_MIN + (ENEMY_FIRE_VARIANCE_MAX - ENEMY_FIRE_VARIANCE_MIN) * roll
+}
+
+pub fn fire_damage(distance: f64, factor: f64) -> i32 {
+    (ENEMY_FIRE_BASE * (1.0 / distance).powf(ENEMY_FIRE_FALLOFF) * factor).round() as i32
 }
 
 /// Shields first, then hull, neither below 0. Returns the damage taken.

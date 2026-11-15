@@ -3,6 +3,17 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Blasts can miss; enemy fire varies
+Blasts always destroyed the enemy they hit within range 6, and enemy fire dealt a fixed amount
+per range. The designer kept blasts all-or-nothing, with no enemy hull: a blast now kills with
+`BLAST_KILL_CHANCE_NEAR` (0.9) up to `BLAST_SURE_RANGE` (3), falling linearly to
+`BLAST_KILL_CHANCE_FAR` (0.1) at `BLAST_RANGE`, which goes from 6 to 9. A miss pays energy and
+time, leaves the enemy, adds a "Blaston beam misses" event, and shot reports gain `destroyed`.
+`enemy_fire` scales damage by a factor drawn in `ENEMY_FIRE_VARIANCE_MIN..MAX` (0.75..1.25), which
+ambush shares. Both draw from the game's rng. New decisions D-36 and D-37, rows R-32 and R-33;
+D-9, D-19, R-9, R-14 and R-22 updated. The balance harness prints the band and the kill chance;
+the `blast` description and `instructions.txt` give the new reach.
+
 ### 2026-11-15 — Arriving in a hostile sector can draw fire
 Arrival was free: nothing in a newly entered sector acted until the player's next timed action. After
 instantiating the target, the Warp rule now calls `ambush`: each enemy fires once with probability

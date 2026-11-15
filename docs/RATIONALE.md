@@ -218,10 +218,11 @@ inferences, waiting for review.
   star stops in the cell before it, rather than destroying the ship: instant death from one
   misread coordinate is harsh with an LLM in the loop.
 
-### D-19 Enemies are anonymous and die in one hit — *Decided*
+### D-19 Enemies are anonymous and have no hull: a hit kills or does nothing — *Decided*
 - **Alternatives:** enemy health; named enemy races (the names Rasphyx, Geakthon,
   Deltaclast, Auvoros and Raskaos appear in a code comment).
-- **Why:** Simple. Each kill is clearly reported by position.
+- **Why:** Simple, and the designer doesn't want to track enemy damage. Each kill is clearly
+  reported by position. Blast uncertainty comes from its kill chance (D-36), not from wounds.
 
 ---
 
@@ -256,13 +257,14 @@ inferences, waiting for review.
 
 ### D-9 Two weapons: blast (ranged, energy) and torpedo (unlimited range, limited ammo) — *Decided*
 - **Alternatives:** a single weapon.
-- **Why:** A real choice between them. The blast is limited by `BLAST_RANGE` and its cost
-  rises with √range, measured to the enemy it hits, not to the aimed cell (so aiming past
-  a near enemy costs what hitting it costs). The torpedo is cheap in energy but scarce (`SHIP_MAX_QUANTORPEDOES`)
-  and reaches anything on the ray.
+- **Why:** A real choice between them. The blast is limited by `BLAST_RANGE`, its cost
+  rises with √range and its kill chance falls with range (D-36), all measured to the enemy it
+  hits, not to the aimed cell (so aiming past a near enemy costs what hitting it costs). The
+  torpedo is cheap in energy but scarce (`SHIP_MAX_QUANTORPEDOES`), reaches anything on the ray,
+  and always kills.
 - **Evidence:** Modeled by: `just cc-model-balance 2000` — a blast costs 1000 energy at range 1, 1414 at
-  range 2, and 2449 at range 6. That is roughly 20–50 blasts per full tank. Blast time is
-  1 up to range 2 and 2 from range 3 to 6.
+  range 2, 2449 at range 6 and 3000 at range 9. That is roughly 16–50 blasts per full tank. Blast
+  time is 1 up to range 2, 2 from range 3 to 6, and 3 from range 7 to 9.
 
 ### D-10 Enemies act on an accumulating stardate clock; each enemy advances with probability `ENEMY_ADVANCE_FRACTION`, else fires — *Decided, tuned by none yet*
 - **Alternatives:** a clock that resets after every action (then no single action but a
@@ -273,8 +275,9 @@ inferences, waiting for review.
   takes time brings the next enemy turn closer. Faster actions still buy more shots before
   the reply. A per-enemy roll lets small groups advance too. Damage falls off steeply with
   distance, so range is protection.
-- **Evidence:** Modeled by: `just cc-model-balance 2000` — 2000 damage at range 1, 674 at 2, 356 at 3, 120
-  at 6. With 5000 shields plus hull, about 2.5 point-blank hits destroy the ship.
+- **Evidence:** Modeled by: `just cc-model-balance 2000` — at the middle of the D-37 band, 2000 damage at
+  range 1, 674 at 2, 356 at 3, 120 at 6. With 5000 shields plus hull, about 2.5 point-blank hits
+  destroy the ship.
 
 ### D-34 An advancing enemy approaches 25% oblique left, 50% head-on, 25% oblique right — *Decided; the geometry is Proposed*
 - **Alternatives:** always head-on (the old rule: an enemy often stepped into the line of a shot already aimed at it, easy to predict and cover); a target cell offset perpendicular to the ray; a sidestep then advance; a different split.
@@ -285,6 +288,39 @@ inferences, waiting for review.
 - **Alternatives:** no arrival fire (the old rule: the player always got the first shot, and every hostile sector in the first live game was entered unharmed); every enemy gets a full EnemiesTurn on arrival; only enemies within a range fire; scanning first lowers the chance.
 - **Why:** Designer decision: 30% of enemies fire when you enter the sector. Entering a hostile sector should cost something, but a full turn would make warping into a crowd near-certain ruin. Rolls use the game's seeded rng, and shots reuse the enemy fire rule, so range and cover still matter. [P] The ambush runs after the sector is instantiated and before the starbase hail, enemies in `enemies_yx` order, and stops once the hull is 0; the usual end-of-action check then loses the game.
 - **Evidence:** Tested by R-31 (share over 4000 seeds, damage equals the fire formula, a fatal ambush loses).
+
+### D-36 A blast kills with a chance that falls from 0.9 at range 3 to 0.1 at range 9 — *Decided; the linear falloff is Proposed*
+- **Choice:** Blasts stay all-or-nothing (D-19). A blast kills with `BLAST_KILL_CHANCE_NEAR` up to
+  `BLAST_SURE_RANGE`, falling to `BLAST_KILL_CHANCE_FAR` at `BLAST_RANGE`, which moves out to 9 so
+  the far end of that falloff is reachable. A miss still costs the energy and the time, leaves the
+  enemy where it was, and is reported as an event and as `report.destroyed`. One draw from the
+  game's rng per accepted blast. [P] The falloff is linear: about 0.77 at 4, 0.63 at 5, 0.5 at 6.
+- **Alternatives:** enemies with a hull and blasts that deal randomized damage falling with range,
+  so a long blast may only wound (more state to track, which the designer declined); randomizing
+  only the blast's energy cost (no change in the fight); keeping certain kills within range 6 (the
+  first live game: every blast killed and standing off at 4+ made combat nearly free).
+- **Why:** Designer decision: the effective range is 3, but 4 or 5 is still a decent shot, and a
+  long shot is a gamble. Missing makes closing in worth its danger (enemy fire falls off steeply,
+  D-10), gives torpedoes, which always kill, a reason to be saved, and brings the near-miss into
+  play. A paid miss keeps every action costing something (G-4).
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — kill chance
+  90% to range 3, 77% at 4, 63% at 5, 50% at 6, 37% at 7, 23% at 8, 10% at 9. Expected energy per
+  kill (cost ÷ chance): 1111 at range 1, 1924 at 3, 2609 at 4, 3531 at 5, 4898 at 6, 30000 at 9.
+  Before, every blast killed: 2449 per kill at range 6. Tested by R-9 and R-32.
+
+### D-37 Enemy fire damage varies by a factor in 0.75..1.25 — *Decided; the band is Proposed*
+- **Choice:** Each enemy shot multiplies its damage by a uniform factor in
+  `ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX`, drawn from the game's rng, then rounds. It
+  lives in the enemy fire rule, so ambush fire (D-35) varies too. [P] The band is ±25%, and the draw
+  is made for every shot, blocked or not, which keeps the draw count simple.
+- **Alternatives:** fixed damage (the old rule: every shot at a range dealt the same, so a player
+  could compute exactly how many hits the shields would take); a band that widens with range; a
+  normal distribution.
+- **Why:** Variable reinforcement and a little uncertainty in "can I take one more volley" (F-danger),
+  without changing the mean, so D-10's range falloff still sets the shape of a fight.
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (formula, unverified in play) — damage
+  1500–2500 at range 1, 505–842 at 2, 267–446 at 3, 90–150 at 6, 48–79 at 9. Before: a fixed 2000,
+  674, 356 and 120. Tested by R-14 and R-33.
 
 ### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided*
 - **Alternatives:** a stardate deadline; open-ended play.
