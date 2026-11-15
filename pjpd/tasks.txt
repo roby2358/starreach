@@ -9,7 +9,6 @@ Game ownership once MCP sign-in works: each game belongs to the player who start
 Needs:
 - Store the owner's sub with each game when new_game runs (the Cloudflare Durable Object and the Node adapter's store).
 - An owner check on every MCP tool: a game_id belonging to someone else answers "Game not found", the same as an unknown game, so game_ids can't be probed.
-- What the local Node adapter does with no auth: a single implicit player, so local play and tests keep working.
 
 Out of scope [D]: the viewer page stays unauthenticated. Its link carries a view hash rather than the game_id and it is read-only, so it needs no sign-in, no cookie, and no Origin check on its socket.
 
@@ -67,6 +66,24 @@ Design:
 - Say on the home page that idle games are removed after the retention period.
 
 Tests: an idle game past retention is gone and its viewer socket is closed; a command resets the clock (pin the clock; use the Durable Object alarm test helpers); a game inside retention survives. Update ONTOLOGY (Game's last-activity field, the retention rule, the numbers table), CRITERIA (an R-row), RATIONALE (the retention period and what counts as activity) and the log. Ask the user before committing or deploying.
+----
+Priority:   30
+Status: ToDo
+ID: localplayer-3dbw
+Created: 2026-11-15T23:24:19Z
+Updated: 2026-11-15T23:24:19Z
+
+Local play with no sign-in, once games have owners. The local Node adapter (adapters/node, stdio and its local HTTP server) has no auth: it gives the MCP server `player: null`, and `whoami` answers signed_in false. When each game belongs to the player who started it and only that player can command it, decide what an endpoint without sign-in does, so local play and the tests keep working.
+
+Proposed: a single implicit player. Every game started on an endpoint without sign-in belongs to that one player, and every command there comes from that player, so the owner check always passes locally and there is one code path for the check rather than a "no auth, skip the check" branch.
+
+Do:
+- Decide how the implicit player is represented: a fixed, named local player id that the Node adapter supplies (so `player` is never null and the app layer has no null case), or null meaning "the local player" in the app layer. Prefer the adapter supplying it, so the app treats every endpoint the same.
+- Decide what `whoami` reports locally: signed_in false as today, or the local player id.
+- Make sure a local player id can never collide with, or be accepted as, a real auth/ sub on the Cloudflare endpoint: Cloudflare takes the player only from a verified token.
+- Keep the app tests' shared setup (app/test/helpers/deps.ts, which passes `player: null`) and the Node adapter's integration tests working.
+
+Tests: on an endpoint without sign-in, a game can be started and commanded; `whoami` reports what was decided. Update ONTOLOGY (the player on an endpoint without sign-in), CRITERIA, RATIONALE (the choice and the alternatives), README (local play) and the log. Ask the user before committing or deploying.
 ----
 Priority:   20
 Status: ToDo
