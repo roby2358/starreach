@@ -3,6 +3,12 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — Arriving in a hostile sector can draw fire
+Arrival was free: nothing in a newly entered sector acted until the player's next timed action. After
+instantiating the target, the Warp rule now calls `ambush`: each enemy fires once with probability
+`ENEMY_AMBUSH_CHANCE` (0.3), through `enemy_fire` and the game's rng, stopping when the hull is 0
+(then the game is lost). New decision D-35 and row R-31; the `galaxy_warp` description says so.
+
 ### 2026-11-15 — Enemies sometimes approach obliquely
 Advancing enemies always stepped down the same Bresenham ray that blasts and torpedoes use, so they
 often walked into a shot already aimed at them. `enemy_advance` now draws an approach from the

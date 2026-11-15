@@ -281,6 +281,11 @@ inferences, waiting for review.
 - **Why:** Raxxon fire is more range-sensitive than our blasters, so enemies want to close, but not predictably down the shot line. The choice uses the game's seeded rng, so the same seed and commands give the same state. Serves readable consequences (still always closer or no farther, never through obstacles) with some variable reinforcement. [P] Geometry: each step is the head-on step turned one octant (45 degrees) left or right, or head-on when the turned step would be farther from the ship; a blocked step means it stays.
 - **Evidence:** Tested by R-30 (shares over 4000 seeds, never farther, never through obstacles).
 
+### D-35 On arrival each enemy fires with probability 0.3 — *Decided; the placement is Proposed*
+- **Alternatives:** no arrival fire (the old rule: the player always got the first shot, and every hostile sector in the first live game was entered unharmed); every enemy gets a full EnemiesTurn on arrival; only enemies within a range fire; scanning first lowers the chance.
+- **Why:** Designer decision: 30% of enemies fire when you enter the sector. Entering a hostile sector should cost something, but a full turn would make warping into a crowd near-certain ruin. Rolls use the game's seeded rng, and shots reuse the enemy fire rule, so range and cover still matter. [P] The ambush runs after the sector is instantiated and before the starbase hail, enemies in `enemies_yx` order, and stops once the hull is 0; the usual end-of-action check then loses the game.
+- **Evidence:** Tested by R-31 (share over 4000 seeds, damage equals the fire formula, a fatal ambush loses).
+
 ### D-23 A game ends: hull 0 loses, destroying every enemy in the galaxy wins — *Decided*
 - **Alternatives:** a stardate deadline; open-ended play.
 - **Why:** G-2 and F-danger need stakes. After the end, actions are refused and queries

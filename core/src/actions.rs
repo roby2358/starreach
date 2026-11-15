@@ -6,7 +6,7 @@
 use serde::Serialize;
 
 use crate::constants::*;
-use crate::events::{enemies_turn, stardate_events, warp_events};
+use crate::events::{ambush, enemies_turn, stardate_events, warp_events};
 use crate::game::{Game, Status};
 use crate::geometry::{adjacent, euclid, format_yx, Yx};
 
@@ -49,6 +49,7 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
     game.ship.energy -= energy_cost;
     game.stardate += time;
     game.enter_sector(target);
+    events.extend(ambush(game, ENEMY_AMBUSH_CHANCE));
     events.extend(warp_events(game));
     Ok(Report::Warp { sector_yx: target, distance, energy_cost, time })
 }

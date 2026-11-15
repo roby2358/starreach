@@ -88,6 +88,21 @@ pub fn enemies_turn(game: &mut Game) -> Vec<String> {
     messages
 }
 
+/// On arrival each enemy fires once with probability `chance`, by the enemy fire rule.
+/// Stops when the ship is destroyed.
+pub fn ambush(game: &mut Game, chance: f64) -> Vec<String> {
+    let mut messages = Vec::new();
+    for index in 0..game.sector.enemies_yx.len() {
+        if game.ship.hull == 0 {
+            break;
+        }
+        if game.rng.chance(chance) {
+            messages.extend(enemy_fire(game, index));
+        }
+    }
+    messages
+}
+
 /// How an advancing enemy heads for the ship: straight down the ray, or with each step
 /// turned one octant (45 degrees) to the left or right of it.
 #[derive(Clone, Copy, Debug, PartialEq)]

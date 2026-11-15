@@ -96,6 +96,24 @@ Q-8 (docs/RATIONALE.md): The browser UI doesn't show the game the LLM is playing
 ----
 Priority:   65
 Status: Done
+ID: ambush-zx7y
+Created: 2026-11-15T00:33:58Z
+Updated: 2026-11-15T01:02:13Z
+
+When the ship warps into a sector with enemies, 30% of them fire on arrival. Today arrival is free: the Warp rule runs EnemiesTurn in the sector being left, then instantiates the new sector, and nothing there acts until the player's next timed action, so the player always gets the first shot (in the first full live game, every hostile sector was entered without taking fire). Change: after instantiating the target sector in the Warp rule, each enemy present fires at the ship with probability ENEMY_AMBUSH_CHANCE = 0.3 (new [T] constant), using the same enemy fire rule (damage by distance, blocked by stars and other enemies), the seeded rng for the rolls so determinism holds, and the same events ("Enemy at (y, x) fires raxxon beam! ..."). If the hull reaches 0 the game ends. Update the Warp rule pseudocode in ONTOLOGY, the Numbers table, a RATIONALE decision with alternatives (e.g. all enemies get a full turn on arrival; only enemies within a range fire; scanning first lowers the chance), the CRITERIA row for warp and its test/R-n tests (with a seeded game: about 30% of enemies fire over many arrivals; blocked shots do no damage; arrival in an empty sector produces no fire), the `galaxy_warp` tool description so the LLM knows arriving can draw fire, and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
+Priority:   65
+Status: Done
+ID: oblique-sxti
+Created: 2026-11-15T00:33:46Z
+Updated: 2026-11-15T00:58:54Z
+
+Enemies sometimes approach obliquely instead of straight down the line to the ship. Today `enemy_advance` (core/src/events.rs) always moves ENEMY_ADVANCE_STEPS along the Bresenham ray from the enemy to the ship. Because torpedoes and blasts use that same ray, an enemy that advances often steps straight into the line of a shot already aimed at it; in the first full live game this happened four times. That is funny but predictable, and a straight approach is also easy to cover. Change: when an enemy advances, with a [T] probability (new constant, e.g. ENEMY_OBLIQUE_CHANCE) it heads for a cell beside the ship's line instead, e.g. toward a target offset one or two cells perpendicular to the ray, or a sidestep then advance, chosen with the game's seeded rng so determinism holds (same seed + same commands = same state). It still never passes through stars or other enemies, and still stops when blocked. Decide the exact oblique rule with the designer (offset target vs. lateral step; how far off-line). Update the EnemiesTurn / enemy advance rule in ONTOLOGY with pseudocode, the Numbers table, a RATIONALE decision with alternatives (Serves: readable consequences vs. variable reinforcement), the CRITERIA row and test/R-n tests (an oblique advance still gets closer or no farther, never moves through obstacles, and is reproducible from the seed), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+
+Note: Raxxon rays are more range-sensitive than our blastors, so the closing logic should be 25% oblique left, 50% head-on, 25% oblique right
+----
+Priority:   65
+Status: Done
 ID: warpescape-qptc
 Created: 2026-11-04T23:53:46Z
 Updated: 2026-11-05T01:44:39Z

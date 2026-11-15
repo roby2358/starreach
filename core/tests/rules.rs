@@ -82,3 +82,6 @@ mod r_29_enemy_sights;
 
 #[path = "R-30/oblique_advance.rs"]
 mod r_30_oblique_advance;
+
+#[path = "R-31/ambush.rs"]
+mod r_31_ambush;

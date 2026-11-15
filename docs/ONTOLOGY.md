@@ -321,6 +321,7 @@ illegal if energy < cost
 if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
 mark target visible;  energy -= cost;  stardate += distance × WARP_TIME_PER_DISTANCE
 sector_yx = target;  sector = instantiate(target);  last_event_stardate = stardate
+ambush: for each enemy in order, while hull > 0: with probability ENEMY_AMBUSH_CHANCE it fires once (the EnemiesTurn fire rule) [D]
 run warp events
 ```
 
@@ -484,6 +485,7 @@ Referred to by name everywhere else.
 | `ENEMY_ADVANCE_FRACTION` | 1/3 | probability per enemy | D-10 |
 | `ENEMY_ADVANCE_STEPS` | 2 | cells | D-10 |
 | `ENEMY_OBLIQUE_CHANCE` | 0.5 | probability an advance is oblique, split evenly left and right | D-34 |
+| `ENEMY_AMBUSH_CHANCE` | 0.3 | probability per enemy that it fires when the ship arrives | D-35 |
 | `ENEMY_FIRE_BASE` | 2000 | damage at 1 cell | D-10 |
 | `ENEMY_FIRE_FALLOFF` | 1.57 | exponent | D-10 |
 | `SHIP_MAX_HULL` | 2000 | hp | D-11 |
