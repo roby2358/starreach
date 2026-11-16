@@ -13,6 +13,9 @@ use crate::stats::{average, percentile, sorted};
 const GAME_COMMAND_CAP: u32 = 5000;
 /// The ladder units a counter's `scale` is chosen from, largest first.
 const SCALES: [u32; 4] = [1000, 100, 10, 1];
+/// A counter's `scale` is at most the median per game divided by this, so a typical game climbs
+/// about ten units of the ladder or more.
+const UNITS_PER_MEDIAN_GAME: f64 = 10.0;
 /// The share of games that should reach a counter's `goal_ceiling` is 1 minus this.
 const GOAL_CEILING_FRACTION: f64 = 0.25;
 
@@ -93,9 +96,11 @@ impl Sample {
     }
 }
 
-/// The ladder's unit: the largest of `SCALES` at most the median per game, 1 below them all.
+/// The ladder's unit: the largest of `SCALES` at most a tenth of the median per game, 1 below
+/// them all.
 fn scale_for(median: f64) -> u32 {
-    SCALES.into_iter().find(|&scale| f64::from(scale) <= median).unwrap_or(1)
+    let tenth = median / UNITS_PER_MEDIAN_GAME;
+    SCALES.into_iter().find(|&scale| f64::from(scale) <= tenth).unwrap_or(1)
 }
 
 /// The most a goal may ask: what three games in four reach. 0, so never offered, when the

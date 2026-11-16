@@ -618,7 +618,7 @@ Referred to by name everywhere else.
 | `SHIELD_REPLENISH` | 500 | hp per firing | D-27 |
 | `SHIELD_POINTS_PER_ENERGY` | 10 | hp per energy, in a sector and on a warp [T] | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
-| `COUNTER_SCALE` | `enemies_destroyed` 100; `sectors_cleared`, `sectors_warped`, `docks`, `blasts_hit`, `torpedoes_fired`, `scans` 10; `starbases_discovered`, `games_won` 1; `shield_damage`, `hull_damage` 1000; `blasts_missed`, `games_lost`, `times_stranded` 1 | each counter's `scale` in the counter table: the unit of its ladder [T] | D-43 |
+| `COUNTER_SCALE` | `enemies_destroyed` 10; `shield_damage` 1000; `hull_damage` 100; every other counter 1 | each counter's `scale` in the counter table: the unit of its ladder [T] | D-43 |
 | `COUNTER_GOAL_CEILING` | `enemies_destroyed` 127; `sectors_cleared` 41; `sectors_warped` 56; `docks` 18; `starbases_discovered` 3; `blasts_hit` 57; `torpedoes_fired` 67; `scans` 33; `games_won` 0; every counter that may not be a goal 0 | each counter's `goal_ceiling` in the counter table: the most a goal may ask, 0 for not offered [T] | D-43 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |

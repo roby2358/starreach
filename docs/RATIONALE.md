@@ -169,22 +169,28 @@ inferences, waiting for review.
 
 ### D-43 Each counter's ladder scale and goal ceiling come by rule from modeled whole games — *Decided; the numbers tunable; the scripted captain and 0 for "not offered" are Proposed*
 - **Choice:** Each row of the counter table carries two numbers. `scale`, the unit of the
-  counter's ladder of lifetime totals, is the largest of 1, 10, 100, 1000 that is at most the
-  counter's median per game (1 when the median is below 1). `goal_ceiling`, for a counter that
+  counter's ladder of lifetime totals, is the largest of 1, 10, 100, 1000 that is at most one
+  tenth of the counter's median per game (1 when that is below 1). `goal_ceiling`, for a counter that
   may be a goal, is the counter's 25th percentile per game, so three games in four reach it; when
   that is below the counter's `scale` the ceiling is 0 and the counter is not offered as a goal.
   A counter that may not be a goal has ceiling 0. The per-game figures come from whole games
   played by a scripted captain (`just cc-model-games`), which prints what the rule gives beside
   what the table holds and marks a row that differs.
-- **Alternatives:** pick each scale and ceiling by hand (each would need a ruling, and again
+- **Alternatives:** a scale at most the whole median, not a tenth of it (a decade too coarse
+  against the designer's examples: it gives enemies in 100s, docks in 10s and hull damage in
+  1000s, and leaves a single rung under most goal ceilings); pick each scale and ceiling by hand (each would need a ruling, and again
   after every balance change); the mean in place of the median and 25th percentile (games that
   end early and games played to the end pull it apart); a ceiling at the median (half of all
   games would fall short of a goal at the ceiling, and a goal should not be too hard); no
   ceiling of 0, so every positive counter is always offered (a goal most games can't meet);
   an absent ceiling for counters that may not be goals (two shapes of row for one meaning:
   no goal amount fits under 0 either way).
-- **Why:** A ladder's rungs should arrive at a steady pace whatever the counter, so its unit
-  follows what one game typically produces. A goal has to be reachable in a single game by most
+- **Why:** The designer's examples fix the scales [D]: enemies destroyed in 10s, docks in 1s,
+  shield damage in 1000s, hull damage in 100s. A tenth of the median per game is the rule that
+  gives exactly those from the modeled figures, with 1000 as the largest unit. A ladder's rungs
+  should arrive at a steady pace whatever the counter, so its unit follows what one game
+  typically produces: a typical game climbs ten units or more, and the finer unit puts several
+  rungs under each goal ceiling, so a goal can be small. A goal has to be reachable in a single game by most
   players, so its size is capped by what most games reach. Setting both by rule from a
   measurement means a change to the rules is followed by rerunning the recipe, not by a new
   ruling.
@@ -208,17 +214,17 @@ inferences, waiting for review.
 
   | Counter, per game | mean | 10th pct | 25th pct | median | 90th pct | games with ≥ 1 | `scale` | `goal_ceiling` |
   |---|---|---|---|---|---|---|---|---|
-  | `enemies_destroyed` | 159.4 | 66 | 127 | 179 | 217 | 100% | 100 | 127 |
-  | `sectors_cleared` | 49.5 | 23 | 41 | 56 | 65 | 100% | 10 | 41 |
-  | `sectors_warped` | 67.3 | 31 | 56 | 76 | 88 | 100% | 10 | 56 |
-  | `docks` | 22.7 | 10 | 18 | 25 | 31 | 100% | 10 | 18 |
+  | `enemies_destroyed` | 159.4 | 66 | 127 | 179 | 217 | 100% | 10 | 127 |
+  | `sectors_cleared` | 49.5 | 23 | 41 | 56 | 65 | 100% | 1 | 41 |
+  | `sectors_warped` | 67.3 | 31 | 56 | 76 | 88 | 100% | 1 | 56 |
+  | `docks` | 22.7 | 10 | 18 | 25 | 31 | 100% | 1 | 18 |
   | `starbases_discovered` | 3.3 | 2 | 3 | 3 | 5 | 98% | 1 | 3 |
-  | `blasts_hit` | 72.8 | 28 | 57 | 80 | 103 | 100% | 10 | 57 |
-  | `torpedoes_fired` | 86.6 | 37 | 67 | 97 | 120 | 100% | 10 | 67 |
-  | `scans` | 35.9 | 21 | 33 | 39 | 44 | 100% | 10 | 33 |
+  | `blasts_hit` | 72.8 | 28 | 57 | 80 | 103 | 100% | 1 | 57 |
+  | `torpedoes_fired` | 86.6 | 37 | 67 | 97 | 120 | 100% | 1 | 67 |
+  | `scans` | 35.9 | 21 | 33 | 39 | 44 | 100% | 1 | 33 |
   | `games_won` | 0.5 | 0 | 0 | 1 | 1 | 53% | 1 | 0 |
   | `shield_damage` | 55698.1 | 22599 | 44014 | 59519 | 78828 | 100% | 1000 | 0 |
-  | `hull_damage` | 2776.7 | 972 | 2000 | 2482 | 4795 | 99% | 1000 | 0 |
+  | `hull_damage` | 2776.7 | 972 | 2000 | 2482 | 4795 | 99% | 100 | 0 |
   | `blasts_missed` | 8.1 | 3 | 5 | 8 | 13 | 98% | 1 | 0 |
   | `games_lost` | 0.5 | 0 | 0 | 0 | 1 | 47% | 1 | 0 |
   | `times_stranded` | 0.0 | 0 | 0 | 0 | 0 | 0% | 1 | 0 |
