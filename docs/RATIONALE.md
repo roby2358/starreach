@@ -484,6 +484,69 @@ inferences, waiting for review.
   Screenshots at 1100×800 and 375×700 were looked at (2026-11-16). Not watched alongside a real
   LLM session, and not exercised on deployed Cloudflare.
 
+### D-51 The app layer records telemetry: a record per game and an event per tool call, through a sink — *Decided; the record shapes, the key's construction, the sink's operations and numbering, whole seconds, and what counts as a call on a game are Proposed*
+- **Choice:** the app layer records what captains do, from Results it already holds, and hands
+  it to a telemetry sink that each adapter supplies beside its stores; there is no running
+  without one. A game record is written at `new_game` (telemetry game key, start time, seed,
+  rules version, player hash, MCP client) and completed when the game ends (outcome, what ended
+  it, counters, goals). An event record is written for every tool call on a game, accepted or
+  refused, queries included (ONTOLOGY Telemetry has the fields). The gap between commands is not
+  stored; it is the difference of consecutive events' times. The Node adapter keeps the records
+  in memory. A sink that fails is logged and fails nothing. Marking a game abandoned is left to
+  the cleaning up of inactive games. [D]
+  - **The telemetry game key** is the SHA-256 of the `game_id` under a prefix of telemetry's own,
+    so a game's records join, and it is neither the `game_id` nor the `view_id` (which is the bare
+    hash): from the key nobody gets either, so a reader of telemetry can't watch or command a
+    game. [D; hashing the `game_id` rather than the `view_id` is P: a viewer link then doesn't
+    give the key either.]
+  - **The player hash** is the SHA-256 of `PLAYER_HASH_SALT` and the player id. It exists only
+    to count distinct and returning players over a few weeks. The player id, the Bluesky identity
+    and conversation text are never recorded. The salt is a named constant in the code. [D] It
+    keeps the hash from being the plain hash of an id, and no more: whoever has the code and a
+    player's id can compute that player's hash.
+  - **The rules version** is one constant, `RULES_VERSION`, bumped by hand whenever a rule or a
+    number that play depends on changes, and recorded on every game so play under different rules
+    can be told apart (ONTOLOGY's Telemetry rule says when). [D] It lives in the app layer beside
+    the recording, not in the core. [P]
+  - **The MCP client** is whatever the server can truthfully tell. [D] That is two things, and
+    never both on one call: the name and version the client declares in `initialize`, which the
+    server sees only on a connection that carried it (stdio), and the HTTP `User-Agent`. Over
+    HTTP, MCP runs stateless, so a tool call arrives on its own request without the `initialize`
+    that named the client. The auth/ access token carries the player and the audience and not
+    the client that obtained it, so the token's client identity is not available. [P] **Whether
+    Claude Desktop and Claude Code can be told apart on the deployed server is not known**: it
+    rests on their `User-Agent`s differing, which no test here can show. A Claude Desktop
+    connector's calls come from claude.ai's servers and Claude Code's from the player's machine,
+    so they are expected to differ; to be settled by the first records from each.
+  - **Seed, start time and the accepted events in order replay a game.** [D] So the start time
+    recorded is the very number the core was given, and both it and the events' times come from
+    the adapter's one clock, in whole seconds. [P]
+  - **The sink numbers a game's events** as it receives them. [P]
+  - **A blast records no damage**: an enemy has no hull (D-19), so a blast kills or does nothing
+    and `hit` says which. The damage recorded for any call is what the ship took. [P]
+- **Alternatives:** counting in the core (the rules stay pure and play per seed unchanged; the
+  app layer already holds every Result); an optional sink or a default one (the designer: passed
+  in like the stores, no optional parameter); the `view_id` as the join key (a telemetry reader
+  could then open the game's viewer); a random key stored beside the game (a new field in every
+  stored game, where a hash needs none); recording the player id, or an unsalted hash (the id is
+  an identity; the bare hash is the same value any other system would compute for it); a secret
+  or rotating salt (for later, the designer); a rules version derived from a hash of the
+  constants (it would miss a changed rule and can't be read as "before" and "after"); the rules
+  version in the core beside the numbers it describes (a new Core API function for a number the
+  core never uses; the cost is that the constant sits away from the rules, so a rule change can
+  forget it); the seq kept beside the stored game (a refused call and a query would then write
+  the game, which they don't now; in return a lost event would show as a gap, which sink
+  numbering hides); a millisecond clock (a second field on every adapter for gaps between an
+  LLM's commands, which are seconds long); making HTTP MCP stateful to keep the declared name
+  (a session store on both platforms for one telemetry field); reading the shield recharge and
+  the cause of the end from event text (nothing is counted by reading messages, D-42; the states
+  and counters give both); an event for a call on an unknown `game_id` (it is on no game, and
+  its key would be a hash of whatever text was sent).
+- **Why:** every balance figure here is modeled; tuning and design should rest on what captains
+  actually do, and this is the source of "Measured by" evidence. [D]
+- **Evidence:** R-45 to R-49. Nothing is measured yet: the deployed Worker's sink drops every
+  record until its store is built (R-50), and locally the records live as long as the process.
+
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
   (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call

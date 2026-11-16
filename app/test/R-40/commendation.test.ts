@@ -6,7 +6,7 @@ import { test } from "node:test";
 
 import { awardLifetime } from "../../src/achievements.ts";
 import { newGame, runCommand, type CommandResult, type McpDeps } from "../../src/index.ts";
-import { call, connectClient, testDeps } from "../helpers/deps.ts";
+import { call, connectClient, testDeps, TEST_CLIENT } from "../helpers/deps.ts";
 
 const ZERO = { enemies_destroyed: 0, docks: 0, shield_damage: 0 };
 
@@ -30,7 +30,7 @@ function count(events: string[], message: string): number {
 
 test("the commendation appears in the events exactly once when a rung is crossed", async () => {
   const deps = { ...testDeps(), player: "alice" };
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const first = await scan(deps, gameId);
 
@@ -40,12 +40,12 @@ test("the commendation appears in the events exactly once when a rung is crossed
 
 test("a command that crosses no rung carries no commendation, and a rung is announced once in a lifetime", async () => {
   const deps = { ...testDeps(), player: "alice" };
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
   const events: string[][] = [];
   for (let scans = 1; scans <= 5; scans++) {
     events.push((await scan(deps, gameId)).events);
   }
-  const otherGame = (await newGame(deps)).report!.game_id as string;
+  const otherGame = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
   events.push((await scan(deps, otherGame)).events);
 
   const announced = events.map((list) => list.filter((event) => event.includes("lifetime tally of long range scans")));
@@ -63,7 +63,7 @@ test("a command that crosses no rung carries no commendation, and a rung is anno
 test("the commendation follows the lifetime total, not the game's count", async () => {
   const deps = { ...testDeps(), player: "alice" };
   await deps.players.add("alice", { scans: 9 });
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const tenth = await scan(deps, gameId);
 
@@ -72,7 +72,7 @@ test("the commendation follows the lifetime total, not the game's count", async 
 
 test("the commendations come after the game's own events", async () => {
   const deps = { ...testDeps(), player: "alice" };
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const { events } = await scan(deps, gameId);
 

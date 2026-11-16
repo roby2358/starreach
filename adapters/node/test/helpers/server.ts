@@ -6,7 +6,7 @@ import type { Server } from "node:http";
 import type { Socket } from "node:net";
 import { fileURLToPath } from "node:url";
 
-import { loadCore, MemoryPlayerStore, MemoryStore } from "@starreach/app";
+import { loadCore, MemoryPlayerStore, MemoryStore, MemoryTelemetry, type McpClient } from "@starreach/app";
 import { WebSocket } from "ws";
 
 import { listeningPort, serveHttp, type NodeDeps } from "../../src/server.ts";
@@ -17,8 +17,11 @@ const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(import.m
 /** The real time every test game starts at: midnight on Unix day 20773, stardate 102.0773.00.0. */
 export const START_UNIX_SECONDS = 20_773 * 86_400;
 
+/** The MCP client of a game a test starts without going through MCP. */
+export const TEST_CLIENT: McpClient = { name: "test", version: "0", user_agent: null };
+
 export interface Running {
-  deps: NodeDeps;
+  deps: NodeDeps & { telemetry: MemoryTelemetry };
   server: Server;
   connections: Set<Socket>;
   port: number;
@@ -26,10 +29,11 @@ export interface Running {
 }
 
 export async function startServer(): Promise<Running> {
-  const deps: NodeDeps = {
+  const deps = {
     core,
     store: new MemoryStore(),
     players: new MemoryPlayerStore(),
+    telemetry: new MemoryTelemetry(),
     random: Math.random,
     viewers: new SocketViewers(),
     viewOrigin: "http://viewer.test",

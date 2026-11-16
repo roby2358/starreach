@@ -5,10 +5,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { LOCAL_PLAYER, newGame, runCommand, type McpDeps } from "../../src/index.ts";
-import { testDeps } from "../helpers/deps.ts";
+import { testDeps, TEST_CLIENT } from "../helpers/deps.ts";
 
 async function scanInNewGame(deps: McpDeps): Promise<void> {
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
   const scan = await runCommand(deps, gameId, { type: "long_range_scan" });
   assert.equal(scan.ok, true);
 }
@@ -37,7 +37,7 @@ test("a player's totals are not another player's", async () => {
 
 test("the totals go to the player who issued the command, whoever started the game", async () => {
   const shared = testDeps();
-  const gameId = (await newGame({ ...shared, player: "alice" })).report!.game_id as string;
+  const gameId = (await newGame({ ...shared, player: "alice" }, TEST_CLIENT)).report!.game_id as string;
 
   await runCommand({ ...shared, player: "bob" }, gameId, { type: "long_range_scan" });
 
@@ -56,7 +56,7 @@ test("with no sign-in the totals belong to the one local player", async () => {
 
 test("a refused command adds nothing", async () => {
   const deps = { ...testDeps(), player: "alice" };
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const refused = await runCommand(deps, gameId, { type: "galaxy_warp", x: 99, y: 99 });
 
@@ -66,7 +66,7 @@ test("a refused command adds nothing", async () => {
 
 test("a new game, a query and an unknown game add nothing", async () => {
   const deps = { ...testDeps(), player: "alice" };
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   await runCommand(deps, gameId, { type: "state" });
   await runCommand(deps, gameId, { type: "galaxy_map" });
@@ -77,7 +77,7 @@ test("a new game, a query and an unknown game add nothing", async () => {
 
 test("a command adds only what it counted, not the game's counts so far", async () => {
   const deps = { ...testDeps(), player: "alice" };
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const first = await runCommand(deps, gameId, { type: "long_range_scan" });
   const second = await runCommand(deps, gameId, { type: "long_range_scan" });

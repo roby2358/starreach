@@ -6,13 +6,13 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { achievements, currentFrame, LOCAL_PLAYER, newGame, runCommand, viewId } from "../../src/index.ts";
-import { testDeps } from "../helpers/deps.ts";
+import { testDeps, TEST_CLIENT } from "../helpers/deps.ts";
 
 const ALICE = "player-alice-0001";
 const BOB = "player-bob-0002";
 
 async function startGame(deps: ReturnType<typeof testDeps>): Promise<{ gameId: string; view: string }> {
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
   return { gameId, view: await viewId(gameId) };
 }
 

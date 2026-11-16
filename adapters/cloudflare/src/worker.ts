@@ -9,6 +9,7 @@ import { isMetadataPath, MCP_PATH, protectedResourceMetadata, signIn } from "./a
 import { core } from "./core.ts";
 import { DurableObjectPlayerStore } from "./player_store.ts";
 import { DurableObjectStore } from "./store.ts";
+import { NoTelemetry } from "./telemetry.ts";
 import { DurableObjectViewers } from "./viewers.ts";
 
 export { GameObject } from "./game_object.ts";
@@ -27,6 +28,7 @@ function deps(env: Env, origin: string, player: string | null): McpDeps {
     core,
     store: new DurableObjectStore(env.GAMES),
     players: new DurableObjectPlayerStore(env.PLAYERS),
+    telemetry: new NoTelemetry(),
     random: Math.random,
     viewers: new DurableObjectViewers(env.GAMES),
     viewOrigin: origin,

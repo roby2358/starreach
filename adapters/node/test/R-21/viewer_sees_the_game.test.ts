@@ -5,7 +5,7 @@ import { after, before, test } from "node:test";
 
 import { LOCAL_PLAYER, newGame, runCommand, viewId } from "@starreach/app";
 
-import { startServer, stopServer, Viewer, type Running } from "../helpers/server.ts";
+import { startServer, stopServer, Viewer, type Running, TEST_CLIENT } from "../helpers/server.ts";
 
 let running: Running;
 before(async () => {
@@ -14,7 +14,7 @@ before(async () => {
 after(() => stopServer(running));
 
 async function createGame(): Promise<string> {
-  return (await newGame(running.deps)).report!.game_id as string;
+  return (await newGame(running.deps, TEST_CLIENT)).report!.game_id as string;
 }
 
 test("a viewer gets the current view on connecting", async () => {

@@ -1,3 +1,117 @@
+Priority:   70
+Status: ToDo
+ID: telemlocal-7m3m
+Created: 2026-11-16T19:07:49Z
+Updated: 2026-11-16T19:07:49Z
+
+The local server gives out its telemetry over HTTP, and a just recipe dumps it.
+
+Goal: when playing locally, the designer can see exactly what would be recorded, without a database. [D]
+
+Assumes the app layer already records telemetry into an in-memory sink (game records and per-call event records). If it does not yet, stop and say so.
+
+Settled design [D]:
+- The local Node server holds telemetry in memory only; it is lost when the server stops.
+- A route on the Node adapter's HTTP server, `GET /telemetry`, returns everything held: game records and event records, as JSON a script can read (one record per line is fine). It is not part of a viewer link and does not go over the viewer's socket: a viewer follows one game, telemetry spans all of them.
+- The route exists on the local Node adapter only. The Cloudflare Worker must not serve it; a test checks the Worker answers that path as it answers any unknown path.
+- A recipe `just telemetry` fetches the route from the local server (same host and port variables the other local recipes use) and prints it. It fails with a clear message when no local server is running.
+- The recipe must work on a host without a Rust toolchain and where recipes with a shebang cannot run: plain recipe lines or a script run through `bash`, like the other local server recipes.
+- Document the recipe in the project's recipes skill and the route in ONTOLOGY's interface section.
+
+Done when:
+- With `just up` running and a short game played over MCP, `just telemetry` prints the game record and one event per tool call.
+- Tests cover the route on the Node adapter and its absence on the Worker.
+- `just cc-test-all` passes.
+
+Don't deploy.
+----
+Priority:   65
+Status: ToDo
+ID: telemd1-3qc4
+Created: 2026-11-16T19:08:01Z
+Updated: 2026-11-16T19:08:01Z
+
+On Cloudflare, telemetry is stored in a D1 database, and the home page says what is recorded.
+
+Goal: real play on the deployed game is kept permanently and can be asked questions in SQL. [D]
+
+Assumes the app layer already records telemetry through a sink interface (game records and per-call event records) with an in-memory sink. If it does not yet, stop and say so.
+
+Settled design [D]:
+- Store: one D1 database for telemetry, bound to the Worker. D1 was chosen over Workers Analytics Engine because it keeps data permanently, so no cold storage or export is needed, and it can be queried through the existing wrangler login. Volume is small and there is no cardinality concern, so recording is generous.
+- Schema: a games table (one row per game record) and an events table (one row per tool call), with the commonly queried fields as columns (tool, accepted, refusal reason, starticks, ticks taken, energy, shields, hull, torpedoes, damage taken, distance, range, hit) and the rest as a JSON column. Indexes for the joins and the per-day queries. One schema file, applied by a recipe; no migration history while the project is this young.
+- A Cloudflare sink that writes each record to D1. A write must not delay or fail the player's command: the reply does not wait on it, and an error is logged and dropped.
+- The schema is set up locally for the Worker's tests, which check that a game played against the Worker leaves the expected rows.
+- Recipes: one to create the database and apply the schema locally, one for production (create the database, apply the schema). The production recipe is written and documented but NOT run in this task: creating the production database and putting its id in the config happens at deploy, by the designer's go-ahead. Leave the config ready so that only the id needs filling in, and say exactly what the deploy steps are in the report and in the recipes skill.
+- Privacy line on the home page, in plain words: the game records the commands played and how games end, to tune the game; players are counted by a one-way hash, not by name; no name, Bluesky identity or conversation is recorded. Say what is true and no more: do not call the hash "anonymous" or say play "cannot be traced", since the salt is a constant in a public repository. Keep it short and in the page's voice.
+- Follow the sibling-project rules for npm: exact version pins, no install scripts.
+- Docs in the same change: ONTOLOGY (the stored tables), CRITERIA rows with tests, a RATIONALE decision for D1 with Analytics Engine as the alternative, ARCHITECTURE_LOG entry.
+
+Done when:
+- A game played against the Worker under its test runtime leaves a games row and one events row per tool call, with no player id, game id or viewer hash in any column.
+- A test shows a failing database does not fail a command.
+- `just cf-deploy --dry-run` succeeds with the new binding.
+- The home page carries the privacy line, and the page test checks it.
+- `just cc-test-all` passes.
+
+Don't deploy, and don't create or change anything on the production Cloudflare account.
+----
+Priority:   60
+Status: ToDo
+ID: telemreport-bvb9
+Created: 2026-11-16T19:08:10Z
+Updated: 2026-11-16T19:08:10Z
+
+A just recipe prints a telemetry report, from the production database or from a local server's dump.
+
+Goal: the designer asks the recorded play the questions the design depends on, and the answers can be cited in RATIONALE as "Measured by". [D]
+
+Assumes telemetry is recorded as game records and per-call event records, held in memory locally (served by the local server's telemetry route) and in a D1 database on Cloudflare. If either is missing, stop and say so.
+
+Settled design [D]:
+- One report, two sources: `just telemetry-report` reads the production D1 database through the existing wrangler login; a `local` argument reads the local server's telemetry dump instead. The same report code runs over both, so the local one is a true preview. An optional number of days limits the period.
+- The report prints plain text tables. In order:
+  - Tool calls: count per tool, accepted and refused, and tools never used.
+  - Subwarp: distances moved. Warp: distances in sectors, energy cost. Blast: a histogram of range with hit rate per range, and damage. Torpedo: count, hit rate, range.
+  - Per game: sectors cleared, sectors revealed, dockings.
+  - Refusals: the reasons, most common first.
+  - Looking before leaping: how often a warp is preceded by a scan or galaxy map.
+  - Games: started per day, ended by outcome and by what ended them, still open, length in commands and in stardates, goals met per game.
+  - Energy: how low energy runs, and how games that end badly were doing on energy and hull.
+  - Wall-clock: gaps between commands (median and long pauses) and real length of a game, worked out from event times.
+  - Players and clients: distinct and returning players by anonymous hash, games per MCP client.
+  - Everything split by rules version when more than one is present.
+- Stardates and durations are printed the way the game prints them.
+- Works on a host without a Rust toolchain and where shebang recipes cannot run.
+- The report's sums are tested against a small fixed set of records with known answers.
+- Document the recipe in the project's recipes skill, and note in RATIONALE's evidence convention that this recipe is the instrument for measured play.
+
+Done when:
+- `just telemetry-report local` prints the report for a game played on the local server.
+- The production form is checked as far as it can be without production data: the queries run against a local D1 holding the same schema and test rows.
+- Tests cover each section's figures.
+- `just cc-test-all` passes.
+
+Don't deploy.
+----
+Priority:   51
+Status: ToDo
+ID: feedbackline-h8mu
+Created: 2026-11-16T19:25:28Z
+Updated: 2026-11-16T19:25:28Z
+
+The home page asks for comments and feedback on Bluesky.
+
+Goal: a visitor to the home page (`public/index.html`, served at starreach.yuwakisa.com) can see where to send comments and feedback.
+
+Design (settled):
+- Add one short paragraph directly after the paragraph about signing in with a Bluesky account ("The first time you connect, you'll sign in with your Bluesky account…"), and before the paragraph about starting a game.
+- Wording to the effect of: "Please send comments and feedback to @yuwakisa.bsky.social on Bluesky." It may be fitted to the page's voice, but must stay one line, name the handle, and say Bluesky.
+- The handle is a link to https://bsky.app/profile/yuwakisa.bsky.social, opening like the page's other outside links.
+- Use the page's existing paragraph and link styles; add no new CSS unless the page has no link style to reuse.
+
+Done when: the local home page shows the line in that place with a working link to the Bluesky profile, and `just cc-test-all` passes. Don't deploy.
+----
 Priority:   45
 Status: ToDo
 ID: warpplay-45ha
@@ -110,6 +224,8 @@ Created: 2026-11-15T09:25:10Z
 Updated: 2026-11-15T09:25:10Z
 
 Clean up inactive games (data retention). On Cloudflare every `new_game` creates a SQLite Durable Object that is kept forever, and any signed-in player can create as many as they like. Delete games nobody has touched for a while.
+
+Telemetry leaves this to cleanup: when a game is found inactive, its telemetry game record is marked abandoned (with the time it was last touched) before the game is deleted, so reports can tell abandoned games from ones still being played.
 
 Design:
 - Each game's Durable Object records when it was last commanded, and sets an alarm for that time plus a retention period (a new [T] constant, e.g. GAME_RETENTION_DAYS = 30; finished games, won or lost, could use a shorter one). Each accepted command pushes the alarm out.
@@ -225,3 +341,30 @@ The work is mostly in auth/ (yuwakisacloud), not Starreach:
 - Check how each MCP client uses a refresh token (when it refreshes, what it does on a failed refresh).
 
 Starreach needs no change beyond confirming that refreshed access tokens verify the same way (same issuer, audience and keys). Record the outcome in RATIONALE and the ARCHITECTURE_LOG. Ask the user before committing or touching yuwakisacloud.
+----
+Priority:   10
+Status: ToDo
+ID: saltsecret-tqsa
+Created: 2026-11-16T19:14:57Z
+Updated: 2026-11-16T19:14:57Z
+
+Move the telemetry player-hash salt out of the code and into a Worker secret.
+
+Goal: a leaked telemetry database cannot be matched to players by someone who only has the public repo. Today the salt is a named constant in a public repository, so anyone holding telemetry rows can hash a known player id and find that player's games. Accepted for now because the database is private and the data is game moves; this is the fancier version for when the game has more players.
+
+Assumes telemetry is being recorded with a player hash salted by a constant in the code. If it is not yet, this cannot be started.
+
+Design:
+- On Cloudflare the salt comes from a Worker secret (set with `wrangler secret put`), read where the hash is made. A missing secret fails fast at startup or first use; no fallback to a built-in value.
+- Locally the salt comes from a development variable with a fixed, obviously non-secret value, so local play and tests need no setup.
+- The constant is removed from the code. Changing the salt starts the count of returning players afresh; that is acceptable, since players need only be followed over a few weeks. Say so in the architecture log.
+- First check what the hashed player id is: if it is a public identifier such as a Bluesky DID, this change matters; if it is an id internal to the sign-in service, note that in RATIONALE, since the exposure is then smaller.
+- Once done, the home page's privacy line may be strengthened to match.
+- Docs: the RATIONALE decision on the hash, ONTOLOGY's numbers or configuration, the recipes skill (the one command to set the secret), ARCHITECTURE_LOG.
+
+Done when:
+- No salt value appears in the repository other than the local development one.
+- A test shows the hash differs under a different salt and that a missing secret is refused.
+- `just cc-test-all` and `just cf-deploy --dry-run` pass.
+
+Setting the production secret is a production change: write the recipe and the steps, but leave running it and the deploy to the designer.

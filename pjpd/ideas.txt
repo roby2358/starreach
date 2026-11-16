@@ -167,27 +167,6 @@ Design notes:
 - Every achievement should reward a play pattern the design wants (serves a driver). None should reward degenerate play, such as stalling.
 ----
 Score:   50
-ID: telemetry-9x2j
-Created: 2026-11-15T07:17:15Z
-Updated: 2026-11-15T07:17:15Z
-
-Game telemetry: record what players actually do, so tuning and design decisions rest on real play rather than the balance model alone.
-
-What to capture (per game, anonymous; no player identity or conversation text):
-- Each accepted command: type, args (target cell or sector), stardate, and outcome (kill or miss, damage taken, energy and torpedoes left).
-- Refusals and their reasons (what players try that the rules don't allow; a sign of unclear instructions or missing commands).
-- Game lifecycle: started, won, lost (and what killed the ship), abandoned (no command for a long time), length in commands and stardates.
-- Derived: blast ranges actually used, how often ambushes hit, docking frequency, sectors explored before the first fight.
-
-Questions to answer with it: Are blasts fired at the ranges the design expects? How often do games end in a loss, and where? Do players scan before warping? Which commands are never used? How long does a game last?
-
-Design questions:
-- Where to store it: a log line per command read through Workers Logs or Logpush, Workers Analytics Engine (cheap, queryable with SQL, fits per-event counters), or the game's own Durable Object storage summarised at game end. Analytics Engine looks like the natural fit on Cloudflare.
-- Privacy: no personal data, no MCP client identity beyond what is needed to count distinct games; state this on the home page.
-- A small recipe or report to query it (e.g. per-day games, win rate, blast range histogram) so it feeds RATIONALE Evidence as "Measured by".
-- Keep it out of the Rust core's rules: the app layer records Results it already has, so the core stays pure and deterministic.
-----
-Score:   50
 ID: colors-x89e
 Created: 2026-11-16T00:17:10Z
 Updated: 2026-11-16T00:17:10Z
@@ -258,6 +237,42 @@ A game's three goals are each a uniformly random rung (scale × 1, 2, 5, 10, 20,
 
 To settle with the designer after some real play: whether small goals are welcome as an easy first signal from Star Central, or whether amounts should have a floor per counter (such as a share of the ceiling), be weighted toward larger rungs, or be spread so that a game gets one small, one middling and one large goal. Also whether the scripted captain's meet rates are the right yardstick, since it never plays toward a goal.
 ----
+Score:   45
+ID: telemclient-h2zk
+Created: 2026-11-16T19:35:42Z
+Updated: 2026-11-16T19:35:42Z
+
+Telemetry may not be able to tell MCP clients apart (Claude Desktop from Claude Code) on the deployed server.
+
+What telemetry records of the MCP client is the name and version declared in `initialize` and the HTTP `User-Agent`. Over HTTP, MCP runs stateless, so a tool call arrives on its own request without the `initialize` that named the client: the declared name is known only over local stdio. On the deployed server that leaves the `User-Agent` alone, and nobody has checked that the two clients send different ones. The local stdio process that forwards to an already running server also loses the declared name, and its `User-Agent` is the forwarding process's own.
+
+The sign-in service already knows which client obtained each token (each client signs in under its own client metadata document), but the access token it issues carries only issuer, subject, audience, expiry, issue time, key id and scope. So the token's client identity is not available to Starreach.
+
+Options to weigh, once real records from both clients have been looked at:
+- Nothing, if the `User-Agent`s turn out to differ reliably.
+- The sign-in service adds the client's id as a claim of the access token, and Starreach records it. That is a change in another repository and to the vendored verifier's claim type.
+- The forwarding stdio process passes the declared client name on to the server it forwards to.
+- HTTP MCP keeps a session, so the declared name is known on later calls. Costly: a session store on both platforms.
+
+First step is a check, not a build: play one game from Claude Desktop and one from Claude Code and compare the recorded clients.
+----
+Score:   40
+ID: telempage-xcmf
+Created: 2026-11-16T19:02:59Z
+Updated: 2026-11-16T19:02:59Z
+
+A telemetry page (or pages) for the designer: the recorded play data shown in the browser instead of printed by a recipe.
+
+What it might show: games per day, win rate and causes of loss, game length, a histogram of blast ranges with hit rate, warp and subwarp distances, docking frequency, sectors revealed and cleared per game, refusal reasons, which tools are used and which never, goals met per game, distinct and returning players (by anonymous hash), which MCP clients play.
+
+Design questions:
+- Who may see it: the designer only (behind sign-in, with some notion of an owner), or public aggregate figures as part of the game's charm.
+- Where it reads from: the same queries the report recipe runs, served by the Worker, or a snapshot the recipe publishes.
+- Whether charts are drawn in the page or the page is a plain set of tables first.
+- Whether one game can be opened and replayed from its recorded commands.
+
+Depends on telemetry being recorded and on the report recipe showing which figures turn out to be worth watching.
+----
 Score:   75
 ID: goals-9atp
 Created: 2026-11-14T15:48:48Z
@@ -278,6 +293,27 @@ Decided so far [D]:
 - Totals go to the signed-in player on each command, so this does not need games to have owners first.
 
 Still to work out: the objective sizes and each ladder's scale (to be projected from whole-game simulation); exactly how a goal's amount is chosen from a path; where the counters live in the core's Game and what a command reports; the goals and achievements panel on the viewer; what the MCP tools return (new_game's report, a way to ask for achievements); the wording of Star Central's messages.
+----
+Score:   70
+ID: telemetry-9x2j
+Created: 2026-11-15T07:17:15Z
+Updated: 2026-11-16T19:22:14Z
+
+(Done) Game telemetry: record what players actually do, so tuning and design decisions rest on real play rather than the balance model alone.
+
+What to capture (per game, anonymous; no player identity or conversation text):
+- Each accepted command: type, args (target cell or sector), stardate, and outcome (kill or miss, damage taken, energy and torpedoes left).
+- Refusals and their reasons (what players try that the rules don't allow; a sign of unclear instructions or missing commands).
+- Game lifecycle: started, won, lost (and what killed the ship), abandoned (no command for a long time), length in commands and stardates.
+- Derived: blast ranges actually used, how often ambushes hit, docking frequency, sectors explored before the first fight.
+
+Questions to answer with it: Are blasts fired at the ranges the design expects? How often do games end in a loss, and where? Do players scan before warping? Which commands are never used? How long does a game last?
+
+Design questions:
+- Where to store it: a log line per command read through Workers Logs or Logpush, Workers Analytics Engine (cheap, queryable with SQL, fits per-event counters), or the game's own Durable Object storage summarised at game end. Analytics Engine looks like the natural fit on Cloudflare.
+- Privacy: no personal data, no MCP client identity beyond what is needed to count distinct games; state this on the home page.
+- A small recipe or report to query it (e.g. per-day games, win rate, blast range histogram) so it feeds RATIONALE Evidence as "Measured by".
+- Keep it out of the Rust core's rules: the app layer records Results it already has, so the core stays pure and deterministic.
 ----
 Score:   60
 ID: warptime-6g9e

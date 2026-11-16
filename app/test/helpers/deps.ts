@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { createMcpServer, loadCore, LOCAL_PLAYER, MemoryPlayerStore, MemoryStore, viewId, type CommandResult, type GoalState, type McpDeps, type Viewers } from "../../src/index.ts";
+import { createMcpServer, loadCore, LOCAL_PLAYER, MemoryPlayerStore, MemoryStore, MemoryTelemetry, viewId, type CommandResult, type GoalState, type McpClient, type McpDeps, type Viewers } from "../../src/index.ts";
 
 const WASM = new URL("../../src/wasm/starreach_core_bg.wasm", import.meta.url);
 const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(WASM))));
@@ -24,11 +24,15 @@ export class RecordingViewers implements Viewers {
   }
 }
 
-export function testDeps(): McpDeps & { viewers: RecordingViewers } {
+/** The MCP client of a game a test starts without going through MCP. */
+export const TEST_CLIENT: McpClient = { name: "test", version: "0", user_agent: null };
+
+export function testDeps(): McpDeps & { viewers: RecordingViewers; telemetry: MemoryTelemetry } {
   return {
     core,
     store: new MemoryStore(),
     players: new MemoryPlayerStore(),
+    telemetry: new MemoryTelemetry(),
     random: () => 0,
     viewers: new RecordingViewers(),
     viewOrigin: "http://viewer.test",

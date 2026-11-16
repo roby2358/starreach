@@ -42,6 +42,41 @@ Q-10 (docs/RATIONALE.md): All randomness uses the global random module and most 
 ----
 Priority:   75
 Status: Done
+ID: telemevents-9amx
+Created: 2026-11-16T19:07:43Z
+Updated: 2026-11-16T19:35:43Z
+
+The app layer records telemetry: one event per tool call and one summary per game, handed to a telemetry sink, held in memory when playing locally.
+
+Goal: tuning and design rest on what captains actually do, not only on the balance model. Every balance figure in RATIONALE is modeled; this is the source of "Measured by" evidence. [D]
+
+Settled design [D]:
+- Recording happens in the app layer, from results it already holds. The Rust core's rules stay pure and unchanged; play per seed is unchanged.
+- A `Telemetry` sink interface in the app layer, passed in alongside the game and player stores (no optional parameter, no default). This task supplies the in-memory sink; the local Node server uses it, and tests read it.
+- Two kinds of record:
+  - A game record, written at `new_game` and completed when the game ends: a telemetry game key, start time, the seed, the rules version, the player hash, the MCP client, and at the end the outcome, what ended it, the game's counters and which of its goals were met.
+  - An event record for every tool call on a game, accepted or refused, read-only ones included (state, long range scan, galaxy map): the telemetry game key, a sequence number, wall-clock time, the tool, its arguments, whether it was accepted and the refusal reason if not, the stardate in starticks and the ticks the command took, and energy, shields, hull and torpedoes after it, and damage taken during it.
+  - Per tool, what the result already tells: subwarp distance moved; warp distance in sectors, energy cost and shield recharge; blast range, hit or miss and damage; torpedo range and hit or miss; docking; sectors revealed and sectors cleared by the command.
+- The wall-clock gap between commands is not stored; it is worked out from consecutive event times when reporting.
+- The telemetry game key is derived from the game so records join, but it is not the game id and not the viewer hash, and neither can be recovered from it: a telemetry record must never let its reader watch or command a game.
+- The player hash is a one-way hash of the player id with a salt held as a named constant in the code. It exists only to count distinct and returning players over a few weeks; the player id itself, the Bluesky identity and any conversation text are never recorded. A fancier salt is for later.
+- The MCP client is whatever the server can truthfully tell about the connecting client (the token's client identity, the client's declared name, or both). Find what is available on each call; it is enough if Claude Desktop and Claude Code can be told apart, and say so plainly if they cannot.
+- A rules version: one named constant, bumped by hand whenever a rule or a tunable number changes, recorded on every game so play under different rules can be separated. Say in the docs when it must be bumped.
+- Seed plus the ordered accepted commands must be enough to replay a game exactly; a test replays a recorded game from its telemetry and reaches the same final state.
+- A sink that fails must not fail the player's command.
+- Marking a game abandoned is out of scope; it belongs with cleaning up inactive games.
+
+Done when:
+- Playing a game locally leaves, in the in-memory sink, one game record and one event per tool call with the fields above, checked by tests for each tool, for a refusal, for a read-only call and for a game that ends.
+- No record contains the player id, the game id or the viewer hash; a test checks this.
+- The replay test passes.
+- ONTOLOGY (the records as entities with field tables, the sink in the interface section), CRITERIA rows with their test directories, a RATIONALE decision covering what is recorded, the hash and its constant salt, and the rules version, and an ARCHITECTURE_LOG entry, all in the same change.
+- `just cc-test-all` passes.
+
+Don't deploy.
+----
+Priority:   75
+Status: Done
 ID: counters-9ten
 Created: 2026-11-16T00:40:05Z
 Updated: 2026-11-16T01:32:49Z

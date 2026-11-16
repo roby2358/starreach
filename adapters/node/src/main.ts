@@ -1,5 +1,5 @@
 // Starreach on Node (D-21): the page, viewer sockets, MCP and /health over HTTP, with MCP over
-// stdio as well in stdio mode. One process holds the games in memory, so the browser sees the
+// stdio as well in stdio mode. One process holds the games and their telemetry in memory, so the browser sees the
 // game the LLM is playing. A second stdio process on the same port forwards to the first, so
 // that stays true for every client. Logs go to stderr, because stdout is the stdio MCP channel.
 //
@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createMcpServer, loadCore, MemoryPlayerStore, MemoryStore } from "@starreach/app";
+import { createMcpServer, loadCore, MemoryPlayerStore, MemoryStore, MemoryTelemetry } from "@starreach/app";
 
 import { bridgeStdio, starreachAnswers } from "./bridge.ts";
 import { serveHttp, type NodeDeps } from "./server.ts";
@@ -30,6 +30,7 @@ function loadDeps(viewOrigin: string): NodeDeps {
     core: loadCore(new WebAssembly.Module(wasm)),
     store: new MemoryStore(),
     players: new MemoryPlayerStore(),
+    telemetry: new MemoryTelemetry(),
     random: Math.random,
     viewers: new SocketViewers(),
     viewOrigin,

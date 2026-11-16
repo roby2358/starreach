@@ -4,6 +4,7 @@
 
 import { achievements, type Achievement, type Achievers } from "./achievements.ts";
 import type { GameView } from "./core.ts";
+import { sha256Hex } from "./hash.ts";
 import type { GameStore, StoredGame } from "./store.ts";
 
 /** The sockets watching each game. Nothing comes back from a viewer. */
@@ -35,9 +36,8 @@ const LIVE_PATH = /^\/live\/([0-9a-f]{64})$/;
 /** The view_id for a game_id: its hex SHA-256 (D-32). The store and the viewers are keyed by
  *  it, so the one place a game_id is accepted is where it is hashed, and a view_id can't be
  *  turned back into a game_id or used to play. */
-export async function viewId(gameId: string): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(gameId));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+export function viewId(gameId: string): Promise<string> {
+  return sha256Hex(gameId);
 }
 
 /** The view_id a `/live/<view_id>` path watches, or undefined for any other path. */

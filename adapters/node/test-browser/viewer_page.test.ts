@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { LOCAL_PLAYER, newGame, runCommand, viewId, type GoalState, type McpDeps } from "@starreach/app";
 import { chromium, type Browser, type Page } from "playwright-core";
 
-import { startServer, stopServer, type Running } from "../test/helpers/server.ts";
+import { startServer, stopServer, type Running, TEST_CLIENT } from "../test/helpers/server.ts";
 
 const OUT = fileURLToPath(new URL("./out/", import.meta.url));
 
@@ -38,7 +38,7 @@ async function openGame(gameId: string, viewport: { width: number; height: numbe
 }
 
 async function gameId(): Promise<string> {
-  return (await newGame(running.deps)).report!.game_id as string;
+  return (await newGame(running.deps, TEST_CLIENT)).report!.game_id as string;
 }
 
 /** Rewrites a stored game's fields and shows the result to its viewers, as a command would. */
@@ -204,7 +204,7 @@ test("U-13: the Achievements button opens a scrolling panel of the player's life
   const local = await startServer();
   const { deps } = local;
   await deps.players.add(LOCAL_PLAYER, { enemies_destroyed: 137, docks: 4, shield_damage: 999, scans: 2 });
-  const id = (await newGame(deps)).report!.game_id as string;
+  const id = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
   const sent: unknown[] = [];
   const page = await browser.newPage({ viewport: { width: 1100, height: 800 } });
   page.on("websocket", (socket) => socket.on("framesent", (frame) => sent.push(frame)));
@@ -386,7 +386,7 @@ test("the page says so when it has no game or an unknown game", async () => {
 
 test("a page whose server goes away shows the lost signal and keeps the last view", async () => {
   const local = await startServer();
-  const id = (await newGame(local.deps)).report!.game_id as string;
+  const id = (await newGame(local.deps, TEST_CLIENT)).report!.game_id as string;
   const page = await browser.newPage();
   await page.goto(`${local.base}/viewer?view=${await viewId(id)}`);
   await page.waitForSelector("body[data-link=live]");

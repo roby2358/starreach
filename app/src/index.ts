@@ -1,5 +1,5 @@
 // The platform-neutral app layer (D-21). Adapters supply the WASM module, a GameStore,
-// Viewers, the instructions text, and a way to serve stdio, HTTP and viewer sockets.
+// a PlayerStore, a Telemetry sink, Viewers, the instructions text, and a way to serve stdio, HTTP and viewer sockets.
 
 export { loadCore, type Command, type CommandResult, type Core, type CounterRow, type GameJson, type GameView, type GoalState, type LadderStanding } from "./core.ts";
 export { MemoryStore, type GameStore, type StoredGame } from "./store.ts";
@@ -15,5 +15,22 @@ export {
   type Viewers,
 } from "./view.ts";
 export { newGame, runCommand, type Games } from "./games.ts";
+export {
+  MemoryTelemetry,
+  playerHash,
+  telemetryGameKey,
+  PLAYER_HASH_SALT,
+  RULES_VERSION,
+  type CommandEvent,
+  type EndCause,
+  type EventDetail,
+  type EventRecord,
+  type GameEnd,
+  type GameRecord,
+  type GameStart,
+  type GoalOutcome,
+  type McpClient,
+  type Telemetry,
+} from "./telemetry.ts";
 export { createMcpServer, type McpDeps } from "./mcp.ts";
 export { handleHttp, handleMcp } from "./http.ts";

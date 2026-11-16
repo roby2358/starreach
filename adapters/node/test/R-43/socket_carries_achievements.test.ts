@@ -6,7 +6,7 @@ import { after, before, test } from "node:test";
 
 import { achievements, LOCAL_PLAYER, newGame, runCommand, viewId, type Achievement } from "@starreach/app";
 
-import { startServer, stopServer, Viewer, type Running } from "../helpers/server.ts";
+import { startServer, stopServer, Viewer, type Running, TEST_CLIENT } from "../helpers/server.ts";
 
 let running: Running;
 before(async () => {
@@ -21,7 +21,7 @@ function row(frame: Record<string, any>, key: string): Achievement {
 test("a viewer gets the local player's achievements on connecting and again after a command", async () => {
   const { deps } = running;
   await deps.players.add(LOCAL_PLAYER, { docks: 5 });
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
   const viewer = new Viewer(running.port, await viewId(gameId));
 
   const first = await viewer.nextFrame();

@@ -4,12 +4,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { newGame, type GoalState } from "../../src/index.ts";
-import { call, connectClient, goalsOf, testDeps } from "../helpers/deps.ts";
+import { call, connectClient, goalsOf, testDeps, TEST_CLIENT } from "../helpers/deps.ts";
 
 test("new_game's report lists the three goals the state carries", async () => {
   const deps = testDeps();
 
-  const created = await newGame(deps);
+  const created = await newGame(deps, TEST_CLIENT);
 
   const goals = created.report!.goals as GoalState[];
   assert.equal(goals.length, 3);
@@ -20,7 +20,7 @@ test("each reported goal is an unmet amount of a different counter that may be a
   const deps = testDeps();
   const table = new Map(deps.core.counterTable().map((row) => [row.key, row]));
 
-  const goals = (await newGame(deps)).report!.goals as GoalState[];
+  const goals = (await newGame(deps, TEST_CLIENT)).report!.goals as GoalState[];
 
   assert.equal(new Set(goals.map((goal) => goal.counter)).size, 3);
   for (const goal of goals) {

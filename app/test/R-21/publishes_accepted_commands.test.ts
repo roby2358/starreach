@@ -5,11 +5,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { newGame, runCommand, viewId } from "../../src/index.ts";
-import { testDeps } from "../helpers/deps.ts";
+import { testDeps, TEST_CLIENT } from "../helpers/deps.ts";
 
 test("an accepted command publishes a view frame for that game", async () => {
   const deps = testDeps();
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const scan = await runCommand(deps, gameId, { type: "long_range_scan" });
 
@@ -23,7 +23,7 @@ test("an accepted command publishes a view frame for that game", async () => {
 
 test("a refused command publishes nothing", async () => {
   const deps = testDeps();
-  const gameId = (await newGame(deps)).report!.game_id as string;
+  const gameId = (await newGame(deps, TEST_CLIENT)).report!.game_id as string;
 
   const refused = await runCommand(deps, gameId, { type: "galaxy_warp", x: 99, y: 99 });
 
@@ -39,7 +39,7 @@ test("an unknown game publishes nothing", async () => {
 
 test("new_game reports the viewer's link for the game", async () => {
   const deps = testDeps();
-  const { report } = await newGame(deps);
+  const { report } = await newGame(deps, TEST_CLIENT);
   const gameId = report!.game_id as string;
   assert.equal(report!.viewer_url, `http://viewer.test/viewer?view=${await viewId(gameId)}`);
   assert.ok(!(report!.viewer_url as string).includes(gameId));

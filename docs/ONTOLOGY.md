@@ -76,6 +76,11 @@ One name per concept. These names are used in code, tools and docs.
 | **Game id** | The name a client uses for one stored game (`game_id`) | |
 | **View id** | The hex SHA-256 of a `game_id` (`view_id`). It keys the GameStore and the Viewers, and is all the viewer's link and socket carry | |
 | **Viewer** | A browser page watching one game over its socket | main viewer |
+| **Telemetry** | The records of what captains do, kept for tuning: a game record per game and an event record per tool call on a game | |
+| **Telemetry game key** | What a game's telemetry records share (`game_key`): a hash of the `game_id` that is neither the `game_id` nor the `view_id` | |
+| **Player hash** | A salted one-way hash of a player id (`player_hash`), which tells one player's games from another's without naming the player | |
+| **Rules version** | A whole number naming the rules and numbers a game was played under (`RULES_VERSION`) | |
+| **MCP client** | The program that connects the LLM to the MCP tools, such as Claude Desktop or Claude Code | |
 | **Frame** | One message on a viewer's socket, `{type, …}`. A view frame carries the GameView and the starting player's achievements | |
 
 ---
@@ -276,6 +281,76 @@ layer gives the list out as a row per counter, `{key, label, total, reached, nex
 the last rung reached (null below the first) and the next. [D] No MCP tool returns it; it goes
 to the viewer, in every view frame (Viewer socket, D-49). [D]
 
+### Telemetry
+*Serves: the tuning of G-2 and G-4: it is the source of measured evidence for RATIONALE and the
+X criteria.* [D] What captains actually do, recorded by the app layer from the Results it already
+holds and handed to a **telemetry sink**. The core knows nothing of it, and it changes no game
+and no Result. There are two kinds of record, joined by the telemetry game key. No record holds
+a `game_id`, a `view_id`, a player id or any text of the conversation (D-51).
+
+**Game record**: one per game, written by `new_game` and completed by the command that ends the
+game. [D]
+
+| Field | Type | Notes |
+|---|---|---|
+| `game_key` | str | The telemetry game key: hex SHA-256 of the `game_id` under telemetry's own prefix. It is not a `game_id` and not a `view_id`, and neither follows from it [D; the construction P] |
+| `started_unix_seconds` | int | The real time the game started: the very number the core's `new_game` was given, so it replays the game with the seed |
+| `seed` | u32 | The game's seed |
+| `rules_version` | int | `RULES_VERSION` when the game started |
+| `player_hash` | str | The player hash of the player `new_game` ran for (the GameStore's `player`): hex SHA-256 of `PLAYER_HASH_SALT` and the player id |
+| `client` | McpClient | What the server could tell of the MCP client that called `new_game` |
+| `end` | GameEnd or null | Null until the game ends |
+
+**GameEnd**: what completes a game record. A game nobody finishes keeps `end` null; nothing
+marks it abandoned. [D]
+
+| Field | Type | Notes |
+|---|---|---|
+| `outcome` | `won` \| `lost` | The game's `status` |
+| `ended_by` | `galaxy_cleared` \| `ship_destroyed` \| `stranded` | Which row of the Game end rule ended it, read from the last state: `won` is `galaxy_cleared`, a loss with `times_stranded` counted is `stranded`, any other loss is `ship_destroyed` [P] |
+| `counters` | Counters | The game's counters at its end |
+| `goals` | `{counter, amount, met}`[`GOALS_PER_GAME`] | Each of the game's goals and whether it was met [D; listing the unmet ones too is P] |
+
+**McpClient**: what the server can truthfully tell of the connecting client on the call. A part
+it can't tell is null. [D; the three fields P]
+
+| Field | Type | Notes |
+|---|---|---|
+| `name`, `version` | str or null | What the client declared in MCP's `initialize`. Known on a connection that carried one: stdio. Null over HTTP, where MCP is stateless and a tool call arrives without its `initialize` |
+| `user_agent` | str or null | The HTTP request's `User-Agent`. Null over stdio |
+
+**Event record**: one per tool call on a game, accepted or refused, the queries included. [D]
+
+| Field | Type | Notes |
+|---|---|---|
+| `game_key` | str | The game's telemetry game key |
+| `seq` | int | The event's place among its game's events, from 0. The sink numbers them as it receives them [P] |
+| `unix_seconds` | int | The adapter's clock at the call. The gap between two commands is not stored: it is the difference of consecutive events' times [D; whole seconds P] |
+| `tool` | str | The command's `type` |
+| `args` | object | The tool's arguments without the `game_id` |
+| `accepted` | bool | The Result's `ok` |
+| `refusal` | str or null | The Result's `error`: why it was refused, null when accepted |
+| `startick` | int | The game clock after the call, in starticks |
+| `ticks` | int | The starticks the command took; 0 for a query or a refusal |
+| `energy`, `shields`, `hull`, `torpedoes` | int | The ship after the call |
+| `damage_taken` | int | What enemy fire took from shields and hull during the call: the rise of `shield_damage` plus `hull_damage` |
+| `sectors_revealed` | int | Sectors that became visible by the call |
+| `sectors_cleared` | int | The rise of `sectors_cleared` by the call: 0 or 1 |
+| `detail` | object | What the tool's own Result tells, by tool; `{}` for a refusal and for a tool with nothing more to tell |
+
+| Tool | `detail` |
+|---|---|
+| `subwarp` | `{distance, energy_cost}`: cells moved, and the report's `energy_cost` |
+| `galaxy_warp` | `{distance, energy_cost, shield_recharge}`: Euclidean distance in sectors to two decimals, the report's `energy_cost` (the warp's alone), and the shield points the warp recharged |
+| `blast` | `{range, hit, energy_cost}`: Euclidean distance to the enemy on the line, to two decimals; the report's `destroyed`; the report's `energy_cost`. A blast deals no amount of damage: it kills or does nothing, so `hit` is the whole of it [P] |
+| `torpedo` | `{range, hit}`: as for a blast. An accepted torpedo always hits; one with no enemy on its line is a refusal |
+| `dock`, `long_range_scan`, `state`, `galaxy_map` | `{}`. A dock is told by its event being accepted, and a scan by `sectors_revealed` |
+
+The **telemetry sink** takes three writes: a game started, a game ended (by key), and a command
+run. [D; the three operations P] The Node adapter keeps the records in process memory, where
+tests and the local server read them, and they are gone when the process ends. [D] The
+Cloudflare adapter's sink drops every record [P]; a lasting store there is [D, unbuilt].
+
 ### Star Central messages
 *Serves: G-1, F-command.* [D] The messages fleet command sends the captain, held in the core as
 one table. Each **kind** of message is a row: its key, the names of its placeholders, and exactly
@@ -343,6 +418,8 @@ PlayerStore when the frame is made. [D]
 | Cell *holds* occupant | 0..1 |
 | Game *is watched by* Viewer | 1 → 0..n |
 | Game *was started by* player (GameStore `player`) | each game 1 player; a player 0..n games |
+| Game *has* telemetry game record | 1 → 0..1, by the telemetry game key; a game stored without `new_game` has none |
+| Telemetry game record *has* event record | 1 → 0..n, by `game_key`, ordered by `seq` |
 
 ## 4. Invariants
 
@@ -378,6 +455,13 @@ PlayerStore when the frame is made. [D]
 - A viewer never changes a game: nothing it sends reaches the store or the core. [D]
 - A GameView never shows a hidden sector, the seed or the RNG. [D]
 - A frame never carries a player's id or a `game_id`: the achievements go out as rows. [D]
+- A telemetry record never holds a `game_id`, a `view_id` or a player id, and its game key and
+  player hash can't be turned back into one: a reader of telemetry can neither watch nor command
+  a game. [D]
+- Telemetry changes nothing a player sees: a command's Result, the stored game and the viewers'
+  frame are the same whether the sink works, fails or drops the record. [D]
+- A game record's `seed` and `started_unix_seconds`, with its accepted events' `tool` and `args`
+  in `seq` order, give the game's final state. [D]
 
 ---
 
@@ -677,10 +761,12 @@ In the app layer.
 new_game: seed = random u32;  game_id = random id;  view_id = sha256(game_id)
           store new_game(seed, the adapter's clock in Unix seconds) under view_id,
           with player = the signed-in player, or `local` where there is no sign-in
+          write the game's telemetry record (Telemetry)
 any other tool: load sha256(game_id), else error "Game not found"
                 a stored game the core can't read is not found too
-apply the command;  if refused: return the result
+apply the command;  if refused: record its telemetry event and return the result
 store the returned game, beside the same player
+record its telemetry event (Telemetry)
 run the Lifetime totals rule for the commanding player
 publish the game's view frame to the viewers (Viewer socket)
 append the Lifetime totals rule's messages to the result's events;  return the result
@@ -691,6 +777,40 @@ counted. [D]
 `game_id`, the goals as that state shows them, and the viewer's link. A command's events are in
 this order: the game's own, then any goal met (Goal check, from the core), then any lifetime
 message (from the app layer). [D]
+
+### Telemetry — *Serves: the tuning of G-2 and G-4* [D]
+In the app layer, from the Game lookup rule.
+```
+game_key(game_id)  = sha256("starreach-telemetry-game-1:" + game_id)
+player_hash(player) = sha256(PLAYER_HASH_SALT + ":" + player)
+
+new_game:  sink.game_started({game_key, started_unix_seconds = the time given to the core, seed,
+                              rules_version = RULES_VERSION, player_hash, client})
+a command on a game the core reads, accepted or refused, once an accepted one is stored:
+    before, after = the state of the game it ran on, the Result's state
+    sink.command_run(the event: tool, args, ok, error, the clock and ship of `after`,
+                     what rose from `before` to `after`, the tool's detail)
+    if before.status == playing and after.status != playing: sink.game_ended(game_key, GameEnd of `after`)
+any write that fails: log it; the command goes on as if it had not
+```
+`new_game`, `whoami`, a call on an unknown `game_id` and a call MCP rejects for its arguments
+are not calls on a game and leave no event. [P] An event is recorded once the game is stored,
+before the lifetime totals move and the viewers are told, so an accepted command that is stored
+is in the record even if a later step fails. [P]
+
+Everything in an event comes from Results: the two states, the report, and the core's view for
+the count of visible sectors. The app layer reads no Game field. A state gives the clock as a
+stardate, which is read back to starticks by the Stardate display rule turned round, so the app
+layer holds its own copy of `STARTICKS_PER_STARDATE`; a test holds the event's `startick` to the
+stored game's clock. [P] A warp's `shield_recharge` is the shields' rise plus what enemy fire took
+from them during the warp, since nothing else moves the shields on a warp. [P]
+
+**`RULES_VERSION` must be bumped**, by one and by hand, in the same change as any change to a
+rule of this section that the core plays by, or to a number of the Numbers table that play
+depends on: anything after which the same captain's choices could go differently. A change to
+wording, to the viewer, to telemetry itself or to a Star Central message does not bump it. [D;
+where the line falls is P] A game keeps the version it started under, whatever is deployed when
+it is finished.
 
 ### Ladder — *Serves: F-command* [D]
 In the core, beside the counter table.
@@ -796,6 +916,8 @@ Referred to by name everywhere else.
 | `COUNTER_SCALE` | `enemies_destroyed` 10; `shield_damage` 1000; `hull_damage` 100; every other counter 1 | each counter's `scale` in the counter table: the unit of its ladder [T] | D-43 |
 | `WORDINGS_PER_KIND` | 20 | wordings in every kind of Star Central message [D] | D-46 |
 | `COUNTER_GOAL_CEILING` | `enemies_destroyed` 127; `sectors_cleared` 41; `sectors_warped` 56; `docks` 18; `starbases_discovered` 3; `blasts_hit` 57; `torpedoes_fired` 67; `scans` 33; `games_won` 0; every counter that may not be a goal 0 | each counter's `goal_ceiling` in the counter table: the most a goal may ask, 0 for not offered [T] | D-43 |
+| `RULES_VERSION` | 1 | the rules version a new game's telemetry record carries; bumped by hand (Telemetry rule) [D] | D-51 |
+| `PLAYER_HASH_SALT` | `starreach-player-hash-1` | text hashed with a player id into the player hash; a constant in the code [D] | D-51 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
 | `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |
@@ -879,6 +1001,10 @@ stops short isn't a surprise [D]. The instructions say how to read a stardate an
 stardate is a day), `state`'s description gives the stardate form, and each action's description
 says how to read `report.time` [D].
 
+No tool returns telemetry, and recording it changes no tool's Result. `new_game` notes the MCP
+client that called it for the game's record, and every tool that takes a `game_id` leaves an
+event (Telemetry). [D]
+
 No tool returns a player's lifetime totals or achievements [D]: a player sees them only on the
 viewer (D-49). They reach the conversation one at a time, as Star Central's message in the `events`
 of the command that reached the rung (Lifetime totals), and the instructions tell the LLM to
@@ -905,7 +1031,7 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 
 The app layer serves `/mcp` and `/health` as one fetch handler. MCP over HTTP is stateless:
 each request gets a fresh MCP server, and games live in the GameStore. [P] Adapters serve the
-pages and the socket. The Node adapter serves all of these in both modes, and in stdio mode
+pages and the socket, and supply the telemetry sink (Telemetry sink). The Node adapter serves all of these in both modes, and in stdio mode
 also serves MCP over stdio, from one process that holds the games. It takes `--host` and
 `--port` to bind and `--origin` for where browsers reach it. A stdio process that finds the
 port held by a Starreach server forwards its MCP messages there instead, so one process still
@@ -929,6 +1055,33 @@ upgrade, or whose id isn't a `view_id`, gets the 404 of any other path. [P] The 
 running the Worker, and every other request reaches it. [D] `public/.assetsignore` keeps
 `instructions.txt` out of the assets, since the Worker bundles it as a module; everything else
 in `public/` is served, which adds the font's licence text to the pages' files. [P]
+
+### Telemetry sink (app layer) [D]
+The app layer writes telemetry through one interface, which each adapter supplies beside its
+GameStore and PlayerStore. It is always supplied: there is no running without one.
+
+| Operation | Input | Effect |
+|---|---|---|
+| `gameStarted` | a game record without `end` | Holds the record with `end` null |
+| `gameEnded` | `game_key`, GameEnd | Completes that game's record |
+| `commandRun` | an event record without `seq` | Holds the event under the next `seq` of its game |
+
+A write that fails is logged by the app layer and fails nothing else. [D] The Node adapter
+supplies the in-memory sink, one for the life of the process, in both of its modes. [D] The
+Cloudflare adapter supplies a sink that drops every record. [P] No route or tool gives telemetry
+out.
+
+What each transport lets the server tell of the MCP client [P]:
+
+| Path | `name`, `version` | `user_agent` |
+|---|---|---|
+| Node, MCP over stdio | The client's `initialize` | null |
+| Node, a second stdio process forwarding to the first | null | The forwarding process's own, not the client's |
+| `/mcp` over HTTP, Node and Cloudflare | null | The request's `User-Agent` |
+
+The auth/ access token names the player and the audience and not the client that obtained it, so
+sign-in adds nothing here. Whether the `User-Agent` tells Claude Desktop from Claude Code is not
+known until both have been recorded. [P]
 
 ### Viewer socket [D]
 ```
@@ -988,4 +1141,5 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
     showing. [P]
   - The page shows no player id and gets none. Opening and closing the panel sends nothing. [D]
 - **App layer:** stores and forwards Games; it never reads or edits a Game's fields. What a
-  command counted it reads from the Results' `state.counters`. [D]
+  command counted it reads from the Results' `state.counters`, and what telemetry records it
+  reads from Results and the core's view. [D]

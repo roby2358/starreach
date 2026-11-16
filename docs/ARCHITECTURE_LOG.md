@@ -3,6 +3,24 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — The app layer records telemetry: a record per game and an event per tool call
+Until now nothing recorded play: every balance figure in RATIONALE is modeled. The app layer now
+makes a game record at `new_game`, completes it when the game ends, and makes an event record for
+every tool call on a game, all from Results it already holds; the core is unchanged and a seed
+plays as it did. The records go to a `Telemetry` sink that every adapter must supply, so `Games`
+gained `telemetry` and `newGame` a second argument, the MCP client. The Node adapter supplies the
+new in-memory sink; the Cloudflare adapter supplies one that drops every record, since it has no
+store for them yet (R-50, not yet covered). The designer settled the design in an interview
+(D-51); the record shapes, the key's construction (`sha256("starreach-telemetry-game-1:" +
+game_id)`), the sink's three operations, sink-side numbering, whole-second times and leaving out
+calls on unknown games are Claude's proposals. `RULES_VERSION` starts at 1 and
+`PLAYER_HASH_SALT` is a constant in `app/src/telemetry.ts`. `viewId`'s hashing moved to
+`app/src/hash.ts`, which the game key and the player hash share. Found while building: over
+stateless HTTP a tool call never carries the client's declared name, and the auth/ token names no
+client, so on the deployed server the MCP client is the `User-Agent` alone, and whether that
+tells Claude Desktop from Claude Code is unverified. The interview also asked for a blast's
+damage; a blast has none (D-19), so its event records the hit. Adds D-51 and R-45 to R-50.
+
 ### 2026-11-16 — Coordinates are (x, y), column then row, wherever they are seen
 Coordinates were (y, x), row then column, everywhere: the tools' arguments, the state and
 report fields (`sector_yx`, `ship_yx`, `starbase_yx`, `enemies_yx`, `hit_yx`, an enemy's `yx`),

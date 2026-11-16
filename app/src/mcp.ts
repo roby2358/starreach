@@ -2,10 +2,13 @@
 // instructions, sent as the server's instructions and as a prompt. Every tool returns the core Result as JSON text.
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
 import type { CommandResult } from "./core.ts";
 import { newGame, runCommand, type Games } from "./games.ts";
+import type { McpClient } from "./telemetry.ts";
 
 export interface McpDeps extends Games {
   /** The decorum and rendering instructions for the LLM (public/instructions.txt). */
@@ -33,12 +36,33 @@ const COMMAND_TOOLS = [
   { type: "torpedo", args: COORDINATES, description: `Fire a quantorpedo toward cell (x, y); it hits the first enemy on the line, at any range. ${TIME_NOTE}` },
 ] as const;
 
+/** What the MCP SDK tells a tool about the call beside its arguments. */
+type ToolExtra = RequestHandlerExtra<ServerRequest, ServerNotification>;
+
 function whoami(player: string | null) {
   return player === null ? { signed_in: false } : { signed_in: true, player };
 }
 
 function asToolResult(result: CommandResult) {
   return { content: [{ type: "text" as const, text: JSON.stringify(result) }] };
+}
+
+/** A header's single value, or null when the request has none of that name or there is no request. */
+function header(extra: ToolExtra, name: string): string | null {
+  const value = extra.requestInfo?.headers[name];
+  return typeof value === "string" ? value : null;
+}
+
+/** What this server can tell of the client making a call (D-51): the name and version it declared
+ *  in `initialize`, which a stateless HTTP call never carries, and the call's User-Agent, which
+ *  stdio has none of. */
+function clientOf(server: McpServer, extra: ToolExtra): McpClient {
+  const declared = server.server.getClientVersion();
+  return {
+    name: declared === undefined ? null : declared.name,
+    version: declared === undefined ? null : declared.version,
+    user_agent: header(extra, "user-agent"),
+  };
 }
 
 export function createMcpServer(deps: McpDeps): McpServer {
@@ -53,7 +77,7 @@ export function createMcpServer(deps: McpDeps): McpServer {
   server.registerTool(
     "new_game",
     { description: "Start a new game; pass report.game_id to every other tool. report.goals are the game's three objectives from Star Central (label, count so far, amount to reach, met). report.viewer_url is the live viewer's link" },
-    async () => asToolResult(await newGame(deps)),
+    async (extra: ToolExtra) => asToolResult(await newGame(deps, clientOf(server, extra))),
   );
 
   server.registerTool(

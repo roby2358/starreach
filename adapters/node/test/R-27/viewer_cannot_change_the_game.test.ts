@@ -6,7 +6,7 @@ import { after, before, test } from "node:test";
 
 import { FRAME_TOO_BIG_CLOSE, newGame, VIEWER_MAX_FRAME_BYTES, viewId } from "@starreach/app";
 
-import { startServer, stopServer, Viewer, type Running } from "../helpers/server.ts";
+import { startServer, stopServer, Viewer, type Running, TEST_CLIENT } from "../helpers/server.ts";
 
 let running: Running;
 before(async () => {
@@ -15,7 +15,7 @@ before(async () => {
 after(() => stopServer(running));
 
 test("a command sent down the socket does nothing", async () => {
-  const gameId = (await newGame(running.deps)).report!.game_id as string;
+  const gameId = (await newGame(running.deps, TEST_CLIENT)).report!.game_id as string;
   const before = await running.deps.store.get(await viewId(gameId));
   const viewer = new Viewer(running.port, await viewId(gameId));
   await viewer.nextFrame();
@@ -31,7 +31,7 @@ test("a command sent down the socket does nothing", async () => {
 });
 
 test("a frame at the size limit is dropped and the socket stays open", async () => {
-  const gameId = (await newGame(running.deps)).report!.game_id as string;
+  const gameId = (await newGame(running.deps, TEST_CLIENT)).report!.game_id as string;
   const viewer = new Viewer(running.port, await viewId(gameId));
   await viewer.nextFrame();
 
@@ -45,7 +45,7 @@ test("a frame at the size limit is dropped and the socket stays open", async () 
 });
 
 test("a frame over the size limit closes that socket and leaves the game alone", async () => {
-  const gameId = (await newGame(running.deps)).report!.game_id as string;
+  const gameId = (await newGame(running.deps, TEST_CLIENT)).report!.game_id as string;
   const before = await running.deps.store.get(await viewId(gameId));
   const viewer = new Viewer(running.port, await viewId(gameId));
   await viewer.nextFrame();
