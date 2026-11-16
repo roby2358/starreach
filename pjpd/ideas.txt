@@ -33,13 +33,6 @@ Open design questions for the designer:
 
 Shape to propose: GameState gets a list of sieges (sector yx, deadline stardate); the stardate-advance path rolls for a new siege on each galactic tick; a starbase whose deadline passes is removed. Docs: an ONTOLOGY rule with pseudocode, constants in the Numbers table, a RATIONALE decision with alternatives, CRITERIA rows and tests, and a log entry.
 ----
-Score:   55
-ID: emergfloor-vk2v
-Created: 2026-11-16T01:20:41Z
-Updated: 2026-11-16T01:20:41Z
-
-Rethink the starbase emergency energy now that warps are dear. STARBASE_EMERGENCY_ENERGY is 1000, and the cheapest warp costs 4160 (warp energy = warp time × WARP_ENERGY_PER_TICK), so the transfer no longer pays for any warp; it used to cover the longest warp to Star Central. Two effects follow from the Game end rule in core/src/actions.rs (`game_end`, `stranded`). First, a ship in a starbase's sector counts as stranded whenever its energy is below the warp cost to the nearest other visible starbase (at least 8320, since starbases are 3 or more sectors apart), so the floor is reapplied after every accepted action there: in a starbase sector that still has enemies the ship gets energy raised back to 1000 after each action, which is an endless supply of torpedo shots and range-1 blasts. Second, the name "emergency energy to reach a starbase" no longer describes what it does: it only pays for moving and fighting inside the sector in order to dock. Open questions for the user: should the floor stay a small in-sector allowance (and should it be given once rather than after every action), should it scale to cover a warp to the next starbase, or should a starbase sector with enemies give nothing until cleared? Also whether the stranded test (lose when energy is below the warp cost to the nearest other visible starbase and no starbase is in the sector) is still the right loss rule when it now triggers with up to 12530 energy left. RATIONALE D-30 and the ONTOLOGY Game end rule describe the current behaviour.
-----
 Score:   50
 ID: starcentral-rixp
 Created: 2026-11-14T15:47:45Z
@@ -237,6 +230,22 @@ Do:
 - If idle games are ever deleted, a deleted game must also leave the index.
 
 Tests: a player sees their own games and not another player's; a new game appears in the list; the cap holds. Update ONTOLOGY (the MCP tools table, the index), CRITERIA (an R-row), RATIONALE (where the index lives and why), README and the log. Ask the user before committing or deploying.
+----
+Score:   45
+ID: emergfloor-vk2v
+Created: 2026-11-16T01:20:41Z
+Updated: 2026-11-16T01:25:10Z
+
+Starbase emergency energy and the stranded rule, now that warps are dear.
+
+Decided [D]: the endless battle supply in a starbase's sector is wanted. A ship fighting in a sector with a starbase has its energy raised back to STARBASE_EMERGENCY_ENERGY (1000) after each action whenever it couldn't otherwise afford the warp to the next starbase, which keeps it supplied with torpedo shots and range-1 blasts for as long as it fights there. That will matter in siege scenarios, where the ship defends a starbase. Don't remove it or limit it to once.
+
+How it works today: STARBASE_EMERGENCY_ENERGY is 1000 and the cheapest warp costs 4160 (warp energy = warp time × WARP_ENERGY_PER_TICK), so the transfer no longer pays for any warp; it used to cover the longest warp to Star Central. By the Game end rule in core/src/actions.rs (`game_end`, `stranded`), a ship in a starbase's sector counts as short of energy whenever it has less than the warp cost to the nearest other visible starbase (at least 8320, since starbases are 3 or more sectors apart), so the floor is reapplied after every accepted action there.
+
+Still open, for the designer:
+- Naming and docs: "emergency energy to reach a starbase" no longer describes it. It is a battle supply from the starbase. RATIONALE D-30 and the ONTOLOGY Game end rule should say what it is for, including the siege use.
+- Whether the amount (1000) is right for sustained fighting: it pays for one range-1 blast or ten torpedo shots' energy per action.
+- Whether the stranded test (the game is lost when energy is below the warp cost to the nearest other visible starbase and no starbase is in the sector) is still the right loss rule, when it can now end a game with up to 12530 energy left.
 ----
 Score:   75
 ID: goals-9atp
