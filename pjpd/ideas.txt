@@ -293,6 +293,19 @@ The telemetry game record holds the HTTP User-Agent of the MCP client that start
 
 Options: leave the line as it is; add a few words ("and which assistant app connected"); or stop recording the User-Agent. The designer wrote the line's content, so this is the designer's call. If the wording changes, the home page browser test and the U-12 criterion change with it.
 ----
+Score:   20
+ID: viewer-race-pte4
+Created: 2026-11-16T21:28:04Z
+Updated: 2026-11-16T21:28:04Z
+
+On the Node adapter, a viewer that connects while a command on the same game is in flight may get a stale first frame and miss that command's frame. Not reproduced: found by reading the code.
+
+Where: `adapters/node/src/server.ts`, `connectViewer()`. It awaits `currentFrame(deps, view)` (a read of the game store, then of the player's totals) and only afterwards attaches the socket to the game's viewers and sends the frame. `runCommand` in `app/src/games.ts` stores the new game and publishes its frame across several awaits of its own. If the command stores and publishes between the viewer's read and its attach, the new socket is not yet in the list when the frame is published, and it then receives the older frame it had already made. The page shows the game one command behind until the next accepted command.
+
+The Cloudflare adapter guards against exactly this: the game's Durable Object makes the frame and accepts the socket inside `blockConcurrencyWhile` (`adapters/cloudflare/src/game_object.ts`, `welcome()`), and ONTOLOGY's Viewer socket section states that guarantee for Cloudflare only.
+
+To evaluate: whether the window is real on Node (the stores are in memory, so every await is a microtask, but the command path also awaits `crypto.subtle`), whether it matters for a local single-player server, and if so the fix: attach the socket before making the frame and send the frame made after attaching, or serialize frame-making per game. Either way ONTOLOGY should say what a connecting viewer is guaranteed on each adapter.
+----
 Score:   75
 ID: goals-9atp
 Created: 2026-11-14T15:48:48Z

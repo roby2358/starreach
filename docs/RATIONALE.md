@@ -21,7 +21,9 @@ is said to be that.
 - **Alternatives:** a conventional browser UI with buttons; a text-command parser.
 - **Why:** G-1. Natural-language orders to a crew are the experience (F-command). The
   `instructions` prompt sets decorum and the rendering formats so the narration stays
-  consistent.
+  consistent. The same text is returned by `initialize` as the server's instructions, because
+  most clients load a prompt only when the user picks it, and the LLM has to have the text
+  as soon as its client connects.
 - **Evidence:** none recorded (U-3 – U-5 are manual).
 
 ### D-13 One process serving MCP and HTTP; sessions in memory — *Decided*
@@ -1073,7 +1075,9 @@ is said to be that.
   cannot use a metadata document and for `just cc-dev-token`. A token is for Starreach when its `aud` is the
   MCP endpoint's canonical URL (`STARREACH_RESOURCE`, which auth/ writes when the client names
   the resource, as MCP clients do) or that client id (when it names none) [D]; both name Starreach
-  and nothing else. The viewer stays open, and the Node adapter has no sign-in.
+  and nothing else. A token's times are checked with `CLOCK_SKEW_S` of allowance for a clock
+  that differs from auth/'s [P; no other allowance was weighed]. The viewer stays open, and the
+  Node adapter has no sign-in.
 - **Alternatives:** keeping `/mcp` open beside a signed-in endpoint while sign-in was tried (the
   designer declined: no need to preserve open play); signing in directly against bskyoidc (no
   shared identity across yuwakisa apps, and its token output isn't built for a resource server);

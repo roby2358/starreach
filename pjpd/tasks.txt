@@ -16,6 +16,26 @@ Do:
 
 Update RATIONALE D-5, CRITERIA and the log if the number moves. Don't deploy.
 ----
+Priority:   45
+Status: ToDo
+ID: report-end-dkdt
+Created: 2026-11-16T21:27:59Z
+Updated: 2026-11-16T21:27:59Z
+
+The telemetry report drops the command that ended a game when that command took no game time.
+
+Where: `tools/telemetry_report/figures.ts`, `gamePlays()`. For an ended game it takes the "played events" as the events up to the last one with `ticks > 0`, on the assumption that the command that ends a game always takes time.
+
+Why that is wrong: in the core's Warp rule (`core/src/actions.rs`, `warp`), the enemies in the current sector get a turn before the ship leaves. If that turn brings the hull to 0, the warp returns as an accepted command without leaving: no energy spent, no time passed, report `{sector_xy: <the sector the ship is in>, energy_cost: 0, time: "0.00.0"}`, and the Game end rule then marks the game lost. Its telemetry event is `accepted: true`, `tool: "galaxy_warp"`, `ticks: 0`, detail `{distance: 0, energy_cost: 0, shield_recharge: 0}`. So for a game lost this way the report's played events stop at the previous event that took time, and leave out the fatal warp and any query or refusal between the two.
+
+Effect on the report: for such a game, "energy and hull at the end" show the ship before the fatal turn (hull above 0 for a game ended by `ship_destroyed`), "before the last command" is one command too early, the game's length in commands is short, and its last wall-clock gap is missing. Separately, the Warp section counts that event as a warp of 0 sectors costing 0, and Looking before leaping counts it as a warp, though the ship never left.
+
+Likely fix (confirm with the designer): take the ending event as the game's last accepted event whose tool is an action (not `state` or `galaxy_map`), since after the end every action is refused with "The game is over" and only queries are accepted; and leave an accepted `galaxy_warp` with `ticks` 0 out of the Warp section and of Looking before leaping, or show it apart. Add a case to the report's fixed test records (`app/test/helpers/report_play.ts`, tests under `app/test/R-52/`): a game lost to the parting turn before a warp.
+
+Docs to change with it: ONTOLOGY's Telemetry report section (the "played events" paragraph describes the present behaviour, exception included), RATIONALE's decision on the telemetry report ("Played events"), CRITERIA's row for the telemetry report, and CRITERIA's row for tool-call events, which says `ticks` is at least 1 for an accepted action: that is false for this warp, so either the row or the rule needs the exception stated. Add an ARCHITECTURE_LOG entry.
+
+No change to the core is implied: the zero-time fatal warp is shipped, tested behaviour (`core/tests/R-36/counting.rs`).
+----
 Priority:   42
 Status: ToDo
 ID: battlescript-brea

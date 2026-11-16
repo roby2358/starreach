@@ -61,7 +61,7 @@ One name per concept. These names are used in code, tools and docs.
 | **Torpedo** | The ship's limited-ammo weapon | quantorpedo |
 | **Enemy fire** | An enemy's weapon | raxxon beam |
 | **Stardate** | Game time as the player reads it. A stardate is a day, shown to three decimals | |
-| **Startick** | The unit the game clock counts in: a whole number, `STARTICKS_PER_STARDATE` to a stardate, so 3.6 minutes | tick |
+| **Startick** | The unit the game clock counts in: a whole number, `STARTICKS_PER_STARDATE` to a stardate | tick |
 | **Command** | A request to the core: an action or a query | order |
 | **Action** | A command that changes state | |
 | **Query** | A command that only reads state | |
@@ -316,8 +316,16 @@ it can't tell is null. [D; the three fields P]
 
 | Field | Type | Notes |
 |---|---|---|
-| `name`, `version` | str or null | What the client declared in MCP's `initialize`. Known on a connection that carried one: stdio. Null over HTTP, where MCP is stateless and a tool call arrives without its `initialize` |
-| `user_agent` | str or null | The HTTP request's `User-Agent`. Null over stdio |
+| `name`, `version` | str or null | What the client declared in MCP's `initialize`, on a connection that carried one |
+| `user_agent` | str or null | The `User-Agent` of the HTTP request that carried the call |
+
+What each transport lets the server tell [P]:
+
+| Path | `name`, `version` | `user_agent` |
+|---|---|---|
+| Node, MCP over stdio | The client's `initialize` | null |
+| Node, a second stdio process forwarding to the first | null | The forwarding process's own, not the client's |
+| `/mcp` over HTTP, Node and Cloudflare | null: MCP over HTTP is stateless, and a tool call arrives without its `initialize` | The request's `User-Agent` |
 
 **Event record**: one per tool call on a game, accepted or refused, the queries included. [D]
 
@@ -331,7 +339,7 @@ it can't tell is null. [D; the three fields P]
 | `accepted` | bool | The Result's `ok` |
 | `refusal` | str or null | The Result's `error`: why it was refused, null when accepted |
 | `startick` | int | The game clock after the call, in starticks |
-| `ticks` | int | The starticks the command took; 0 for a query or a refusal |
+| `ticks` | int | The starticks the command took: the clock's rise over the call. 0 for a query, for a refusal, and for an accepted warp that the enemies' parting turn ended before the ship left (Warp) |
 | `energy`, `shields`, `hull`, `torpedoes` | int | The ship after the call |
 | `damage_taken` | int | What enemy fire took from shields and hull during the call: the rise of `shield_damage` plus `hull_damage` |
 | `sectors_revealed` | int | Sectors that became visible by the call |
@@ -341,15 +349,15 @@ it can't tell is null. [D; the three fields P]
 | Tool | `detail` |
 |---|---|
 | `subwarp` | `{distance, energy_cost}`: cells moved, and the report's `energy_cost` |
-| `galaxy_warp` | `{distance, energy_cost, shield_recharge}`: Euclidean distance in sectors to two decimals, the report's `energy_cost` (the warp's alone), and the shield points the warp recharged |
+| `galaxy_warp` | `{distance, energy_cost, shield_recharge}`: Euclidean distance in sectors to two decimals, the report's `energy_cost` (the warp's alone), and the shield points the warp recharged. All three are 0 for a warp the ship never left on |
 | `blast` | `{range, hit, energy_cost, damage}`: Euclidean distance to the enemy on the line, to two decimals; the report's `destroyed`; the report's `energy_cost`; `BLAST_HIT_DAMAGE` on a hit and 0 on a miss. A blast kills or does nothing, so `damage` is a placeholder that says no more than `hit` does [D] |
 | `torpedo` | `{range, hit}`: as for a blast. An accepted torpedo always hits; one with no enemy on its line is a refusal |
 | `dock`, `long_range_scan`, `state`, `galaxy_map` | `{}`. A dock is told by its event being accepted, and a scan by `sectors_revealed` |
 
-The **telemetry sink** takes three writes: a game started, a game ended (by key), and a command
-run. [D; the three operations P] The Node adapter keeps the records in process memory, where
-tests and the local server read them, and they are gone when the process ends. [D] The
-Cloudflare adapter keeps them for good, as rows of a D1 database (Telemetry database, D-53). [D]
+The records go to the **telemetry sink**, which takes three writes: a game started, a game ended
+(by key), and a command run. [D; the three operations P] Each adapter supplies one (Telemetry
+sink): the Node adapter's keeps the records in process memory, and the Cloudflare adapter's
+keeps them for good, as rows of a D1 database (Telemetry database, D-53). [D]
 
 ### Star Central messages
 *Serves: G-1, F-command.* [D] The messages fleet command sends the captain, held in the core as
@@ -503,11 +511,10 @@ once, the first time its sector is seen. [D]
   `goals_rng(seed)`, which chooses a game's goals; and a **goal message stream**
   `goal_message_rng(seed, i)` per goal, which picks the wording that announces goal `i` as met.
 
-The game stream never picks a Star Central message's wording, so the same seed and commands
-play the same game whatever is announced. For a lifetime message the core takes the pick as a
+Neither stream of a game picks a lifetime message's wording: the core takes that pick as a
 number in [0, 1) from its caller, and the app layer draws it from the platform's own random
-numbers (D-46). For a met goal the core takes it from the goal message stream, so the same
-seed and commands also give the same events (D-48). [D]
+numbers (D-46). For a met goal the core takes the pick from the goal message stream, so the
+same seed and commands also give the same events (D-48). [D]
 
 ---
 
@@ -570,7 +577,9 @@ r = sector_rng(seed, sector_xy);  map = all '.'
 place the starbase (if any), then each star, then each live enemy, then the ship,
 each on a cell drawn from r among the empty cells
 ```
-Drawing among the empty cells always succeeds: a board holds at most 19 occupants. [P]
+Drawing among the empty cells always succeeds: a board holds at most one starbase, the most
+stars of `STARS_PER_SECTOR`, `ENEMY_MAX_PER_SECTOR` enemies and the ship, far fewer than its
+cells. [P]
 Terrain is placed before enemies, so a sector's stars and starbase are the same on every
 visit, and its enemies stand where the first of the original enemies stood.
 
@@ -579,7 +588,8 @@ visit, and its enemies stand where the first of the original enemies stood.
 illegal if target == sector_xy
 time = round(WARP_TIME_K × ln(euclid(sector_xy, target) + 1));  cost = time × WARP_ENERGY_PER_TICK
 illegal if energy < cost
-if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
+if enemies are present: run EnemiesTurn
+if hull == 0: stop, accepted: the ship never leaves, nothing is spent and no time passes; Game end then counts the loss [P]
 energy -= cost;  startick += time
 recharge(max_shields)      # the Shield recharge rule: to full, as far as the energy left allows [D]
 reveal(target);  sector_xy = target;  sector = instantiate(target);  last_event_startick = startick
@@ -591,7 +601,9 @@ run warp events
 logarithmic in distance: the next sector is about a stardate away, and a farther one takes
 and costs only a little more (D-5). The legality check is on the warp's `cost` alone, and
 `report.energy_cost` is that `cost`; the recharge is paid on top and told as an event [P]. The
-ship meets the ambush with the recharged shields. The hull is not repaired [D].
+ship meets the ambush with the recharged shields. The hull is not repaired [D]. A warp the
+parting turn ends is still an accepted command: its report holds the sector the ship is in, an
+`energy_cost` of 0 and a `time` of no length, and `sectors_warped` is not counted [P].
 
 ### Subwarp — *Serves: G-2, F-danger* [D]
 ```
@@ -801,8 +813,7 @@ is in the record even if a later step fails. [P]
 Everything in an event comes from Results: the two states, the report, and the core's view for
 the count of visible sectors. The app layer reads no Game field. A state gives the clock as a
 stardate, which is read back to starticks by the Stardate display rule turned round, so the app
-layer holds its own copy of `STARTICKS_PER_STARDATE`; a test holds the event's `startick` to the
-stored game's clock. [P] A warp's `shield_recharge` is the shields' rise plus what enemy fire took
+layer holds its own copy of `STARTICKS_PER_STARDATE`. [P] A warp's `shield_recharge` is the shields' rise plus what enemy fire took
 from them during the warp, since nothing else moves the shields on a warp. [P]
 
 **`RULES_VERSION` must be bumped**, by one and by hand, in the same change as any change to a
@@ -920,7 +931,9 @@ Referred to by name everywhere else.
 | `PLAYER_HASH_SALT` | `starreach-player-hash-1` | text hashed with a player id into the player hash; a constant in the code [D] | D-51 |
 | `BLAST_HIT_DAMAGE` | 1000 | the `damage` a hitting blast's telemetry event carries: a telemetry placeholder, used by no rule of the game [D] | D-51 |
 | `LONG_PAUSE_SECONDS` | 300 | real seconds between two commands of a game from which the telemetry report counts the gap as a long pause and leaves it out of a game's length without pauses [P] | D-54 |
+| `HTTP_HOST` | 127.0.0.1 | host the `just` recipes pass to the local servers | D-21 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
+| `CLOCK_SKEW_S` | 60 | seconds of clock difference the Worker allows when it checks an access token's times | D-41 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
 | `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |
 | `VIEWER_MAX_FRAME_BYTES` | 128 | largest frame a viewer may send before its socket closes; room for a ping or a small view setting | D-31 |
@@ -949,7 +962,9 @@ boundary as a JavaScript number, a whole number below 2^53. [P]
 `Game` is opaque to the app layer. The RNG's 64-bit state inside it is serialized as a string so a
 JavaScript round trip can't lose precision; the startick clock is a plain number, far below the
 size where JavaScript loses whole numbers. `start_unix_seconds` is the real time the game starts
-at: the core reads no clock, so the adapter supplies it (Game creation). Given text that isn't
+at: the core reads no clock, so the adapter supplies it (Game creation); it crosses as a
+JavaScript number and its fraction is dropped [P]. A command that isn't one of the Commands
+table, or lacks an argument, is refused like any other, with a Result [P]. Given text that isn't
 a Game it reads, such as a game stored before a change to the Game's fields, `apply` and `view`
 return nothing, and the app layer answers as for an unknown game. Stored games are not migrated. [D]
 
@@ -962,7 +977,7 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 |---|---|---|---|---|
 | `state` | — | query | — | null |
 | `galaxy_map` | — | query | — | `{map: string[10]}` |
-| `galaxy_warp` | `x, y` | action | Warp | `{sector_xy, energy_cost, time}` |
+| `galaxy_warp` | `x, y` | action | Warp | `{sector_xy, energy_cost, time}`: the sector the ship is in after the command |
 | `subwarp` | `x, y` | action | Subwarp | `{ship_xy, path, energy_cost, time}` |
 | `dock` | — | action | Dock | `{time}` |
 | `long_range_scan` | — | action | Long-range scan | `{scan: string[3], energy_cost, time}` |
@@ -991,11 +1006,11 @@ the core Result. Plus:
 | `whoami` | — | `{signed_in: true, player: <sub>}` on a signed-in endpoint, `{signed_in: false}` otherwise (D-41) [P] |
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM, which `initialize` also returns as the server's instructions |
 
-The instructions reach the LLM as soon as its client connects, since `initialize` returns them;
-most clients load a prompt only when the user picks it. They cast it as the ship's computer,
+The MCP server names itself `Starreach` [P]. The instructions reach the LLM as soon as its client
+connects, since `initialize` returns them (D-14). They cast it as the ship's computer,
 working closely with the captain to make the galaxy safe, and tell it to give the captain the
 `viewer_url` and then wait for orders rather than play on its own [D]. They tell it to present
-the game's three goals when the game starts, one short line each worded as an order, before the
+the game's goals when the game starts, one short line each worded as an order, before the
 offer of a map and with the viewer link still last, and to report each goal's count against its
 amount when the captain asks [D]. Facts about one tool go in
 that tool's description: `subwarp`'s states the Subwarp rule's hostile-sector cap, so a move that
@@ -1022,9 +1037,9 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 
 | Route | Returns |
 |---|---|
-| `POST /mcp` | Streamable-HTTP MCP. On Cloudflare it needs a signed-in player (D-41): without a valid auth/ access token carrying `starreach:play`, 401 (403 for a missing scope) with `WWW-Authenticate: Bearer resource_metadata=…, scope="starreach:play"` [D, the details P]. The Node adapter is open |
-| `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-protected-resource/mcp` | RFC 9728 metadata for `/mcp`: `resource: STARREACH_RESOURCE`, `authorization_servers: [AUTH_ISSUER]`, `scopes_supported: ["starreach:play"]` (Cloudflare only) [P] |
-| `GET /health` | `{status: "ok"}` |
+| `POST /mcp` | Streamable-HTTP MCP. On Cloudflare it needs a signed-in player (D-41): without a valid auth/ access token carrying `starreach:play`, 401 (403 for a missing scope) with `WWW-Authenticate: Bearer resource_metadata=…, scope="starreach:play", error=…, error_description=…` and a JSON body `{error, error_description}` [D, the details P]. The Node adapter is open |
+| `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-protected-resource/mcp` | RFC 9728 metadata for `/mcp`: `resource: STARREACH_RESOURCE`, `authorization_servers: [AUTH_ISSUER]`, `scopes_supported: ["starreach:play"]`, `bearer_methods_supported: ["header"]`, `resource_name: "Starreach"` (Cloudflare only) [P] |
+| `GET /health` | `{status: "ok"}`. Any other method gets the 404 of any other path [P] |
 | `GET /telemetry` | Everything the in-memory telemetry sink holds (Telemetry route). Node adapter only [D]; on Cloudflare it is any other path |
 | `GET /` | The home page: a short briefing with how to connect, and what the game records about play (D-40, D-53). Cloudflare redirects `/index.html` to `/` [P] |
 | `GET /viewer` | The viewer page. `?view=<view_id>` chooses the game. Cloudflare redirects `/viewer.html` to `/viewer` [P]. With no game, its notice links to `/` |
@@ -1038,7 +1053,8 @@ pages and the socket, and supply the telemetry sink (Telemetry sink). The Node a
 also serves MCP over stdio, from one process that holds the games. It takes `--host` and
 `--port` to bind and `--origin` for where browsers reach it. A stdio process that finds the
 port held by a Starreach server forwards its MCP messages there instead, so one process still
-holds every client's games, and refuses to start if anything else holds it. A stdio process
+holds every client's games, and refuses to start if anything else holds it. A forwarding
+process exits when the server it forwards to stops answering. A stdio process
 exits when its client closes stdin, which ends the games it holds. [P]
 
 The Cloudflare adapter is a Worker that serves `/mcp` and `/health` through the app layer's
@@ -1047,7 +1063,7 @@ totals in the Durable Object named by the player's `sub` (PlayerStore), and tele
 player [D]: Starreach is an OAuth resource server only and never runs a sign-in flow. It verifies auth/'s access token offline with the vendored auth-client
 (`adapters/cloudflare/vendor/auth-client/`), pinning `iss` = `AUTH_ISSUER` and accepting an `aud` of
 `STARREACH_RESOURCE` (the MCP endpoint's canonical URL, which auth/ writes when the client names
-the resource) or `STARREACH_CLIENT_ID` (when it names none), and fetches auth/'s keys through the `AUTH_SERVICE` service binding, never a
+the resource) or `STARREACH_CLIENT_ID` (when it names none), allowing `CLOCK_SKEW_S` on the token's times, and fetches auth/'s keys through the `AUTH_SERVICE` service binding, never a
 public same-zone fetch (D-41). [P] Locally it runs under `wrangler dev` (`just cf-dev`). Its production environment
 is routed to `starreach.yuwakisa.com` (D-20) and deployed there with `just cf-deploy`. [D]
 
@@ -1069,21 +1085,21 @@ GameStore and PlayerStore. It is always supplied: there is no running without on
 | `gameEnded` | `game_key`, GameEnd | Completes that game's record |
 | `commandRun` | an event record without `seq` | Holds the event under the next `seq` of its game |
 
-A write that fails is logged by the app layer and fails nothing else. [D] The Node adapter
-supplies the in-memory sink, one for the life of the process, in both of its modes. [D] The
-Cloudflare adapter supplies a sink that writes each record to its D1 database (Telemetry
-database). [D] No tool gives telemetry out, and the only route that does is the Node adapter's
-`GET /telemetry`. The telemetry report reads the records back from either place (Telemetry report).
+A write that fails is handled by the Telemetry rule. Ending a game the sink has no record of is
+a failed write. [P] The Node adapter supplies the in-memory sink, one for the life of the
+process, in both of its modes; its records are gone when the process ends. [D] The Cloudflare
+adapter supplies a sink that writes each record to its D1 database (Telemetry database). [D]
+The only route that gives telemetry out is the Node adapter's `GET /telemetry` (Telemetry
+route). The telemetry report reads the records back from either place (Telemetry report).
 
 ### Telemetry route (Node adapter) [D]
 `GET /telemetry` on the Node adapter's HTTP server returns every record its in-memory sink
-holds, for every game: a viewer follows one game and telemetry spans all of them, so it is no
-part of a viewer link and never goes over a viewer's socket. [D] The records live in the
-process's memory and are gone when the server stops. [D] The Cloudflare Worker does not serve
-the route: there the path gets the 404 of any other path. [D]
+holds, for every game. It is no part of a viewer link and never goes over a viewer's socket
+(D-52). [D] The Cloudflare Worker does not serve the route: there the path gets the 404 of any
+other path. [D]
 
 The body is one JSON object per line, each line ended by a newline, as
-`application/x-ndjson` [P]:
+`application/x-ndjson; charset=utf-8` [P]:
 
 | Line | Holds | Order |
 |---|---|---|
@@ -1152,22 +1168,13 @@ itself. [P]
 The tables are one schema file, `adapters/cloudflare/telemetry_schema.sql`, every statement of
 which is safe to run again. There is no migration history. [D] `just cf-d1-local` applies it to
 the local database `wrangler dev` uses, and `cf-dev` and `cf-up` run that first [P];
-`just cf-d1-production` creates the production database and, run again once its id is in
-`wrangler.jsonc`, applies the file to it. [D; the two runs P] `just cf-deploy` is refused while
-`wrangler.jsonc` holds no production database id. [P] The Worker's tests apply the file to their
-own local database. [D]
-
-What each transport lets the server tell of the MCP client [P]:
-
-| Path | `name`, `version` | `user_agent` |
-|---|---|---|
-| Node, MCP over stdio | The client's `initialize` | null |
-| Node, a second stdio process forwarding to the first | null | The forwarding process's own, not the client's |
-| `/mcp` over HTTP, Node and Cloudflare | null | The request's `User-Agent` |
-
-The auth/ access token names the player and the audience and not the client that obtained it, so
-sign-in adds nothing here. Whether the `User-Agent` tells Claude Desktop from Claude Code is not
-known until both have been recorded. [P]
+`just cf-d1-production` works on the production database, whose id is in `wrangler.jsonc`'s
+production environment: with the placeholder `PUT-THE-DATABASE-ID-HERE` there in place of an id
+it creates the database, and with an id there it applies the file to it. [D; the two runs P]
+`just cf-deploy` is refused while the placeholder is there, except with `--dry-run`. [P] The
+top-level database block, which `wrangler dev` and the tests use, holds a made-up id that names
+no database on the account. [P] The Worker's tests apply the file to their own local
+database. [D]
 
 ### Telemetry report (tools) [D]
 *Serves: the tuning of G-2 and G-4: the designer asks the recorded play the questions the design
@@ -1176,13 +1183,15 @@ prints one report as plain text tables (D-54). It reads and never writes.
 
 | Invocation | Source |
 |---|---|
-| `just telemetry-report` | The production D1 database, by two read-only queries through `wrangler d1 execute --remote --env production --json`, on the existing wrangler login [D]. Refused, before wrangler runs, while `wrangler.jsonc` still holds the placeholder id: the database doesn't exist yet [P] |
+| `just telemetry-report` | The production D1 database, by two read-only queries through `wrangler d1 execute --remote --env production --json`, on the existing wrangler login [D]. Refused, before wrangler runs, if `wrangler.jsonc` holds the placeholder in place of the production database's id [P] |
 | `just telemetry-report local` | The local server's `GET /telemetry` at `HTTP_HOST`:`HTTP_PORT` [D]. Fails with "start one with: just up" when nothing listens there |
 | `just telemetry-report local-d1` | The local D1 database of `wrangler dev`, by the same two queries with `--local` [P] |
 
 A number among the arguments, in either order, is a number of days: the report then covers the
 games started in the last that many days. [D; a game belongs by its start P] `production` may
-also be named.
+also be named. Any other argument, or a second source or number, prints the usage and fails. [P]
+The report opens with its source, its period, how many games and tool calls it covers and
+their rules versions; with no game in the period it says so and prints no section. [P]
 
 ```
 source → records:   local:  each line of the dump is a game record or an event record
@@ -1208,7 +1217,7 @@ The sections, in order [D; what each figure counts, where the designer's words l
 
 | Section | Figures |
 |---|---|
-| Tool calls | Per tool: calls, accepted, refused, the most called first; then the tools never used, of the eight that run on a game. Calls after a game's end are counted here and under Refusals, and nowhere else |
+| Tool calls | Per tool: calls, accepted, refused, the most called first; then the tools never used, of those that run on a game. Calls after a game's end are counted here and under Refusals, and nowhere else |
 | Subwarp | Accepted moves by cells moved |
 | Warp | Accepted warps by distance to the nearest whole sector, with the least, median, mean and greatest energy cost |
 | Blast | Accepted blasts by range to the nearest whole cell: blasts, hits, hit rate, and damage (the sum of `detail.damage`); then the same over all ranges |
@@ -1216,19 +1225,25 @@ The sections, in order [D; what each figure counts, where the designer's words l
 | Per game | Sectors cleared, sectors revealed and dockings (accepted `dock`s): the total, and over the games the least, median, mean and most |
 | Refusals | The reasons, most common first. Every number in a reason is replaced by `N`, so refusals that differ only in a coordinate or an amount count together |
 | Looking before leaping | Of the accepted warps: how many came after an accepted long range scan, after an accepted galaxy map, after either, and after neither, each also as a share. A look counts if it came since the warp before it, or since the game's start |
-| Games | Started per UTC day; ended, by outcome and by what ended them; still open; length in commands and in stardates, for ended games and for open ones; how many ended games met each number of their goals, from 0 to `GOALS_PER_GAME` |
+| Games | Started per UTC day; ended, by outcome and by what ended them; still open; length in commands and in stardates, for ended games and for open ones; how many ended games met each number of their goals, from 0 to the most goals a game had |
 | Energy | The lowest each game's energy ran; and for lost games, by what ended them, energy and hull after the command before the last and after the last |
 | Wall-clock | The gap between consecutive commands of a game in real seconds, `new_game` being the first; how many gaps are long pauses, `LONG_PAUSE_SECONDS` or more; a game's real length, start to last command; and the same without its long pauses |
 | Players and clients | Distinct player hashes; those with more than one game; those returning, with games started on more than one UTC day; games per MCP client, labelled by the declared name and version, else the `User-Agent`, else `unknown` |
 
 A game's **played events** are every event of a game still open, and for an ended game the events
-up to the command that ended it, which is its last event that took time: a call after the end is
-a query or a refusal. Per game, Games, Energy and Wall-clock are summed over played events; a
-game's length in commands is their count and its length in stardates the sum of their `ticks`. [P]
+up to its last event that took time (`ticks` above 0): a call after the end is a query or a
+refusal. That event is the command that ended the game, except where the enemies' parting turn
+destroyed the ship before a warp: that warp took no time, so it and any query or refusal since
+the last event that did are not among the played events. Per game, Games, Energy and
+Wall-clock are summed over played events; a game's length in commands is their count and its
+length in stardates the sum of their `ticks`. Energy and Wall-clock leave out a game with no
+played event. [P]
 
 A length of game time is printed by the Stardate display rule's duration form, `d.dd.d`; the
-report prints no clock value. [D] A length of real time is printed as `45s`, `2m 05s` or
-`1h 02m 03s`, and a mean to one decimal. [P]
+report prints no clock value. [D] A mean or median length of game time is rounded to a whole
+startick first. A length of real time is printed to the whole second as `45s`, `2m 05s` or
+`1h 02m 03s`. Any other figure that is not whole is printed to one decimal, and a share as a
+whole percentage. [P]
 
 ### Viewer socket [D]
 ```
@@ -1270,10 +1285,13 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 - **Browser:** reads `view` from its URL, opens the game's socket, draws each frame's GameView as the current sector's
   board, the galaxy map, ship status, a survey panel (sectors charted, enemies sighted and
   starbases found, totalled from the map) and the game's goals, and reconnects after losing the
-  socket. It sends nothing and never changes state. [D] It is one display: the board as a
+  socket. It sends nothing and never changes state. [D] A socket closed as an unknown
+  game (code 4404) is not reconnected: the page says the ship isn't on record. Its header shows
+  the stardate, the ship's sector and the state of the link, and a game that is won or lost
+  shows a line saying so. [P] It is one display: the board as a
   tilted hologram (Holotank) in the middle, with the map, ship status, survey and goals around
   it, all showing with nothing to click. [D]
-  - **Objectives panel:** the game's three goals, always showing, each a gauge of its count
+  - **Objectives panel:** the game's goals, always showing, each a gauge of its count
     against its amount; a met goal turns green and carries the word "Met", and flashes once
     when a frame first shows it met. [D] It sits under the survey on a wide screen and between
     the board and ship status on a phone. [P]

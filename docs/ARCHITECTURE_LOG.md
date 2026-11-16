@@ -3,6 +3,53 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — ONTOLOGY reviewed against the code; no code changed
+A pass over ONTOLOGY checked each statement against the code. Where they disagreed the code
+won, and ONTOLOGY was reworded; no code, test, constant or rule changed, and no tag changed its
+meaning.
+
+Corrected, where ONTOLOGY disagreed with the code:
+- **A warp the parting turn ends.** ONTOLOGY said "end game, stop". The core accepts the
+  command: the ship stays, nothing is spent, no time passes, the report holds the sector the
+  ship is in with an `energy_cost` of 0, and Game end counts the loss (`core/src/actions.rs`).
+  The Warp rule, the `galaxy_warp` report, the event record's `ticks` and the warp's telemetry
+  detail now say so.
+- **The report's played events.** ONTOLOGY said an ended game's played events run up to the
+  command that ended it, "which is its last event that took time". For the warp above that is
+  not so: it takes no time, so the report leaves it out (`tools/telemetry_report/figures.ts`).
+  ONTOLOGY now describes what the code does; the behaviour is filed as a bug in the tracker.
+- **The production telemetry database.** The report's source table said the database "doesn't
+  exist yet". `wrangler.jsonc` holds its id (commit ca973dd), so the refusal is now stated as a
+  condition on the placeholder, which ONTOLOGY names, with the `--dry-run` exception to
+  `cf-deploy`'s check and the made-up id of the local block (`tools/telemetry_db.sh`).
+- **How the report prints numbers.** ONTOLOGY said a mean of real time is printed to one
+  decimal. Real time is printed to the whole second; one decimal is for other figures that are
+  not whole, and a share is a whole percentage (`tools/telemetry_report/render.ts`).
+- **Goals met per game** runs from 0 to the most goals a game had, not to `GOALS_PER_GAME`.
+- **`GET /telemetry`** answers as `application/x-ndjson; charset=utf-8`.
+
+Added, where the code did something ONTOLOGY lacked: a command the core can't parse is refused
+with a Result, and `start_unix_seconds` loses its fraction at the boundary; the 401 and 403 of
+`/mcp` carry `error` and `error_description` in the challenge and in a JSON body; the resource
+metadata's `bearer_methods_supported` and `resource_name`; `/health` answers `GET` only; a
+forwarding stdio process exits when its server stops answering; ending a game the sink has no
+record of is a failed write; the report's heading, its usage refusal and "No games recorded";
+the viewer's header, its won or lost line and its stop on an unknown game; the server's name.
+The Numbers table gains `HTTP_HOST`, which ONTOLOGY already cited by name, and `CLOCK_SKEW_S`
+(D-41, which gains a line for it). Each statement added is tagged [P] where it stands beside a
+[D]: who decided it is not recorded.
+
+Moved out of ONTOLOGY: why `initialize` returns the instructions went to D-14; why the
+telemetry route is no part of a viewer link was already in D-52, and what sign-in can't tell of
+the MCP client and the open question of telling Claude Desktop from Claude Code were already in
+D-51, so those were cut. The table of what each transport tells of the MCP client moved from
+the Telemetry database section to the McpClient entity it describes. Repeats were cut: the
+sink's adapters stated in three places, the in-memory records' lifetime in three, and the
+random streams' restatement of the wording invariant. A note that "a test holds" an event's
+`startick` to the stored clock was cut; R-46 has it. Values quoted outside the Numbers table
+were replaced by names or dropped: a startick's length in minutes, "three goals", "at most 19
+occupants", "the eight" tools. The grid's size, written as 10 and `0..9` throughout, was left.
+
 ### 2026-11-16 — In the D1 telemetry database, an event's value is stored once
 The Cloudflare sink wrote an event's `distance`, `range` and `hit` to their columns of `events`
 and again inside `rest`, which held the detail whole so that a record could be read back from
