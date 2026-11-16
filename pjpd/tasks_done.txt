@@ -395,6 +395,20 @@ Q-12 (docs/RATIONALE.md): MCP command results signal failure inconsistently — 
 ----
 Priority:   50
 Status: Done
+ID: homeshot-6qjv
+Created: 2026-11-16T01:14:44Z
+Updated: 2026-11-16T02:32:33Z
+
+Retake the home page's viewer picture so it shows the current stardate form.
+
+`public/images/viewer.jpg` (shown on the home page, `public/index.html`) is a screenshot of a live game taken when the stardate read `99-9999-99`. The viewer now shows the stardate as `ddd.dddd.dd.d` (for example 102.0773.36.5), so the picture no longer matches what a player sees. `docs/mockups/viewer_styles.html` also carries a sample stardate in the old form ("24-2507-31"); change that sample string to the new form.
+
+Do: start a local server (`just serve`), start a game over MCP and play a few commands so the picture shows a charted map and a sector with something in it, then retake the picture with `just cc-screenshot <viewer url> public/images/viewer.jpg 1100 575` (the size the current picture uses). Look at the result before committing it.
+
+Done when: the home page's picture shows the stardate in the new form, `just cc-test-all` passes, and the page test for the home page still finds the image. Don't deploy.
+----
+Priority:   50
+Status: Done
 ID: goalpanel-zs67
 Created: 2026-11-16T00:40:36Z
 Updated: 2026-11-16T02:27:55Z
