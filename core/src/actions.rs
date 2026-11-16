@@ -32,6 +32,10 @@ pub fn warp_cost(from: Yx, to: Yx) -> i32 {
     warp_distance(from, to) * WARP_ENERGY_PER_DISTANCE
 }
 
+pub fn warp_time(from: Yx, to: Yx) -> f64 {
+    warp_distance(from, to) as f64 * WARP_TIME_PER_DISTANCE
+}
+
 pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
     if target == game.sector_yx {
         return Err("The ship is already in that sector".to_string());
@@ -45,7 +49,7 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
     if game.ship.hull == 0 {
         return Ok(Report::Warp { sector_yx: game.sector_yx, distance: 0, energy_cost: 0, time: 0.0 });
     }
-    let time = distance as f64 * WARP_TIME_PER_DISTANCE;
+    let time = warp_time(game.sector_yx, target);
     game.ship.energy -= energy_cost;
     game.stardate += time;
     game.enter_sector(target);

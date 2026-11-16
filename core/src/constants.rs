@@ -24,7 +24,9 @@ pub const STARBASE_PLACE_TRIES: u32 = 100;
 
 pub const WARP_DISTANCE_SCALE: f64 = 10.0;
 pub const WARP_ENERGY_PER_DISTANCE: i32 = 10;
-pub const WARP_TIME_PER_DISTANCE: f64 = 0.01;
+/// Stardates per unit of warp distance. Sized so that a warp to the next sector outlasts a
+/// battle (D-5).
+pub const WARP_TIME_PER_DISTANCE: f64 = 2.0;
 
 pub const SUBWARP_MAX_STEPS: usize = 10;
 pub const SUBWARP_MAX_STEPS_HOSTILE: usize = 3;

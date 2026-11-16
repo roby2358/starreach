@@ -3,6 +3,15 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-15 — A warp to the next sector takes longer than a battle
+`WARP_TIME_PER_DISTANCE` moved from 0.01 to 2, so the next sector is 20 stardates away where it
+was 0.1, and corner to corner is 254 where it was 1.27. Before, crossing the galaxy took less
+time than two subwarp steps, and D-5 said warp time was meant to be tiny. The balance harness
+gained a battle measurement (a scripted captain clearing every enemy sector of each galaxy) and
+prints warp times beside it; the number is set just above the 9-in-10 clearing time of the
+largest sectors. R-4 gained two cases: the shortest warp outlasts a long battle, and a longer
+warp takes longer. `warp_time` is now a function beside `warp_cost`. D-5 rewritten.
+
 ### 2026-11-15 — The opening reply offers the displays instead of showing the sector
 The instructions told the LLM to open with a greeting and the current state, so the first reply
 gave the viewer link and then a sector map that scrolled the link off the screen. The opening is

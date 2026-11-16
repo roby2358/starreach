@@ -493,7 +493,7 @@ Referred to by name everywhere else.
 | `STARBASE_PLACE_TRIES` | 100 | random draws per starbase | D-38 |
 | `WARP_DISTANCE_SCALE` | 10 | distance per sector | D-5 |
 | `WARP_ENERGY_PER_DISTANCE` | 10 | energy | D-5 |
-| `WARP_TIME_PER_DISTANCE` | 0.01 | stardate | D-5 |
+| `WARP_TIME_PER_DISTANCE` | 2 | stardate | D-5 |
 | `SUBWARP_MAX_STEPS` | 10 | cells | D-6 |
 | `SUBWARP_MAX_STEPS_HOSTILE` | 3 | cells | D-6 |
 | `SUBWARP_ENERGY_PER_STEP` | 2 | energy | D-6 |

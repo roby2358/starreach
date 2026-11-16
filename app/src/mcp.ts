@@ -24,7 +24,7 @@ const COORDINATES = {
 const COMMAND_TOOLS = [
   { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot)" },
   { type: "galaxy_map", args: {}, description: "The 10x10 galaxy map: E|B|S (enemies|starbases|stars) per visible sector, ..... when hidden" },
-  { type: "galaxy_warp", args: COORDINATES, description: "Warp the ship to sector (y, x). Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each)" },
+  { type: "galaxy_warp", args: COORDINATES, description: "Warp the ship to sector (y, x). Even the next sector is a long journey, longer than a battle, and time grows with distance. Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each)" },
   { type: "subwarp", args: COORDINATES, description: "Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present" },
   { type: "dock", args: {}, description: "Dock with an adjacent starbase in a cleared sector: restores hull, shields, energy and quantorpedoes" },
   { type: "long_range_scan", args: {}, description: "Reveal E|B|S for the 3x3 block of sectors around the ship. Takes a turn (LRS_TIME stardates), so enemies present act after it" },

@@ -243,11 +243,23 @@ inferences, waiting for review.
 
 ## Actions
 
-### D-5 Warp cost and time grow linearly with distance; time is tiny — *Decided*
-- **Alternatives:** a flat warp cost; time that grows with distance at the same scale as
-  combat actions.
-- **Why:** Long jumps cost more energy. Warp time (`WARP_TIME_PER_DISTANCE`) is very small
-  next to `EVENT_INTERVAL`, so warping never triggers stardate events.
+### D-5 Warp cost and time grow linearly with distance; the shortest warp outlasts a battle — *Decided; `WARP_TIME_PER_DISTANCE` proposed, tuned by `just cc-model-balance`*
+- **Alternatives:** a flat warp cost; a fixed time per jump whatever the distance; a fixed base
+  time plus time per distance; warp time small enough to ignore.
+- **Why:** Long jumps cost more energy and more time. A warp to the next sector takes longer
+  than a whole battle in a sector [D], so the galaxy feels big, fighting is brief next to
+  getting there, and distance can decide anything with a time limit, such as whether the ship
+  reaches a starbase in time. Time per distance alone does this with one number [P]: a base time
+  would add a second number and only flatten the difference between near and far. The time of
+  a warp starts no stardate events: the event clock restarts on arrival, so enemies in the new
+  sector don't get turns for the journey, and shields don't recharge during it [P].
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (a scripted captain, unverified in
+  play) — a fresh ship that shoots the nearest enemy it has a clear shot at (a blast within
+  `BLAST_SURE_RANGE`, else a torpedo while any remain) clears a sector in a median of 5
+  stardates and within 10 in 9 of 10 battles; sectors of 8 or 9 enemies take a median of 12
+  to 14 and within 19 in 9 of 10. Warp time: next sector 20, diagonal 28, 5 sectors 100,
+  corner to corner 254. The slowest battles (up to 199) are the script stepping aside
+  repeatedly for a clear shot, not a measure of play.
 
 ### D-6 Subwarp is shortened while enemies are present — *Decided*
 - **Alternatives:** a fixed movement range; movement costed by energy alone.
