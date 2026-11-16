@@ -49,6 +49,10 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | R-27 | A viewer sends frames down its socket, including commands | The game doesn't change. A frame over `VIEWER_MAX_FRAME_BYTES` closes that socket with code 1009 | automated |
 | R-28 | The view of any game | A hidden sector is null and a visible one matches its record. Ship, status, stardate, sector and board match the game. It has only the GameView fields | automated |
 | R-29 | `state` with `n` enemies in the sector | `enemies` has one entry per enemy, in `enemies_yx` order, each `{yx, range, bearing, clear_shot}`. `range` is `euclid(ship, enemy)` to two decimals, the distance R-9 measures. `bearing` is whole degrees clockwise from up: 0 up, 90 right, 180 down, 270 left, 45 up-right. `clear_shot` is true iff the first enemy on `ray(ship, enemy)` is that enemy, whatever the range: false behind a star or another enemy, and equal to whether `torpedo` at that cell would hit it | automated |
+| R-37 | A counter's ladder | The rungs of a scale are scale × 1, 2, 5, 10, 20, 50, 100 and so on. A total going from `before` to `after` crosses every rung above `before` and at or below `after`, in rising order: several at once, one when it lands exactly on a rung, none between two rungs, none when it doesn't move, and a rung it already stands on is not crossed again. A standing is the last rung at or below a total (none below the first) and the first rung above it. The ladder runs past any total a caller holds. Each counter climbs the ladder of its own `scale`; a key that names no counter has none; the same answers over JSON | automated |
+| R-38 | Star Central's messages | Every kind has exactly `WORDINGS_PER_KIND` wordings, all different, and kinds have different keys. Every wording carries each placeholder of its kind once and no other, opens with `Star Central`, and filled leaves no placeholder behind. The caller's roll picks the wording: the same roll the same one, each twentieth of [0, 1) its own, and a roll outside that range still one of them. A missing value or an unknown kind gives no message. A counter that may be a goal takes `lifetime_commendation` and one that may not `lifetime_notoriety`; `commendation` fills the counter's label and the amount into a wording of that kind | automated |
+| R-39 | A player's lifetime totals | What an accepted command counted is added to the totals of the player who issued it, whoever started the game: only what that command counted, accumulating across the player's games, and never to another player's. With no sign-in they go to the one local player. A refused command, a query, a new game and an unknown game add nothing. A PlayerStore's addition answers with the touched counters' totals before and after, and a player nobody added to has none. The achievements list has a row per counter of the counter table with the total, the last rung reached and the next. The Cloudflare player object, named by the player id, keeps its totals between requests, a key per counter, keeps every one of many additions made at once, and receives a signed-in player's command made through the Worker | automated |
+| R-40 | A lifetime total reaches a rung | The command's `events` gain Star Central's message for that rung exactly once, after the game's own events, in the result the MCP tool returns. A command that crosses no rung gains none; a rung is announced once in a lifetime, by the lifetime total and not the game's count. One command crossing several rungs on several counters gains one message per rung, in counter table order and rising, a commendation for a positive counter and notoriety for a negative one. Each message's wording is picked by its own draw from the app layer's random numbers | automated |
 
 ## U — UI / readability
 
@@ -61,6 +65,8 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | U-10 | The browser page is one display: the current sector's board as a tilted hologram, the galaxy map, ship status and survey all show together, with nothing to click, and fit a laptop screen without scrolling | automated |
 | U-11 | The hologram plays one animation on a warp and one when an enemy is gone from the ship's sector, and none on the first frame | automated |
 | U-12 | The home page shows the briefing: the MCP URL and the line telling players to ask the computer. It fits a phone width without horizontal scroll | automated |
+| U-13 | The browser page shows the player's achievements: each counter's lifetime total, the last rung reached and the next | not yet covered |
+| U-14 | The LLM relays a Star Central message in character and in Star Central's words, and points the captain to the viewer for achievements | manual — play until a commendation arrives, then ask for the achievements |
 | U-3 | The LLM shows the sector in the instructions format: column header, row numbers, no legend, no star count | manual — run a session in Claude Desktop and compare with `public/instructions.txt` |
 | U-4 | The LLM opens a session with a greeting, an offer to show the sector, a long range scan or the galaxy map, and the viewer link last; it shows no map until asked | manual — first reply of a fresh session |
 | U-5 | The LLM keeps naval decorum ("Aye aye, captain") | manual — read a 10-turn session |
@@ -81,20 +87,22 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 
 ## Status — 2026-11-16
 
-- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28 – R-34, R-36.
+- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28 – R-34, R-36 – R-38.
   The coverage test runs with them.
 - **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result,
-  R-21's publishing and link, and R-36's counter table through the WASM boundary.
+  R-21's publishing and link, R-36's counter table through the WASM boundary, R-39's totals,
+  in-memory PlayerStore and achievements list, and R-40.
 - **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets (by `view_id`) and R-27.
 - **Automated in the Cloudflare adapter** (`just cc-test-cloudflare`, inside workerd): R-21's
   sockets on the Durable Object (by `view_id`, through the Worker's upgrade) and R-27's ignored
-  frames and its size limit. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
+  frames and its size limit, and R-39's player object. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
   which are integration tests and own no R-row. The static-assets pages aren't under test there:
   the viewer was checked by hand under `just cf-dev`, in headless Chromium (2026-11-14), and
   `just cc-smoke` against `just cf-up` fetches `/` and the `viewer_url`'s path without following redirects (2026-11-15).
 - **Automated in a browser** (`just cc-test-page`): U-1, U-2, U-8, U-9, U-10, U-11, U-12. It needs Chromium's system
   libraries, which `just cc-setup` fetches in a rebuilt container.
-- **Manual only:** U-3 – U-7.
+- **Manual only:** U-3 – U-7, U-14.
+- **Not yet covered:** U-13: the viewer page doesn't show achievements.
 - **X-1 – X-5** need play sessions on the new layers.
 - **Partial coverage:**
   - R-4: the StarbaseHail clause is tested under R-16, not R-4.

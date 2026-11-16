@@ -4,8 +4,8 @@ The game is in three layers (D-21):
 
 - `core/`: the rules, in Rust compiled to WASM.
 - `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
-- `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the home page, the viewer page and its sockets, and games kept in memory.
-- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), where MCP needs sign-in through yuwakisacloud's auth/ ("Sign in with Bluesky"); the Node adapter has no sign-in.
+- `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the home page, the viewer page and its sockets, and games and player totals kept in memory.
+- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, each player's lifetime totals in another, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), where MCP needs sign-in through yuwakisacloud's auth/ ("Sign in with Bluesky"); the Node adapter has no sign-in.
 
 ## Design docs
 
@@ -82,6 +82,12 @@ Start with the `new_game` tool and pass its `game_id` to every other tool. The s
 The game clock counts whole starticks, 400 to a stardate, and a stardate is a day (D-12). A game starts at the real date: the Unix time in days plus 1,000,000. The stardate is shown to three decimals as `ddd.dddd.dd.d`, so `102.0773.36.5` is stardate 1020773.365. An action's `report.time` is how long it took, written the same way: `0.00.2` is one startick (3.6 minutes) and `1.04.0` is 1.04 stardates.
 
 Games stored before a change to the game's fields are not migrated: they answer "Game not found".
+
+## Achievements
+
+The core counts what happens in a game (enemies destroyed, docks, shield damage taken and so on), and every count is added to the lifetime totals of the player who issued the command, across all their games (D-44). Each counter has a ladder of rungs, its scale × 1, 2, 5, 10, 20, 50…; when a total reaches a rung, a message from Star Central arrives in that command's events and the crew relays it. The message is one of 20 wordings, picked at random outside the game's own random stream (D-46). The negative counters have achievements too, with drier wordings. There is no tool that lists achievements.
+
+On Cloudflare the totals belong to the signed-in player and are kept in a Durable Object per player (D-45). The Node adapter has no sign-in, so its totals belong to one local player and last until the process exits.
 
 ## The main viewer
 

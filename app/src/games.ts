@@ -1,11 +1,12 @@
 // Game lookup (ONTOLOGY "Game lookup"): create, load, apply, store, tell the viewers.
 
-import type { Command, CommandResult, Core } from "./core.ts";
+import { awardLifetime, type Achievers } from "./achievements.ts";
+import type { Command, CommandResult, Core, GameJson } from "./core.ts";
+import type { Totals } from "./players.ts";
 import type { GameStore } from "./store.ts";
 import { viewerUrl, viewFrame, viewId, type Viewers } from "./view.ts";
 
-export interface Games {
-  core: Core;
+export interface Games extends Achievers {
   store: GameStore;
   viewers: Viewers;
   /** Where browsers reach this server, such as http://localhost:8572. */
@@ -27,9 +28,12 @@ export async function newGame({ core, store, viewOrigin, unixSeconds }: Games): 
   return { ...result, report: { game_id: gameId, viewer_url: viewerUrl(viewOrigin, view) } };
 }
 
-/** Runs one command on a stored game, stores what the core returns, and tells its viewers. A
- *  stored game the core can't read is answered like an unknown one. */
-export async function runCommand({ core, store, viewers }: Games, gameId: string, command: Command): Promise<CommandResult> {
+/** Runs one command on a stored game, stores what the core returns, and tells its viewers. What
+ *  an accepted command counted goes to the player's lifetime totals, and Star Central's message
+ *  for each rung reached joins the Result's events. A stored game the core can't read is
+ *  answered like an unknown one. */
+export async function runCommand(games: Games, gameId: string, command: Command): Promise<CommandResult> {
+  const { core, store, viewers } = games;
   const view = await viewId(gameId);
   const game = await store.get(view);
   if (game === undefined) {
@@ -39,11 +43,19 @@ export async function runCommand({ core, store, viewers }: Games, gameId: string
   if (applied === undefined) {
     return gameNotFound();
   }
-  if (applied.result.ok) {
-    await store.put(view, applied.game);
-    await viewers.publish(view, viewFrame(own(core.view(applied.game))));
+  const { result } = applied;
+  if (!result.ok) {
+    return result;
   }
-  return applied.result;
+  await store.put(view, applied.game);
+  await viewers.publish(view, viewFrame(own(core.view(applied.game))));
+  const commendations = await awardLifetime(games, counters(core, game), result.state!.counters as Totals);
+  return { ...result, events: [...result.events, ...commendations] };
+}
+
+/** A stored game's counters, as the core's state query reports them. */
+function counters(core: Core, game: GameJson): Totals {
+  return own(core.apply(game, { type: "state" })).result.state!.counters as Totals;
 }
 
 /** What the core answered about a game it has just made, which it always reads. */

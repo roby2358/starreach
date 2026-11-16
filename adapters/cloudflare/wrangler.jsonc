@@ -1,5 +1,6 @@
 // Starreach on Cloudflare (D-21): one Worker, one SQLite Durable Object per game holding the
-// game and its viewer sockets, and the home page and viewer page as static assets.
+// game and its viewer sockets, one per player holding the player's lifetime totals (D-45), and
+// the home page and viewer page as static assets.
 // `just cf-dev` runs this locally; `just cf-deploy` deploys the production environment.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -13,9 +14,16 @@
   // public/.assetsignore keeps instructions.txt out, which the Worker imports as a module.
   "assets": { "directory": "../../public" },
   "durable_objects": {
-    "bindings": [{ "name": "GAMES", "class_name": "GameObject" }]
+    "bindings": [
+      { "name": "GAMES", "class_name": "GameObject" },
+      { "name": "PLAYERS", "class_name": "PlayerObject" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameObject"] }],
+  // Migrations are top-level only and apply to every environment. A new class gets a new tag.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["GameObject"] },
+    { "tag": "v2", "new_sqlite_classes": ["PlayerObject"] }
+  ],
   // Sign-in for /mcp (D-41): auth/ is the authorization server, reached for its keys
   // through a service binding (a public same-zone fetch returned an edge 522 for jsonsolver).
   // Locally, auth/ runs under `just dev-up` in yuwakisacloud on :8788.
@@ -36,7 +44,10 @@
       "routes": [{ "pattern": "starreach.yuwakisa.com", "custom_domain": true }],
       // Bindings aren't inherited by an environment, so they are repeated here
       "durable_objects": {
-        "bindings": [{ "name": "GAMES", "class_name": "GameObject" }]
+        "bindings": [
+          { "name": "GAMES", "class_name": "GameObject" },
+          { "name": "PLAYERS", "class_name": "PlayerObject" }
+        ]
       },
       "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
       "vars": {

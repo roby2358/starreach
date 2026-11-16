@@ -1,7 +1,7 @@
 // The Rust core behind its JSON boundary (ONTOLOGY "Core API").
 // The app never reads a Game's fields: a Game travels as the JSON text the core produced.
 
-import { initSync, new_game, apply, view, counter_table } from "./wasm/starreach_core.js";
+import { initSync, new_game, apply, view, counter_table, rungs_crossed, ladder_standing, commendation } from "./wasm/starreach_core.js";
 
 /** A Game as JSON text, opaque to the app layer. */
 export type GameJson = string;
@@ -44,6 +44,13 @@ export interface CounterRow {
   goal_ceiling: number;
 }
 
+/** Where a lifetime total stands on its counter's ladder: the last rung it reached (null below
+ *  the first) and the next one. */
+export interface LadderStanding {
+  reached: number | null;
+  next: number;
+}
+
 /** `apply` and `view` return undefined for text that isn't a Game this core reads, such as a
  *  game stored by an earlier version. */
 export interface Core {
@@ -53,6 +60,21 @@ export interface Core {
   view(game: GameJson): GameView | undefined;
   /** The single list of counters, in the core's order. */
   counterTable(): CounterRow[];
+  /** The rungs of the counter's ladder that a lifetime total reached in going from `before` to
+   *  `after`, in rising order. Throws for a key that names no counter, as the next two do. */
+  rungsCrossed(key: string, before: number, after: number): number[];
+  ladderStanding(key: string, total: number): LadderStanding;
+  /** Star Central's message for the counter's lifetime total reaching the rung `amount`. `roll`,
+   *  in [0, 1), picks one of the kind's wordings. */
+  commendation(key: string, amount: number, roll: number): string;
+}
+
+/** What the core answered about a counter, which it does for every key of its own table. */
+function known(answer: string | undefined, key: string): string {
+  if (answer === undefined) {
+    throw new Error(`The core has no counter "${key}"`);
+  }
+  return answer;
 }
 
 /** Instantiates the core from its compiled WASM module. Each platform loads the module its own way. */
@@ -73,5 +95,8 @@ export function loadCore(module: WebAssembly.Module): Core {
       return text === undefined ? undefined : JSON.parse(text);
     },
     counterTable: () => JSON.parse(counter_table()),
+    rungsCrossed: (key, before, after) => JSON.parse(known(rungs_crossed(key, before, after), key)),
+    ladderStanding: (key, total) => JSON.parse(known(ladder_standing(key, total), key)),
+    commendation: (key, amount, roll) => known(commendation(key, amount, roll), key),
   };
 }

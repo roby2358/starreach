@@ -67,6 +67,11 @@ One name per concept. These names are used in code, tools and docs.
 | **Query** | A command that only reads state | |
 | **Event** | Something the game does in response to an action, reported as a message | |
 | **Counter** | A running count of one kind of thing that has happened in a game | |
+| **Lifetime total** | A player's count on one counter over all of that player's games | |
+| **Ladder** | The rising amounts a counter's lifetime total is measured against; each is a **rung** | |
+| **Achievement** | A lifetime total reaching a rung of its counter's ladder | commendation |
+| **Player** | Whoever issues commands: the signed-in `sub`, or the one local player where there is no sign-in | captain |
+| **Star Central** | Fleet command, which sends the captain messages; also the home starbase at `GALAXY_CENTER` | Fleet Command |
 | **Game id** | The name a client uses for one stored game (`game_id`) | |
 | **View id** | The hex SHA-256 of a `game_id` (`view_id`). It keys the GameStore and the Viewers, and is all the viewer's link and socket carry | |
 | **Viewer** | A browser page watching one game over its socket | main viewer |
@@ -227,6 +232,43 @@ hashes it to the `view_id` (D-32). The Node adapter keeps games in process memor
 Cloudflare adapter keeps one SQLite-backed Durable Object per `view_id`, named by it. [D] The
 object holds the game JSON under one key of its key-value storage. [P]
 
+### PlayerStore
+*Serves: G-1.* [D] Where the app layer keeps each player's lifetime totals. The core never sees
+it.
+
+| Field | Type | Notes |
+|---|---|---|
+| `player` | str | The signed-in player's `sub` (D-41), or `local` where the endpoint has no sign-in |
+| `totals` | counter key → int | The player's lifetime total per counter; a counter never added to is absent and stands at 0 |
+
+Two operations: read a player's totals, and add a set of increments, which answers with the
+touched counters' totals before and after. Additions to one player are applied one at a time, so
+none is lost. [D] The Node adapter keeps totals in process memory, so they last as long as the
+process and belong to the single local player. The Cloudflare adapter keeps one SQLite-backed
+Durable Object per player, named by the player id (D-45). [D] The object holds a key per counter
+in its key-value storage. [P]
+
+An **achievement** is not stored: it is a lifetime total at or past a rung of its counter's
+ladder, so a player's whole list follows from the totals and the counter table (D-44). The app
+layer gives the list out as a row per counter, `{key, label, total, reached, next}`: the total,
+the last rung reached (null below the first) and the next. [D] No MCP tool returns it; it is for
+the viewer, which doesn't show it yet. [D, unbuilt]
+
+### Star Central messages
+*Serves: G-1, F-command.* [D] The messages fleet command sends the captain, held in the core as
+one table. Each **kind** of message is a row: its key, the names of its placeholders, and exactly
+`WORDINGS_PER_KIND` wordings. A wording is a whole message with each placeholder written
+`{name}`; code picks a wording and fills the placeholders, and never builds a sentence. [D]
+
+| Kind (key) | Placeholders | Sent when |
+|---|---|---|
+| `lifetime_commendation` | `amount`, `label` | A positive counter's lifetime total reaches a rung |
+| `lifetime_notoriety` | `amount`, `label` | A negative counter's lifetime total reaches a rung; the wordings are wry, not congratulatory [P] |
+
+`label` is the counter's label and `amount` the rung. Every wording opens with `Star Central`,
+and names the label as a heading of the record with the amount apart from it, so it reads right
+for every label and for an amount of 1. [P]
+
 ### GameView
 *Serves: G-3, F-discovery.* [D] What a read-only display may see of a Game. The core makes
 it from a Game and it holds only what the player has uncovered.
@@ -262,6 +304,8 @@ call on that object, which sends the frame to each of its sockets. [D]
 | Relation | Cardinality |
 |---|---|
 | GameStore *has* Game | 1 → 0..n, keyed by `view_id` |
+| PlayerStore *has* lifetime totals | 1 → 0..n players, each with 0..1 total per counter |
+| Counter *has* Ladder | 1 : 1, by the counter's `scale` |
 | Game *has* Galaxy, Ship, ActiveSector, Counters | 1 → 1 each |
 | Galaxy *has* SectorRecord | 1 → 100 |
 | Ship *is in* Sector (`sector_yx`) | exactly one sector |
@@ -284,6 +328,10 @@ call on that object, which sends the frame to each of its sockets. [D]
   `0 ≤ quantorpedoes ≤ max_quantorpedoes`. [D]
 - `status` leaves `playing` at most once, and never returns. [D]
 - A counter never decreases. [P]
+- A lifetime total never decreases, and each rung of a ladder is announced to a player at most
+  once. [D]
+- A game's commands change no game's play through a Star Central message: picking a wording
+  never draws from a game's random stream. [D]
 - A refused command returns the game unchanged. [D]
 - Games are isolated: a command on one never changes another. [D]
 - Same seed, same start time and same commands give the same state. The core reads no clock:
@@ -326,6 +374,10 @@ once, the first time its sector is seen. [D]
   generation, enemy choices, blast kill rolls and enemy fire damage draw from it.
 - **A sector stream** `sector_rng(seed, sector_yx)`, fresh each time a sector is built, so a
   sector's layout depends only on the seed, the sector and its record.
+
+Neither stream picks a Star Central message's wording. The core takes that pick as a number in
+[0, 1) from its caller, and the app layer draws it from the platform's own random numbers, so
+the same seed and commands play the same game whatever is announced (D-46). [D]
 
 ---
 
@@ -552,9 +604,45 @@ new_game: seed = random u32;  game_id = random id;  view_id = sha256(game_id)
           store new_game(seed, the adapter's clock in Unix seconds) under view_id
 any other tool: load sha256(game_id), else error "Game not found"
                 a stored game the core can't read is not found too
-apply the command;  if ok: store the returned game, publish its view frame to the viewers
-return the result
+apply the command;  if refused: return the result
+store the returned game, publish its view frame to the viewers
+append the Lifetime totals rule's messages to the result's events;  return the result
 ```
+
+### Ladder — *Serves: F-command* [D]
+In the core, beside the counter table.
+```
+rung(scale, i) = scale × [1, 2, 5][i mod 3] × 10^(i div 3)        i = 0, 1, 2, …
+rungs_crossed(counter, before, after) = every rung r of the counter's scale with before < r ≤ after, rising
+standing(counter, total) = {reached: the last rung ≤ total, or none;  next: the first rung > total}
+```
+With scale 10 the rungs are 10, 20, 50, 100, 200, 500, 1000 and so on without a practical end.
+One template of counter, scale and rung makes every achievement; none is a special case (D-44).
+
+### Lifetime totals — *Serves: G-1, F-command* [D]
+In the app layer, after an accepted command.
+```
+increments = for each counter, the game's count after the command − its count before, where that is above 0
+none: no message, and the PlayerStore isn't called
+player = the signed-in player, or `local` where there is no sign-in
+{before, after} = PlayerStore.add(player, increments)
+for each counter in table order, for each rung in rungs_crossed(counter, before, after):
+    message(the counter's lifetime kind, amount = rung, label = the counter's label, roll = a fresh random number)
+```
+Every counter accumulates, the negative ones too, over all of the player's games. A new game's
+counters start at 0, so nothing is added twice, and a game left midway keeps what it already
+added. The totals go to the player who issued the command, whoever started the game. Nothing
+guards against repeating a cheap action. Reaching a rung earns the message and nothing else. [D]
+
+### Star Central message — *Serves: F-command* [D]
+In the core.
+```
+message(kind, roll, values): wording = the kind's wordings[floor(roll × WORDINGS_PER_KIND)], held within the list
+                             replace each {placeholder} of the kind with its value
+lifetime kind of a counter: lifetime_commendation if it may be a goal, else lifetime_notoriety
+```
+`roll` is supplied by the caller (Random streams). The lifetime kind is chosen at this one
+place. [P]
 
 ---
 
@@ -619,6 +707,7 @@ Referred to by name everywhere else.
 | `SHIELD_POINTS_PER_ENERGY` | 10 | hp per energy, in a sector and on a warp [T] | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
 | `COUNTER_SCALE` | `enemies_destroyed` 10; `shield_damage` 1000; `hull_damage` 100; every other counter 1 | each counter's `scale` in the counter table: the unit of its ladder [T] | D-43 |
+| `WORDINGS_PER_KIND` | 20 | wordings in every kind of Star Central message [D] | D-46 |
 | `COUNTER_GOAL_CEILING` | `enemies_destroyed` 127; `sectors_cleared` 41; `sectors_warped` 56; `docks` 18; `starbases_discovered` 3; `blasts_hit` 57; `torpedoes_fired` 67; `scans` 33; `games_won` 0; every counter that may not be a goal 0 | each counter's `goal_ceiling` in the counter table: the most a goal may ask, 0 for not offered [T] | D-43 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
@@ -631,7 +720,7 @@ Referred to by name everywhere else.
 ## 8. Interface
 
 ### Core API (Rust → WASM) [D]
-Four JSON functions. The core holds no state between calls.
+Seven functions over JSON text. The core holds no state between calls.
 
 | Function | Input | Output |
 |---|---|---|
@@ -639,6 +728,12 @@ Four JSON functions. The core holds no state between calls.
 | `apply` | `game: Game`, `command: Command` | `{game: Game, result: Result}` |
 | `view` | `game: Game` | GameView |
 | `counter_table` | — | The counter table: `[{key, label, may_be_goal, scale, goal_ceiling}]`, a row per Counters field |
+| `rungs_crossed` | `key`, `before`, `after` | The rungs of that counter's ladder with `before < rung ≤ after`, rising (Ladder) |
+| `ladder_standing` | `key`, `total` | `{reached, next}`: the last rung at or below the total, null below the first, and the next rung (Ladder) |
+| `commendation` | `key`, `amount`, `roll` | Star Central's message, as text, for that counter's lifetime total reaching `amount`; `roll` in [0, 1) picks the wording (Star Central message) |
+
+The last three return nothing for a key that names no counter. A lifetime total crosses the
+boundary as a JavaScript number, a whole number below 2^53. [P]
 
 `Game` is opaque to the app layer. The RNG's 64-bit state inside it is serialized as a string so a
 JavaScript round trip can't lose precision; the startick clock is a plain number, far below the
@@ -691,6 +786,11 @@ stops short isn't a surprise [D]. The instructions say how to read a stardate an
 stardate is a day), `state`'s description gives the stardate form, and each action's description
 says how to read `report.time` [D].
 
+No tool returns a player's lifetime totals or achievements [D]: a player sees them only on the
+viewer. [D, unbuilt: the viewer page doesn't show them yet] They reach the conversation one at a time, as Star Central's message in the `events`
+of the command that reached the rung (Lifetime totals), and the instructions tell the LLM to
+relay each in character and to point the captain to the viewer for the list. [D]
+
 An unknown `game_id`, or one whose stored game the core can't read, returns
 `{ok: false, error: "Game not found", …}` with `state` null.
 Arguments that don't fit a tool's schema, such as a missing `game_id` or a coordinate that
@@ -720,7 +820,8 @@ holds every client's games, and refuses to start if anything else holds it. A st
 exits when its client closes stdin, which ends the games it holds. [P]
 
 The Cloudflare adapter is a Worker that serves `/mcp` and `/health` through the app layer's
-handler, and takes the viewer link's origin from the request. [D] `/mcp` serves only a signed-in
+handler, and takes the viewer link's origin from the request. [D] It keeps each player's lifetime
+totals in the Durable Object named by the player's `sub` (PlayerStore). [D] `/mcp` serves only a signed-in
 player [D]: Starreach is an OAuth resource server only and never runs a sign-in flow. It verifies auth/'s access token offline with the vendored auth-client
 (`adapters/cloudflare/vendor/auth-client/`), pinning `iss` = `AUTH_ISSUER` and accepting an `aud` of
 `STARREACH_RESOURCE` (the MCP endpoint's canonical URL, which auth/ writes when the client names
@@ -759,6 +860,7 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
 | Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` |
 | Emergency energy | `Starbase transfers emergency energy: n` |
+| Lifetime total reaches a rung (app layer, after the core's events) | One wording of `lifetime_commendation` or `lifetime_notoriety`, such as `Star Central to captain: commendation. Your lifetime tally of enemies destroyed has reached 5000.` One message per rung |
 
 ### Client contract
 - **LLM:** MCP tools and the instructions only. It holds the `game_id`, and the link it hands the captain holds only the `view_id`. [D]
@@ -767,4 +869,5 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
   starbases found, totalled from the map), and reconnects after losing the socket. It sends
   nothing and never changes state. [D] It is one display with nothing to click: the board as a
   tilted hologram (Holotank) in the middle, with the map, ship status and survey around it. [D]
-- **App layer:** stores and forwards Games; it never reads or edits a Game's fields. [D]
+- **App layer:** stores and forwards Games; it never reads or edits a Game's fields. What a
+  command counted it reads from the Results' `state.counters`. [D]

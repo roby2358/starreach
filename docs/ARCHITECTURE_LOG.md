@@ -3,6 +3,26 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — Lifetime totals per player, a ladder per counter, and commendations from Star Central
+A game's counters ended with the game. Now what each accepted command counts is added to the
+lifetime totals of the player who issued it, and when a total reaches a rung of its counter's
+ladder (scale × 1, 2, 5, 10…), Star Central's message for it joins the command's events. Added:
+D-44 (the achievement template), D-45 (the PlayerStore, and a Durable Object per player on
+Cloudflare), D-46 (Star Central's messages); R-37 – R-40; U-13 (not yet covered: the viewer
+doesn't show achievements) and U-14 (manual).
+
+The core gained `ladder.rs` (the rungs crossed between two totals, and a total's standing) and
+`messages.rs` (the table of message kinds, 20 wordings each, with `lifetime_commendation` and
+`lifetime_notoriety`), and its API three functions: `rungs_crossed`, `ladder_standing` and
+`commendation`. The wording is picked by a number the caller passes, so the game's random stream
+is not touched. The app layer gained `PlayerStore` with an in-memory implementation
+(`players.ts`) and the award and the achievements list (`achievements.ts`); `runCommand` returns
+a refused result early and otherwise appends the messages. `Games` now carries `players`,
+`random` and `player`; `player` moved there from `McpDeps`. The Cloudflare Worker gained the
+`PlayerObject` class, bound as `PLAYERS` in both environments, with migration tag `v2`. The
+instructions tell the LLM to relay Star Central's messages and to point to the viewer for
+achievements. No stored data is migrated: there were no totals.
+
 ### 2026-11-16 — Counter rows carry a ladder scale and a goal ceiling, set from modeled whole games
 A counter table row was key, label and goal flag. It gained `scale` and `goal_ceiling`, in the
 core, over JSON and in the app layer's `CounterRow`. The values follow the rule of D-43 (added)

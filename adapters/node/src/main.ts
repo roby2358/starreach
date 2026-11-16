@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { createMcpServer, loadCore, MemoryStore } from "@starreach/app";
+import { createMcpServer, loadCore, MemoryPlayerStore, MemoryStore } from "@starreach/app";
 
 import { bridgeStdio, starreachAnswers } from "./bridge.ts";
 import { serveHttp, type NodeDeps } from "./server.ts";
@@ -29,6 +29,8 @@ function loadDeps(viewOrigin: string): NodeDeps {
   return {
     core: loadCore(new WebAssembly.Module(wasm)),
     store: new MemoryStore(),
+    players: new MemoryPlayerStore(),
+    random: Math.random,
     viewers: new SocketViewers(),
     viewOrigin,
     unixSeconds: () => Math.floor(Date.now() / 1000),

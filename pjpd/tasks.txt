@@ -1,33 +1,3 @@
-Priority:   65
-Status: ToDo
-ID: achieve-jkrw
-Created: 2026-11-16T00:40:16Z
-Updated: 2026-11-16T00:40:16Z
-
-Achievements: lifetime totals per player, a ladder per counter, and a commendation from Star Central when a total reaches a rung.
-
-Decided [D]:
-- A player has a long list of achievements. Each is a lifetime total on one counter reaching a rung of that counter's ladder. Ladders follow 1, 2, 5, 10, 20, 50, 100… and are practically endless; each counter has its own scale, for example enemies destroyed in 10s (10, 20, 50, 100…), docks in 1s, shield damage in 1000s, hull damage in 100s. One template (counter, scale, rung) makes the whole list; no achievement is a special case.
-- Every counter always accumulates, across all of the player's games. Negative counters (damage taken, games lost, times stranded) have achievements too; they are the funny ones. Farming is fine: no guards against repeating a cheap action.
-- Reaching a rung arrives as a message from Star Central in the command's events, which the crew relays, for example "Star Central: commendation, 5000 enemies neutralized". No reward beyond the message for now.
-- Messages from Star Central come from a messages structure: each kind of message (a commendation for a lifetime total is one kind) has a list of 20 wordings with named placeholders (the amount, the counter's label), and one wording is picked at random each time, for variety. Build the structure so that it could later become a localization scheme (kinds keyed by name, wordings as data, no sentence built by concatenation in code), but only the variation is needed now. Write the 20 wordings; be creative and stay in the game's naval voice.
-- There is no MCP tool for achievements. A player sees their achievements only on the viewer.
-- Totals are kept per player as counter name to total. Locally there is no permanent storage: an in-memory store behind the same interface supports a playthrough. Deployed, a key-value shape.
-- Totals go to the signed-in player who issued the command. This does not need games to have owners.
-
-This needs the core to count what happens in a game and report the counts with each Result, and it needs each ladder's scale: a `scale` on each row of the core's counter table, set from simulating whole games.
-
-Settled design:
-- The ladder rule and each counter's scale live in the core beside the counter table (one source for keys, labels, scales), as a pure function: given a counter, a total before and a total after, the rungs crossed. A rung is scale × {1, 2, 5} × 10^n.
-- A `PlayerStore` interface in the app: read a player's totals, and add a set of increments and return the totals before and after. An in-memory implementation for the Node adapter and tests. On Cloudflare, one Durable Object per player (keyed by the player id), so increments are applied one at a time and none is lost; this needs a new Durable Object class and its migration entry in the wrangler config.
-- In the app's command path: after an accepted command, the increments are the difference between the game's counters before and after; add them to the player's totals; for each rung crossed append one Star Central message to the Result's events. One command can cross several rungs on several counters; each gets its own message.
-- With no sign-in (the local Node adapter), totals belong to a single local player for the life of the process.
-- Where the messages structure lives: one place that both the core (which will announce met goals) and the app layer (which announces lifetime rungs) can use, proposed the core, with the pick made from a random number the caller supplies so tests can pin it.
-- Add a line to public/instructions.txt on relaying Star Central's messages in character, and on pointing the captain to the viewer for achievements.
-- A new game's counters start at zero, so nothing is added twice; a game abandoned midway keeps what it already contributed.
-
-Tests: the ladder (rungs for a scale, several rungs crossed at once, none crossed); every message kind has exactly 20 wordings and each fills its placeholders; totals accumulate across two games of one player and not across players; the commendation appears in the events exactly once when a rung is crossed; a refused command adds nothing; the Cloudflare player object keeps totals between requests (in adapters/cloudflare/test). Update ONTOLOGY (Player totals, the ladder rule, the scales in the numbers table as [T], the MCP tools table, the events), CRITERIA (R-rows), RATIONALE (the template, the storage choice and why not an eventually consistent key-value store, the scales with their Modeled Evidence), README and the log. Run `just cc-test-all`. Don't deploy.
-----
 Priority:   55
 Status: ToDo
 ID: gamegoals-c2pt
@@ -219,6 +189,20 @@ Stop the whole-game scripted captain from shuffling forever when no cell within 
 Do: when no reachable cell has a line of fire, search further: a breadth-first search over subwarp moves (each move a straight run of up to SUBWARP_MAX_STEPS_HOSTILE empty cells) for the nearest position with a clear line to an enemy, and take its first move. Keep it small; the captain is a yardstick, not an AI player.
 
 Done when: `just cc-model-games 1000` reports no (or nearly no) games ended by the script giving up; if any figure quoted in RATIONALE's whole-game Evidence or any `scale` or `goal_ceiling` the rule gives changes, update the counter table in core/src/counters.rs, ONTOLOGY's Numbers table and the RATIONALE Evidence, and add a log entry; `just cc-test-all` passes. Don't deploy.
+----
+Priority:   30
+Status: ToDo
+ID: criteriarows-sav3
+Created: 2026-11-16T01:56:41Z
+Updated: 2026-11-16T01:56:41Z
+
+docs/CRITERIA.md: move the stray rule rows back into the R table.
+
+Goal: the rows R-30 to R-36 sit at the very end of the file, after the Status section's "Partial coverage" bullets, instead of in the "R — Rules (automated)" table. A reader of the R table doesn't find them, and on a rendered page they appear as a headless table fragment under Status.
+
+Settled design: cut those seven rows from the end of the file and paste them into the R table directly after the R-29 row, so the table runs in ID order (R-29, R-30 … R-36, then the later rows). Change no wording. Check that the Status section ends with its "Partial coverage" bullets.
+
+Done when: every `| R-n |` row in docs/CRITERIA.md is inside the R table, in ID order, and `just cc-test-core` passes (its coverage test reads the rows).
 ----
 Priority:   20
 Status: ToDo

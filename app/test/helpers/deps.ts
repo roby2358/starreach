@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { createMcpServer, loadCore, MemoryStore, type CommandResult, type McpDeps, type Viewers } from "../../src/index.ts";
+import { createMcpServer, loadCore, MemoryPlayerStore, MemoryStore, type CommandResult, type McpDeps, type Viewers } from "../../src/index.ts";
 
 const WASM = new URL("../../src/wasm/starreach_core_bg.wasm", import.meta.url);
 const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(WASM))));
@@ -28,6 +28,8 @@ export function testDeps(): McpDeps & { viewers: RecordingViewers } {
   return {
     core,
     store: new MemoryStore(),
+    players: new MemoryPlayerStore(),
+    random: () => 0,
     viewers: new RecordingViewers(),
     viewOrigin: "http://viewer.test",
     unixSeconds: () => START_UNIX_SECONDS,

@@ -235,6 +235,105 @@ inferences, waiting for review.
   reruns the model, so after a balance change the recipe shows whether the table still follows
   the rule.
 
+
+### D-44 An achievement is a lifetime total reaching a rung: one template of counter, scale and rung — *Decided; the list shape for the viewer is Proposed*
+- **Choice:** A player has a lifetime total on every counter, over all of their games. Each
+  counter has a ladder of rungs, its `scale` × 1, 2, 5, 10, 20, 50 and so on without a practical
+  end, and an achievement is a total reaching a rung. Every counter accumulates, the negative
+  ones included. Reaching a rung earns a message from Star Central in the command's events and
+  nothing else. The ladder rule lives in the core beside the counter table, as a pure function of
+  a counter and two totals; the app layer takes what a command counted as the difference between
+  the game's counters before and after it, adds that to the totals of the player who issued the
+  command, and appends one message per rung crossed. No MCP tool lists achievements: the viewer
+  shows them.
+- **Alternatives:** a hand-written list of named achievements, each with its own condition (every
+  one a special case to write, test and balance, and the list ends); rungs at powers of ten only
+  (ten times the play between one and the next, so the early ones come at once and then nothing
+  for a long time); a fixed number of rungs per counter (a long-time player runs out); only the
+  positive counters (the designer wants the negative ones, which are the funny ones); guards
+  against repeating a cheap action such as scanning (the designer rules farming fine: a total is
+  a count, not a score); storing the achievements a player has earned (they follow from the
+  totals and the table, so a stored list could only disagree with them); an MCP tool that lists
+  them (the designer keeps them on the viewer; in the conversation they arrive one at a time as
+  Star Central's messages); totals kept per game owner (games have no owners, and the command's
+  issuer is always known); counting in the app layer from event text (D-42).
+- **Why:** One template makes the whole list from the counter table, so a new counter brings its
+  achievements with it and none needs its own code. The 1, 2, 5 steps keep the rungs evenly
+  spaced by ratio, close together for a new player and far apart for an old one, and the scale
+  sets the first rung at about a tenth of a typical game (D-43), so the first commendation on a
+  counter comes early in a player's first game. The ladder is in the core because the core holds
+  the scales and the labels, and the same rungs will size a game's goals. The totals are outside
+  the core because the core is a pure function of one game and knows no player. A new game's
+  counters start at 0 and only a command's own difference is added, so nothing is counted twice
+  and a game left midway keeps what it already added.
+- **Proposed details:** the app layer gives a player's achievements out as a row per counter with
+  the total, the last rung reached and the next, which is what a display needs and no more. A
+  command that counted nothing doesn't call the PlayerStore. Where there is no sign-in (the Node
+  adapter) the totals belong to one player named `local`. A rung is crossed when the total passes
+  it or lands on it, and one command can cross several, each with its own message, in the counter
+  table's order and rising within a counter, after the game's own events.
+- **Evidence:** R-37 (the ladder), R-39 (the totals), R-40 (the messages). The scales and their
+  Modeled Evidence are D-43's. How the pace of commendations feels is not measured.
+
+### D-45 Player totals behind a PlayerStore; on Cloudflare one Durable Object per player — *Decided; a key per counter is Proposed*
+- **Choice:** The app layer reaches lifetime totals through a `PlayerStore` with two operations:
+  read a player's totals, and add a set of increments, which answers with the touched counters'
+  totals before and after. The Node adapter and the tests use an in-memory one, so locally the
+  totals last as long as the process. The Cloudflare adapter keeps one SQLite-backed Durable
+  Object per player, named by the player's `sub`, with a key per counter in its key-value
+  storage. Adding a class to the Worker takes a new migration tag.
+- **Alternatives:** Workers KV, or any eventually consistent key-value store (an addition is a
+  read, a sum and a write; two commands of one player close together would both read the old
+  total and one increment would be lost, and a read just after a write may return the old
+  value, so a rung could be announced twice or never); D1 with one row per player and counter (a
+  database and its schema for what is one small record per player, and no relation between
+  players is ever queried); the totals inside each game's Durable Object (a total spans games);
+  one Durable Object for all players (every command of every player through one object); the
+  totals in one key holding the whole record (it works, but a key per counter is the shape the
+  totals have, and an addition writes only the counters it touched); a store operation that only
+  writes, with the app layer reading before and after (two round trips, and the read and the
+  write could interleave with another command's).
+- **Why:** A player's totals are one small record with one writer at a time, which is what a
+  Durable Object is: its storage calls are synchronous, so an addition reads, sums and writes
+  with no other request in between and none is lost, and the answer carries the before and after
+  that the ladder needs. It is the pattern the games already use (D-32's object per game), with
+  the same deploy and the same tests in workerd. The interface keeps the app layer the same on
+  both platforms, and persistence in the local Node adapter stays a non-goal.
+- **Stored data:** nothing to migrate: no player had totals before this.
+- **Evidence:** R-39, in the app layer for the in-memory store and inside workerd for the player
+  object, including 25 additions made at once all kept. Not exercised on deployed Cloudflare.
+
+### D-46 Star Central's messages are a table of kinds, each with 20 wordings as data; the caller supplies the pick — *Decided; a second kind for negative counters and the wording form are Proposed*
+- **Choice:** The core holds one table of message kinds. A kind has a key, the names of its
+  placeholders, and exactly `WORDINGS_PER_KIND` wordings; a wording is a whole message with
+  `{name}` placeholders. Making a message is picking a wording and filling the placeholders. The
+  pick comes from a number in [0, 1) that the caller supplies; the app layer draws it from the
+  platform's random numbers. There are two kinds: `lifetime_commendation` for a positive
+  counter's lifetime total reaching a rung, and `lifetime_notoriety` for a negative counter's.
+- **Alternatives:** one fixed sentence built in code from the amount and the label (no variety,
+  and a sentence assembled by concatenation can't be translated); the wordings in the app layer
+  (the core will announce a game's met goals from the same table, and it can't call up into the
+  app); the pick drawn from the game's random stream (announcing something would then change
+  the enemies' next rolls, so the same seed and commands would play differently for a player
+  near a rung than for one far from it, and R-20's determinism would depend on a player's
+  history); a sub-stream derived from the game's seed for lifetime messages (a lifetime total
+  belongs to no game); one kind for every counter (a wording that congratulates reads wrongly
+  for 5000 shield damage taken, and one neutral enough for both is flat for both); a tone flag
+  on each wording within one kind (fewer than 20 wordings for each tone, and a second thing to
+  dispatch on); wordings that put the amount before the label, as "5000 enemies destroyed" (a
+  label is plural, so the first rung of a scale of 1 would read "1 games won").
+- **Why:** The designer wants variety now and a path to localization later: kinds keyed by name
+  and wordings as data are that path, since a second language is another list of wordings under
+  the same key with the same placeholders. Taking the pick from the caller keeps the core a pure
+  function and leaves the game's stream alone, so a game plays the same whatever is announced,
+  and a test pins the wording by passing the number. Which kind a counter takes is decided at
+  one place, from the counter table's goal flag, which is the table's mark of a positive
+  counter (D-42). Every wording names the label as a heading of the record ("your lifetime tally
+  of games won has reached 1"), which reads right for every label, for an amount of 1, and
+  without a label starting a sentence in lower case.
+- **Evidence:** R-38 tests: 20 distinct wordings per kind, each with its placeholders, each
+  filled. Whether the wordings read well in play is unmeasured (U-14 is manual).
+
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
   (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call

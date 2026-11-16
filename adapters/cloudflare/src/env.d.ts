@@ -9,6 +9,8 @@ declare namespace Cloudflare {
   interface Env {
     /** One Durable Object per view_id. */
     GAMES: DurableObjectNamespace<import("./game_object.ts").GameObject>;
+    /** One Durable Object per player id (the auth/ `sub`), holding the player's lifetime totals. */
+    PLAYERS: DurableObjectNamespace<import("./player_object.ts").PlayerObject>;
     /** The auth/ Worker, for its JWKS (a service binding, never a public same-zone fetch). */
     AUTH_SERVICE: Fetcher;
     /** auth/'s issuer, the `iss` every access token must carry. */

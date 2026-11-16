@@ -1,5 +1,6 @@
-//! The WASM boundary: `new_game`, `apply`, `view` and `counter_table` over JSON text (ONTOLOGY
-//! "Core API").
+//! The WASM boundary: `new_game`, `apply`, `view`, `counter_table`, `rungs_crossed` and
+//! `ladder_standing` over JSON text, and `commendation` as plain text (ONTOLOGY "Core API").
+//! A lifetime total crosses as a JavaScript number, a whole number below 2^53.
 
 use wasm_bindgen::prelude::*;
 
@@ -27,4 +28,24 @@ pub fn view(game: &str) -> Option<String> {
 #[wasm_bindgen]
 pub fn counter_table() -> String {
     crate::counter_table_json()
+}
+
+/// Returns the rungs a lifetime total reached in going from `before` to `after` as a JSON array
+/// of numbers, or undefined when `key` names no counter.
+#[wasm_bindgen]
+pub fn rungs_crossed(key: &str, before: f64, after: f64) -> Option<String> {
+    crate::rungs_crossed_json(key, before as u64, after as u64)
+}
+
+/// Returns `{reached, next}` as JSON text, or undefined when `key` names no counter.
+#[wasm_bindgen]
+pub fn ladder_standing(key: &str, total: f64) -> Option<String> {
+    crate::ladder_standing_json(key, total as u64)
+}
+
+/// Returns Star Central's message for the counter's lifetime total reaching `amount`, or
+/// undefined when `key` names no counter. `roll` is in [0, 1) and picks the wording.
+#[wasm_bindgen]
+pub fn commendation(key: &str, amount: f64, roll: f64) -> Option<String> {
+    crate::commendation(key, amount as u64, roll)
 }

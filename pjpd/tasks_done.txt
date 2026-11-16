@@ -256,6 +256,36 @@ Q-8 (docs/RATIONALE.md): The browser UI doesn't show the game the LLM is playing
 ----
 Priority:   65
 Status: Done
+ID: achieve-jkrw
+Created: 2026-11-16T00:40:16Z
+Updated: 2026-11-16T01:56:41Z
+
+Achievements: lifetime totals per player, a ladder per counter, and a commendation from Star Central when a total reaches a rung.
+
+Decided [D]:
+- A player has a long list of achievements. Each is a lifetime total on one counter reaching a rung of that counter's ladder. Ladders follow 1, 2, 5, 10, 20, 50, 100… and are practically endless; each counter has its own scale, for example enemies destroyed in 10s (10, 20, 50, 100…), docks in 1s, shield damage in 1000s, hull damage in 100s. One template (counter, scale, rung) makes the whole list; no achievement is a special case.
+- Every counter always accumulates, across all of the player's games. Negative counters (damage taken, games lost, times stranded) have achievements too; they are the funny ones. Farming is fine: no guards against repeating a cheap action.
+- Reaching a rung arrives as a message from Star Central in the command's events, which the crew relays, for example "Star Central: commendation, 5000 enemies neutralized". No reward beyond the message for now.
+- Messages from Star Central come from a messages structure: each kind of message (a commendation for a lifetime total is one kind) has a list of 20 wordings with named placeholders (the amount, the counter's label), and one wording is picked at random each time, for variety. Build the structure so that it could later become a localization scheme (kinds keyed by name, wordings as data, no sentence built by concatenation in code), but only the variation is needed now. Write the 20 wordings; be creative and stay in the game's naval voice.
+- There is no MCP tool for achievements. A player sees their achievements only on the viewer.
+- Totals are kept per player as counter name to total. Locally there is no permanent storage: an in-memory store behind the same interface supports a playthrough. Deployed, a key-value shape.
+- Totals go to the signed-in player who issued the command. This does not need games to have owners.
+
+This needs the core to count what happens in a game and report the counts with each Result, and it needs each ladder's scale: a `scale` on each row of the core's counter table, set from simulating whole games.
+
+Settled design:
+- The ladder rule and each counter's scale live in the core beside the counter table (one source for keys, labels, scales), as a pure function: given a counter, a total before and a total after, the rungs crossed. A rung is scale × {1, 2, 5} × 10^n.
+- A `PlayerStore` interface in the app: read a player's totals, and add a set of increments and return the totals before and after. An in-memory implementation for the Node adapter and tests. On Cloudflare, one Durable Object per player (keyed by the player id), so increments are applied one at a time and none is lost; this needs a new Durable Object class and its migration entry in the wrangler config.
+- In the app's command path: after an accepted command, the increments are the difference between the game's counters before and after; add them to the player's totals; for each rung crossed append one Star Central message to the Result's events. One command can cross several rungs on several counters; each gets its own message.
+- With no sign-in (the local Node adapter), totals belong to a single local player for the life of the process.
+- Where the messages structure lives: one place that both the core (which will announce met goals) and the app layer (which announces lifetime rungs) can use, proposed the core, with the pick made from a random number the caller supplies so tests can pin it.
+- Add a line to public/instructions.txt on relaying Star Central's messages in character, and on pointing the captain to the viewer for achievements.
+- A new game's counters start at zero, so nothing is added twice; a game abandoned midway keeps what it already contributed.
+
+Tests: the ladder (rungs for a scale, several rungs crossed at once, none crossed); every message kind has exactly 20 wordings and each fills its placeholders; totals accumulate across two games of one player and not across players; the commendation appears in the events exactly once when a rung is crossed; a refused command adds nothing; the Cloudflare player object keeps totals between requests (in adapters/cloudflare/test). Update ONTOLOGY (Player totals, the ladder rule, the scales in the numbers table as [T], the MCP tools table, the events), CRITERIA (R-rows), RATIONALE (the template, the storage choice and why not an eventually consistent key-value store, the scales with their Modeled Evidence), README and the log. Run `just cc-test-all`. Don't deploy.
+----
+Priority:   65
+Status: Done
 ID: ambush-zx7y
 Created: 2026-11-15T00:33:58Z
 Updated: 2026-11-15T01:02:13Z

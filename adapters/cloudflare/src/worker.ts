@@ -1,5 +1,5 @@
 // Starreach on Cloudflare (D-21): the app layer's routes served by a Worker, with each game
-// and its viewer sockets in one Durable Object. MCP needs sign-in through auth/ (D-41). The page is served as static assets
+// and its viewer sockets in one Durable Object and each player's lifetime totals in another (D-45). MCP needs sign-in through auth/ (D-41). The page is served as static assets
 // (wrangler.jsonc), which are tried before this Worker runs.
 
 import { handleHttp, handleMcp, liveViewId, type McpDeps } from "@starreach/app";
@@ -7,10 +7,12 @@ import { handleHttp, handleMcp, liveViewId, type McpDeps } from "@starreach/app"
 import instructions from "../../../public/instructions.txt";
 import { isMetadataPath, MCP_PATH, protectedResourceMetadata, signIn } from "./auth.ts";
 import { core } from "./core.ts";
+import { DurableObjectPlayerStore } from "./player_store.ts";
 import { DurableObjectStore } from "./store.ts";
 import { DurableObjectViewers } from "./viewers.ts";
 
 export { GameObject } from "./game_object.ts";
+export { PlayerObject } from "./player_object.ts";
 
 /** The view_id a viewer's socket upgrade asks for, or undefined for any other request. */
 function upgradeViewId(request: Request, path: string): string | undefined {
@@ -24,6 +26,8 @@ function deps(env: Env, origin: string, player: string | null): McpDeps {
   return {
     core,
     store: new DurableObjectStore(env.GAMES),
+    players: new DurableObjectPlayerStore(env.PLAYERS),
+    random: Math.random,
     viewers: new DurableObjectViewers(env.GAMES),
     viewOrigin: origin,
     unixSeconds: () => Math.floor(Date.now() / 1000),

@@ -6,7 +6,7 @@ import type { Server } from "node:http";
 import type { Socket } from "node:net";
 import { fileURLToPath } from "node:url";
 
-import { loadCore, MemoryStore } from "@starreach/app";
+import { loadCore, MemoryPlayerStore, MemoryStore } from "@starreach/app";
 import { WebSocket } from "ws";
 
 import { listeningPort, serveHttp, type NodeDeps } from "../../src/server.ts";
@@ -29,6 +29,8 @@ export async function startServer(): Promise<Running> {
   const deps: NodeDeps = {
     core,
     store: new MemoryStore(),
+    players: new MemoryPlayerStore(),
+    random: Math.random,
     viewers: new SocketViewers(),
     viewOrigin: "http://viewer.test",
     unixSeconds: () => START_UNIX_SECONDS,

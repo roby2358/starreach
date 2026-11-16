@@ -10,8 +10,6 @@ import { newGame, runCommand, type Games } from "./games.ts";
 export interface McpDeps extends Games {
   /** The decorum and rendering instructions for the LLM (public/instructions.txt). */
   instructions: string;
-  /** The signed-in player's auth/ `sub`, or null on an endpoint without sign-in. */
-  player: string | null;
 }
 
 const GAME_ID = { game_id: z.string().describe("The game_id that new_game returned") };

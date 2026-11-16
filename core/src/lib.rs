@@ -2,8 +2,9 @@
 //!
 //! `new_game(seed, start_unix_seconds)` builds a Game: the caller reads the clock, the core
 //! never does. `apply(game, command)` returns the next Game and a Result. `view(game)` returns
-//! what a read-only display may see. `counter_table()` lists the counters a game keeps. The core
-//! keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for
+//! what a read-only display may see. `counter_table()` lists the counters a game keeps;
+//! `rungs_crossed`, `ladder_standing` and `commendation` are the ladder of a counter's lifetime
+//! total and Star Central's message for a rung. The core keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for
 //! the WASM boundary.
 
 pub mod actions;
@@ -13,6 +14,8 @@ pub mod events;
 pub mod galaxy;
 pub mod game;
 pub mod geometry;
+pub mod ladder;
+pub mod messages;
 pub mod rng;
 pub mod sector;
 pub mod view;
@@ -25,6 +28,7 @@ use actions::{Refusal, Report};
 pub use counters::{CounterRow, Counters, COUNTER_TABLE};
 pub use game::{Game, GameState, Status};
 use geometry::{in_bounds, Yx};
+pub use ladder::Standing;
 pub use view::{view, GameView};
 
 /// A request to the core: `{type, …args}`.
@@ -65,6 +69,29 @@ pub fn new_game(seed: u32, start_unix_seconds: i64) -> Game {
 /// scale and its goal ceiling (D-43).
 pub fn counter_table() -> &'static [CounterRow] {
     &COUNTER_TABLE
+}
+
+fn counter_row(key: &str) -> Option<&'static CounterRow> {
+    COUNTER_TABLE.iter().find(|row| row.key == key)
+}
+
+/// The rungs of the counter's ladder that a lifetime total reached in going from `before` to
+/// `after`, in rising order (D-44). None for a key that names no counter.
+pub fn rungs_crossed(key: &str, before: u64, after: u64) -> Option<Vec<u64>> {
+    Some(ladder::rungs_crossed(counter_row(key)?.scale, before, after))
+}
+
+/// The last rung of the counter's ladder that `total` reached and the next one. None for a key
+/// that names no counter.
+pub fn ladder_standing(key: &str, total: u64) -> Option<Standing> {
+    Some(ladder::standing(counter_row(key)?.scale, total))
+}
+
+/// Star Central's message for the counter's lifetime total reaching the rung `amount`: one of
+/// the wordings of the counter's kind, picked by `roll`, a number in [0, 1) the caller supplies
+/// (D-46). None for a key that names no counter.
+pub fn commendation(key: &str, amount: u64, roll: f64) -> Option<String> {
+    Some(messages::lifetime_message(counter_row(key)?, amount, roll))
 }
 
 /// Runs one command. A refused command returns the game unchanged.
@@ -124,6 +151,18 @@ fn refused(game: &Game, error: Refusal) -> Applied {
 /// `counter_table` over JSON: the rows as a JSON array, in table order.
 pub fn counter_table_json() -> String {
     serde_json::to_string(counter_table()).expect("the counter table always serializes")
+}
+
+/// `rungs_crossed` over JSON: the rungs as a JSON array of numbers.
+pub fn rungs_crossed_json(key: &str, before: u64, after: u64) -> Option<String> {
+    let rungs = rungs_crossed(key, before, after)?;
+    Some(serde_json::to_string(&rungs).expect("rungs always serialize"))
+}
+
+/// `ladder_standing` over JSON: `{reached, next}`, `reached` null below the first rung.
+pub fn ladder_standing_json(key: &str, total: u64) -> Option<String> {
+    let standing = ladder_standing(key, total)?;
+    Some(serde_json::to_string(&standing).expect("a standing always serializes"))
 }
 
 /// `new_game` over JSON: returns the Game as JSON text.

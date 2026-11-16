@@ -100,3 +100,9 @@ mod r_36_counting;
 
 #[path = "R-36/counter_table.rs"]
 mod r_36_counter_table;
+
+#[path = "R-37/ladder.rs"]
+mod r_37_ladder;
+
+#[path = "R-38/star_central_messages.rs"]
+mod r_38_star_central_messages;
