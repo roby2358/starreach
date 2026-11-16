@@ -1,10 +1,3 @@
-Score:   75
-ID: goals-9atp
-Created: 2026-11-14T15:48:48Z
-Updated: 2026-11-14T15:48:48Z
-
-Player goals page and goals per game. A page where a player sees their goals, plus goals set for each game. Details to be worked out with the designer: what a goal is (for example clear N enemies, finish by a stardate, lose no starbase), whether goals are fixed, generated per game or chosen by the player, how progress is tracked and shown (on the viewer, in the MCP results), and whether goals carry across games on a player's own page, which needs sign-in and a player identity.
-----
 Score:   60
 ID: balance-9fj4
 Created: 2026-11-15T00:02:35Z
@@ -237,6 +230,27 @@ Do:
 - If idle games are ever deleted, a deleted game must also leave the index.
 
 Tests: a player sees their own games and not another player's; a new game appears in the list; the cap holds. Update ONTOLOGY (the MCP tools table, the index), CRITERIA (an R-row), RATIONALE (where the index lives and why), README and the log. Ask the user before committing or deploying.
+----
+Score:   75
+ID: goals-9atp
+Created: 2026-11-14T15:48:48Z
+Updated: 2026-11-16T00:40:43Z
+
+(Done) Achievements and per-game goals, to make the game interesting for release.
+
+Decided so far [D]:
+- Achievements: a player has a long list to work through. Each is a lifetime total on one counter reaching a rung of that counter's ladder. Ladders follow a 1, 2, 5, 10, 20, 50… progression and are practically endless, but each counter has its own scale: for example enemies destroyed in 10s (10, 20, 50, 100…), docks in 1s, shield damage in 1000s, hull damage in 100s. One template (counter, scale, rung) makes the whole list.
+- Counters: enemies destroyed, docks at a starbase, sectors warped to, starbases discovered, blasts that hit, and negative ones such as shield damage taken, hull damage taken, times stranded. More candidates: sectors cleared, torpedoes fired, blasts missed, games won, games lost.
+- Every counter always accumulates, across all games, whatever the game's goals are. Farming is fine: a player who wants to dock 1000 times may.
+- Goals: each game has 3 explicit goals. Each is chosen at random from the positive counters, is an amount achievable within that one game, and should not be too hard. Progress toward a goal also counts toward the lifetime achievement on that counter.
+- Goals are positive things the player needs to do. Negative counters are achievements only, for fun, and never goals: each counter carries a flag saying whether it may be a goal.
+- Announcements: meeting a game's goal, and reaching an achievement rung, each arrive as a message from Star Central in the command's events, which the crew relays (for example "you've met your objective of 100 enemies neutralized", and later a commendation for 5000).
+- No reward beyond the message for now. A rank system comes later.
+- Display: the viewer shows the game's goals and the player's achievements. The viewer link is unguessable and an achievement path is not personal information.
+- Storage: lifetime totals are kept per player, as counter name to total. Locally there is no permanent storage: an in-memory store behind the same interface supports a playthrough. Deployed, a key-value shape (proposed: one Durable Object per player, so increments can't be lost).
+- Totals go to the signed-in player on each command, so this does not need games to have owners first.
+
+Still to work out: the objective sizes and each ladder's scale (to be projected from whole-game simulation); exactly how a goal's amount is chosen from a path; where the counters live in the core's Game and what a command reports; the goals and achievements panel on the viewer; what the MCP tools return (new_game's report, a way to ask for achievements); the wording of Star Central's messages.
 ----
 Score:   60
 ID: warptime-6g9e
