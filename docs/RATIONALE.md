@@ -260,6 +260,18 @@ inferences, waiting for review.
   tight resource and starbases matter [D]. The time of a warp starts no stardate events: the
   event clock restarts on arrival, so enemies in the new sector don't get turns for the
   journey [P].
+- **Shields on a warp:** the ship arrives with its shields recharged to full, at the shield
+  price (D-27), as far as its energy allows [D]. The journey is hundreds of times longer than
+  a recharge takes in a sector, so counting intervals would only spell out "full". The
+  alternatives were no recharge in transit, which leaves the ship as it left after a day's
+  travel; a recharge counted per `EVENT_INTERVAL` of the journey, which gives the same result
+  with more arithmetic; and a free recharge, which breaks "every action is paid for" (G-4).
+  The hull is not repaired: that is what docking is for (D-7). Leaving a battle and coming
+  back therefore resets the shields for at most 300 energy plus the two warps, and the
+  enemies still get their turn before the ship leaves (D-25). The recharge is charged on top
+  of the warp: the warp is refused only when its own cost can't be paid, the stranded test
+  (D-30) counts the warp alone, and `report.energy_cost` is the warp's, with the recharge told
+  in the events [P].
 - **Evidence:** Modeled by: `just cc-model-balance 2000` (formula and a scripted captain,
   unverified in play).
   - Warp time and energy: next sector 416 starticks (1.04 stardates), 4160 energy; diagonal
@@ -269,8 +281,8 @@ inferences, waiting for review.
     spent.
   - Battles: a fresh ship that takes the nearest enemy it has a clear shot at (a blast within
     `BLAST_SURE_RANGE`; beyond it a torpedo while any remain, else a subwarp closer) clears a
-    sector in a median of 5 starticks and within 10 in 9 of 10 battles, for a median of 1881
-    energy and within 5912 in 9 of 10. A sector of 7 enemies takes a median of 10 starticks
+    sector in a median of 5 starticks and within 10 in 9 of 10 battles, for a median of 1878
+    energy and within 5543 in 9 of 10. A sector of 7 enemies takes a median of 10 starticks
     and within 16 in 9 of 10; sectors of 8 or 9 enemies, under 1 in 100 battles, within 19 to
     21. The next sector is some 80 typical battles away. The slowest battles (up to 200
     starticks) are the script stepping aside repeatedly for a clear shot, not a measure of
@@ -281,10 +293,10 @@ inferences, waiting for review.
   - One tank: a new game's ship that goes from each enemy sector to the nearest next, clearing
     each, and never docks or scans (the script reads the galaxy's records to pick sectors)
     clears a median of 5 enemy sectors (4 to 6 in 8 of 10 games, at most 8). A captain who
-    presses on while the next warp is affordable ends stranded in 68.7% of games and destroyed
-    in 29.1%. One who warps on only while the ship would arrive holding the 9-in-10 battle
+    presses on while the next warp is affordable ends stranded in 86.5% of games and destroyed
+    in 10.6%. One who warps on only while the ship would arrive holding the 9-in-10 battle
     energy and the warp from there to the nearest starbase it knows clears the same median of
-    5, turns for home in 74.5% of games, is destroyed in 18.2% and is still stranded in 6.4%,
+    5, turns for home in 85.5% of games, is destroyed in 8.1% and is still stranded in 5.5%,
     when a battle costs more than the reserve. Neither repairs its hull, so the destroyed
     share overstates a captain who docks.
 
@@ -503,10 +515,18 @@ inferences, waiting for review.
   moved return to their original cells; the ship's arrival cell can shift with the enemy
   count.
 
-### D-27 Shields recharge from energy — *Decided, tuned by none yet*
-- **Alternatives:** restore a fixed amount for free.
-- **Why:** It ties shields to the energy economy (G-4): fighting drains the tank twice.
-  `SHIELD_REPLENISH` and `SHIELD_ENERGY_PER_POINT` are starting values.
+### D-27 Shields recharge from energy, 10 shield points per energy — *Decided; `SHIELD_REPLENISH` and `SHIELD_POINTS_PER_ENERGY` tunable*
+- **Alternatives:** restore a fixed amount for free; a price of 1 energy per shield point.
+- **Why:** It ties shields to the energy economy (G-4): fighting drains the tank twice. The
+  price is 1 energy per `SHIELD_POINTS_PER_ENERGY` = 10 shield points [D]: a 500-point
+  replenish costs 50 energy and a refill from empty 300, small next to a blast (1000 and up,
+  D-9) and a warp (4160 and up, D-5). At 1 energy per point a refill cost 3000, as much as the
+  dearest blast, and shields competed with the weapons for the tank; at this price the energy
+  goes to blasts and warps over a long game. The cost rounds up to a whole energy, so a
+  recharge is never free [D]. One rule serves the in-sector event, limited to
+  `SHIELD_REPLENISH` per `EVENT_INTERVAL`, and the warp, which recharges to full (D-5).
+- **Evidence:** Arithmetic for the prices. Modeled by: `just cc-model-balance 2000` for the
+  effect on battles and on one tank (D-5).
 
 ### D-11 Ship stats — *Decided, tuned by none yet*
 - **Why:** Starting values. Energy is generous next to costs (see D-9). Unmeasured.

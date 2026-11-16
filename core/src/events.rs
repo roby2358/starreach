@@ -52,7 +52,7 @@ fn enemies_present(game: &Game) -> bool {
 }
 
 fn shields_can_recharge(game: &Game) -> bool {
-    game.ship.shields < game.ship.max_shields && game.ship.energy >= SHIELD_ENERGY_PER_POINT
+    game.ship.shields < game.ship.max_shields && game.ship.energy >= 1
 }
 
 fn starbase_hail(game: &mut Game) -> Vec<String> {
@@ -64,14 +64,24 @@ fn starbase_hail(game: &mut Game) -> Vec<String> {
 }
 
 fn shield_replenish(game: &mut Game) -> Vec<String> {
+    recharge_shields(game, SHIELD_REPLENISH)
+}
+
+/// The shield recharge shared by ShieldReplenish and the Warp rule (D-27): up to `limit`
+/// points, as far as the shields' maximum and the energy allow. The cost rounds up, so a
+/// recharge is never free. No message when nothing is recharged.
+pub fn recharge_shields(game: &mut Game, limit: i32) -> Vec<String> {
     let ship = &mut game.ship;
-    let amount = SHIELD_REPLENISH
+    let points = limit
         .min(ship.max_shields - ship.shields)
-        .min(ship.energy / SHIELD_ENERGY_PER_POINT);
-    let cost = amount * SHIELD_ENERGY_PER_POINT;
-    ship.shields += amount;
+        .min(ship.energy * SHIELD_POINTS_PER_ENERGY);
+    if points <= 0 {
+        return Vec::new();
+    }
+    let cost = (points + SHIELD_POINTS_PER_ENERGY - 1) / SHIELD_POINTS_PER_ENERGY;
+    ship.shields += points;
     ship.energy -= cost;
-    vec![format!("Shields recharged by {amount} using {cost} energy")]
+    vec![format!("Shields recharged by {points} using {cost} energy")]
 }
 
 /// Every enemy acts once, in `enemies_yx` order: advance with probability

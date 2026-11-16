@@ -78,5 +78,6 @@ pub const SECONDS_PER_STARDATE: i64 = 86_400;
 pub const STARDATE_EPOCH_OFFSET: i64 = 1_000_000;
 
 pub const SHIELD_REPLENISH: i32 = 500;
-pub const SHIELD_ENERGY_PER_POINT: i32 = 1;
+/// Shield points one unit of energy buys, in a sector and on a warp (D-27).
+pub const SHIELD_POINTS_PER_ENERGY: i32 = 10;
 pub const STARBASE_EMERGENCY_ENERGY: i32 = 1000;

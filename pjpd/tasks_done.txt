@@ -116,6 +116,35 @@ Q-1 (docs/RATIONALE.md): There is no win or loss condition — hull reaching 0 h
 ----
 Priority:   80
 Status: Done
+ID: warpshields-g28t
+Created: 2026-11-15T23:34:01Z
+Updated: 2026-11-16T01:24:58Z
+
+A warp recharges the shields to full, and recharging shields costs 1 energy per 10 shield points everywhere [D].
+
+Two changes:
+
+1. The price of shields, in general. Today the in-sector ShieldReplenish event restores up to SHIELD_REPLENISH (500) shield points every EVENT_INTERVAL and charges SHIELD_ENERGY_PER_POINT (1) energy per point, so empty shields cost 3000 energy to refill. The price becomes 10 shield points per 1 energy: replace SHIELD_ENERGY_PER_POINT with SHIELD_POINTS_PER_ENERGY = 10 [T]. A 500-point replenish costs 50 energy; a full refill from empty costs 300.
+
+2. A warp recharges the shields to full and pays that same price. No interval counting: the journey (about a day to the next sector) is hundreds of times longer than a recharge takes, so the ship simply arrives recharged. Today `warp` in core/src/actions.rs leaves the shields as they were.
+
+Rule, as one function used by both the in-sector event and the warp:
+```
+recharge(ship, limit):                       # limit = SHIELD_REPLENISH in a sector, no limit on a warp
+  points = min(limit, max_shields - shields, energy × SHIELD_POINTS_PER_ENERGY)
+  cost   = ceil(points / SHIELD_POINTS_PER_ENERGY)
+  shields += points;  energy -= cost
+```
+In `warp`: after the enemies' parting turn and after the warp's own energy and time are paid, recharge with no limit, before the ship enters the new sector, so it meets any arrival ambush with the recharged shields. If energy runs short the shields recharge as far as it allows. The cost rounds up, so a recharge is never free [D]. The in-sector check that shields can recharge still needs at least 1 energy, as today.
+
+Unchanged: hull is not repaired by a warp. Enemies in the sector being entered get no turns for the journey time; only the arrival ambush applies. The event clock restarts on arrival.
+
+Consequences to keep in mind: leaving a battle and coming back resets the shields for at most 300 energy plus the warps; enemies still get their turn before the ship leaves. In-sector recharging becomes ten times cheaper, which leaves more energy for blasts over a long game.
+
+Do: the shared recharge function; the warp reports the recharge in its events as the in-sector one does ("Shields recharged by N using M energy"), only when shields were below maximum. Tests under the shield replenish criterion for the new price (and its rounding), and under the warp criterion: a damaged ship arrives with full shields and pays points/10 energy; full shields cost nothing and produce no message; too little energy gives a partial recharge; hull is unchanged; enemies get no extra turns. Update ONTOLOGY (the ShieldReplenish rule, the Warp rule pseudocode, the numbers table), RATIONALE (the price, and D-5 for the warp recharge, with the alternatives: no recharge in transit, a recharge counted per interval, a free recharge), CRITERIA, the galaxy_warp tool description, and a log entry. Rerun `just cc-model-balance 2000` and update any Evidence that quotes energy. Run `just cc-test-all`. Don't deploy.
+----
+Priority:   80
+Status: Done
 ID: cfadapter-2p5f
 Created: 2026-11-05T08:07:06Z
 Updated: 2026-11-14T17:15:46Z

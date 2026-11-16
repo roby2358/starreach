@@ -3,6 +3,25 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — A warp recharges the shields to full; shields cost 1 energy per 10 points
+Shield recharging charged `SHIELD_ENERGY_PER_POINT` = 1 energy per shield point: a 500-point
+replenish cost 500 and a refill from empty 3000. That constant is replaced by
+`SHIELD_POINTS_PER_ENERGY` = 10: 50 and 300, with the cost rounded up to a whole energy. A
+warp left the shields as they were; it now recharges them to full at that price, after the
+warp's own energy and time are paid and before the ship enters the new sector, as far as the
+energy left allows. The recharge is one function with a limit, used by ShieldReplenish
+(`SHIELD_REPLENISH`) and by the warp (`max_shields`). The warp's affordability check, the
+stranded test and `report.energy_cost` stay on the warp's own cost. ONTOLOGY gained the
+Shield recharge rule; D-27 and D-5 rewritten; R-15 and R-4 extended. R-31's fatal-ambush case
+now gives its ship no shields to recharge.
+
+`just cc-model-balance 2000`, before → after: battle energy over all battles, median 1881 →
+1878 and 9-in-10 5912 → 5543, with the clearing times unchanged. One tank, the captain who
+presses on: stranded 68.7% → 86.5%, destroyed 29.1% → 10.6% (the rest halted or the script
+stuck). The captain who keeps a way home: turns for home 74.5% → 85.5%, destroyed 18.2% →
+8.1%, stranded 6.4% → 5.5%. Median enemy sectors cleared stays 5 for both. Arriving with full
+shields is what cut the destroyed share.
+
 ### 2026-11-16 — Warp time is logarithmic in distance and warp energy is a price per startick
 Warp time was `round(distance × WARP_TIME_PER_DISTANCE)` with `distance = int(euclid ×
 WARP_DISTANCE_SCALE)`, and warp energy was `distance × WARP_ENERGY_PER_DISTANCE`: both linear,

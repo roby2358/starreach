@@ -338,13 +338,16 @@ time = round(WARP_TIME_K × ln(euclid(sector_yx, target) + 1));  cost = time × 
 illegal if energy < cost
 if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
 mark target visible;  energy -= cost;  startick += time
+recharge(max_shields)      # the Shield recharge rule: to full, as far as the energy left allows [D]
 sector_yx = target;  sector = instantiate(target);  last_event_startick = startick
 ambush: for each enemy in order, while hull > 0: with probability ENEMY_AMBUSH_CHANCE it fires once (the EnemiesTurn fire rule) [D]
 run warp events
 ```
 `euclid` is the distance in sectors and `time` is in whole starticks. Time and energy are
 logarithmic in distance: the next sector is about a stardate away, and a farther one takes
-and costs only a little more (D-5).
+and costs only a little more (D-5). The legality check is on the warp's `cost` alone, and
+`report.energy_cost` is that `cost`; the recharge is paid on top and told as an event [P]. The
+ship meets the ambush with the recharged shields. The hull is not repaired [D].
 
 ### Subwarp — *Serves: G-2, F-danger* [D]
 ```
@@ -454,9 +457,18 @@ shields absorb up to their value; hull absorbs the rest up to its value
 
 ### ShieldReplenish — *Serves: F-danger, G-4* [D]
 ```
-can_occur: shields < max_shields and energy ≥ SHIELD_ENERGY_PER_POINT
-amount = min(SHIELD_REPLENISH, max_shields − shields, energy ÷ SHIELD_ENERGY_PER_POINT)
-shields += amount;  energy -= amount × SHIELD_ENERGY_PER_POINT
+can_occur: shields < max_shields and energy ≥ 1
+recharge(SHIELD_REPLENISH)
+```
+
+### Shield recharge — *Serves: F-danger, G-4* [D]
+One rule, used by ShieldReplenish in a sector and by Warp.
+```
+recharge(limit):
+  points = min(limit, max_shields − shields, energy × SHIELD_POINTS_PER_ENERGY)
+  if points == 0: stop, with no message [P]
+  cost = ceil(points / SHIELD_POINTS_PER_ENERGY)       # rounds up: a recharge is never free [D]
+  shields += points;  energy -= cost
 ```
 
 ### StarbaseHail — *Serves: F-command, F-discovery* [D]
@@ -552,7 +564,7 @@ Referred to by name everywhere else.
 | `SECONDS_PER_STARDATE` | 86400 | seconds of real time in a stardate: a stardate is a day [D] | D-12 |
 | `STARDATE_EPOCH_OFFSET` | 1000000 | stardates added to the Unix time in days for a game's starting stardate [D] | D-12 |
 | `SHIELD_REPLENISH` | 500 | hp per firing | D-27 |
-| `SHIELD_ENERGY_PER_POINT` | 1 | energy per hp | D-27 |
+| `SHIELD_POINTS_PER_ENERGY` | 10 | hp per energy, in a sector and on a warp [T] | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
@@ -687,7 +699,7 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 |---|---|
 | StarbaseHail | `Starbase communication: all clear, approach for docking` · `… under attack, needs assistance` |
 | Blast miss | `Blaston beam misses the enemy at (y, x)! Distance: d` |
-| ShieldReplenish | `Shields recharged by n using n energy` |
+| Shield recharge (ShieldReplenish, Warp) | `Shields recharged by n using m energy` |
 | EnemyFire | `Enemy at (y, x) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
 | EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
 | Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` |

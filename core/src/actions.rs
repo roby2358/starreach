@@ -6,14 +6,15 @@
 use serde::Serialize;
 
 use crate::constants::*;
-use crate::events::{ambush, enemies_turn, stardate_events, warp_events};
+use crate::events::{ambush, enemies_turn, recharge_shields, stardate_events, warp_events};
 use crate::game::{format_duration, Game, Status};
 use crate::geometry::{adjacent, euclid, exp_falloff, format_yx, Yx};
 
 pub type Refusal = String;
 
 /// The command's own data, returned in `Result.report`. `time` is the action's length as a
-/// stardate duration (`format_duration`).
+/// stardate duration (`format_duration`). A warp's `energy_cost` is the warp's own; the shield
+/// recharge on the way is charged on top and told in the events.
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Report {
@@ -51,6 +52,8 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
     let time = warp_time(game.sector_yx, target);
     game.ship.energy -= energy_cost;
     game.startick += time;
+    let shield_limit = game.ship.max_shields;
+    events.extend(recharge_shields(game, shield_limit));
     game.enter_sector(target);
     events.extend(ambush(game, ENEMY_AMBUSH_CHANCE));
     events.extend(warp_events(game));

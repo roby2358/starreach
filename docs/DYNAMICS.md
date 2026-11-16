@@ -43,7 +43,7 @@ where you come back to resupply.
 | Torpedo: unlimited range, limited ammo | Weapon choice; the long shot | Scarcity of Agency |
 | Enemy density rises with distance from home | Venturing out is a commitment | Escalating Commitment |
 | Rare starbases; docking only in a cleared sector; docking repairs the hull | Resupply as a goal you earn | Landmarks, Loss Aversion |
-| Shields recharge from energy | Fighting drains the tank twice | Scarcity of Agency |
+| Shields recharge from energy, cheaply, and to full on a warp | Fighting drains the tank twice; a ship arrives ready | Scarcity of Agency |
 | Every action must be paid for | Running dry far from home is a real danger | Loss Aversion, Escalating Commitment |
 | Hull 0 or being stranded away from a starbase loses; clearing the galaxy wins; a starbase rescues a stranded ship | Stakes, a reason to push outward, and starbases as refuges | Loss Aversion, Escalating Commitment, Landmarks |
 | Starbase hail on arrival | A reason to clear a sector ("needs assistance") | Guardianship (weak) |

@@ -93,6 +93,8 @@ fn a_fatal_ambush_ends_the_game() {
         game.galaxy.record_mut((4, 6)).enemies = 3;
         game.ship.hull = 1;
         game.ship.shields = 0;
+        // No shields to recharge on the way, so the first hit lands on the hull.
+        game.ship.max_shields = 0;
         game.rng = Rng::seeded(seed);
         let applied = run(&game, warp(4, 6));
         let was_hit = applied.result.events.iter().any(|e| e.starts_with("Ship takes"));
