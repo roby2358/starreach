@@ -40,22 +40,6 @@ Open design questions for the designer:
 
 Shape to propose: GameState gets a list of sieges (sector yx, deadline stardate); the stardate-advance path rolls for a new siege on each galactic tick; a starbase whose deadline passes is removed. Docs: an ONTOLOGY rule with pseudocode, constants in the Numbers table, a RATIONALE decision with alternatives, CRITERIA rows and tests, and a log entry.
 ----
-Score:   60
-ID: warptime-6g9e
-Created: 2026-11-15T01:28:06Z
-Updated: 2026-11-15T01:28:06Z
-
-Fix galactic travel time so that a full battle takes less time than travelling between sectors. Today warp time is nearly free: time = floor(euclid(sectors) * WARP_DISTANCE_SCALE) * WARP_TIME_PER_DISTANCE (core/src/actions.rs), which comes to about 0.1 stardate per sector. Crossing the whole 10x10 galaxy (about 1.27) takes less time than two subwarp cells (SUBWARP_TIME_PER_STEP = 1.0 each), and far less than one long-range scan (LRS_TIME = 3) or one enemy turn interval (EVENT_INTERVAL = 3). Distance between sectors therefore hardly matters for anything time-based.
-
-Goal [D]: warping even to an adjacent sector should take longer than a typical full battle in a sector, so the galaxy feels big, and time spent fighting is small next to time spent getting there. This also lets distance matter to anything time-limited, such as a starbase holding out for a set number of stardates: how far away the ship is should decide whether it can get there.
-
-Steps:
-1. Measure first. Add to the committed balance harness (`just cc-model-balance`), or a new recipe, the stardates a typical battle takes (e.g. clearing a sector of 1–6 enemies with blasts and torpedoes under current rules, including LRS_TIME and EVENT_INTERVAL). Today that number isn't known.
-2. Set WARP_TIME_PER_DISTANCE (and possibly a fixed per-warp base time, e.g. WARP_TIME_BASE) so that one adjacent warp is longer than the measured typical battle. Halve and double to check the feel.
-3. Check the knock-on effects: game length in stardates; whether anything else is time-limited (STARDATE_START, any game deadline, starbase resupply timing); stardate events triggered during a warp (warp_events: does a long warp run many EVENT_INTERVALs of enemy actions in the sector being left or entered? It probably must not); and the stardate display.
-
-Docs: Warp rule and Numbers table in ONTOLOGY; a RATIONALE decision with alternatives (scale time per distance vs. a fixed per-jump cost vs. both) and measured Evidence; CRITERIA and tests (an adjacent warp's time is greater than the battle benchmark constant, or at least warp time is monotone in distance); an ARCHITECTURE_LOG entry; and the galaxy_warp tool description if a player should know.
-----
 Score:   50
 ID: starcentral-rixp
 Created: 2026-11-14T15:47:45Z
@@ -209,3 +193,19 @@ Design questions:
 - Privacy: no personal data, no MCP client identity beyond what is needed to count distinct games; state this on the home page.
 - A small recipe or report to query it (e.g. per-day games, win rate, blast range histogram) so it feeds RATIONALE Evidence as "Measured by".
 - Keep it out of the Rust core's rules: the app layer records Results it already has, so the core stays pure and deterministic.
+----
+Score:   60
+ID: warptime-6g9e
+Created: 2026-11-15T01:28:06Z
+Updated: 2026-11-15T23:37:32Z
+
+(Done) Fix galactic travel time so that a full battle takes less time than travelling between sectors. Today warp time is nearly free: time = floor(euclid(sectors) * WARP_DISTANCE_SCALE) * WARP_TIME_PER_DISTANCE (core/src/actions.rs), which comes to about 0.1 stardate per sector. Crossing the whole 10x10 galaxy (about 1.27) takes less time than two subwarp cells (SUBWARP_TIME_PER_STEP = 1.0 each), and far less than one long-range scan (LRS_TIME = 3) or one enemy turn interval (EVENT_INTERVAL = 3). Distance between sectors therefore hardly matters for anything time-based.
+
+Goal [D]: warping even to an adjacent sector should take longer than a typical full battle in a sector, so the galaxy feels big, and time spent fighting is small next to time spent getting there. This also lets distance matter to anything time-limited, such as a starbase holding out for a set number of stardates: how far away the ship is should decide whether it can get there.
+
+Steps:
+1. Measure first. Add to the committed balance harness (`just cc-model-balance`), or a new recipe, the stardates a typical battle takes (e.g. clearing a sector of 1–6 enemies with blasts and torpedoes under current rules, including LRS_TIME and EVENT_INTERVAL). Today that number isn't known.
+2. Set WARP_TIME_PER_DISTANCE (and possibly a fixed per-warp base time, e.g. WARP_TIME_BASE) so that one adjacent warp is longer than the measured typical battle. Halve and double to check the feel.
+3. Check the knock-on effects: game length in stardates; whether anything else is time-limited (STARDATE_START, any game deadline, starbase resupply timing); stardate events triggered during a warp (warp_events: does a long warp run many EVENT_INTERVALs of enemy actions in the sector being left or entered? It probably must not); and the stardate display.
+
+Docs: Warp rule and Numbers table in ONTOLOGY; a RATIONALE decision with alternatives (scale time per distance vs. a fixed per-jump cost vs. both) and measured Evidence; CRITERIA and tests (an adjacent warp's time is greater than the battle benchmark constant, or at least warp time is monotone in distance); an ARCHITECTURE_LOG entry; and the galaxy_warp tool description if a player should know.
