@@ -137,6 +137,11 @@ impl Game {
             .collect()
     }
 
+    /// The game's goals with their progress, in the Game's order.
+    pub fn goal_states(&self) -> Vec<GoalState> {
+        self.goals.iter().map(|goal| goal.state(&self.counters)).collect()
+    }
+
     pub fn state(&self) -> GameState {
         GameState {
             status: self.status,
@@ -158,7 +163,7 @@ impl Game {
             map: self.sector.map_rows(),
             stardate: format_stardate(self.startick),
             counters: self.counters,
-            goals: self.goals.iter().map(|goal| goal.state(&self.counters)).collect(),
+            goals: self.goal_states(),
         }
     }
 }

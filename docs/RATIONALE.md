@@ -97,7 +97,8 @@ inferences, waiting for review.
 ### D-31 Dual display: the LLM plays over MCP, a read-only browser page follows over a WebSocket — *Decided; the routes and frame shape are Proposed*
 - **Choice:** MCP stays the only way to act, with the LLM as the ship's computer. A browser
   page gets the current sector's board, the galaxy map, ship status and a survey panel for one
-  game, pushed over a per-game socket. Everything shows on one display, with the board as a
+  game, pushed over a per-game socket, with the game's goals and the starting player's
+  achievements (D-49). Everything but the achievements shows on one display, with the board as a
   tilted hologram in the middle, because the player otherwise doesn't need the mouse at all. The
   core makes the view (`view`, which can't change a game and shows only what's uncovered),
   the app layer makes frames and publishes after each accepted command, and each adapter holds
@@ -109,7 +110,7 @@ inferences, waiting for review.
   a separate port for the view (a Worker has one origin).
 - **Why:** G-3. The split fits Cloudflare: a per-game socket list maps onto one Durable Object
   per game, which holds hibernating sockets there. That object reads its own game for the frame
-  a viewer gets on connecting, so a connect touches no second object. Both adapters close a
+  a viewer gets on connecting, and the starting player's object for the achievements (D-49). Both adapters close a
   viewer's socket on a frame over `VIEWER_MAX_FRAME_BYTES` [D], sized for a ping or a small view
   setting later. On Node the limit protects the process's memory; on Cloudflare the platform has
   already received the frame, so the limit's use there is to stop a misbehaving viewer from
@@ -255,8 +256,9 @@ inferences, waiting for review.
   a count, not a score); storing the achievements a player has earned (they follow from the
   totals and the table, so a stored list could only disagree with them); an MCP tool that lists
   them (the designer keeps them on the viewer; in the conversation they arrive one at a time as
-  Star Central's messages); totals kept per game owner (games have no owners, and the command's
-  issuer is always known); counting in the app layer from event text (D-42).
+  Star Central's messages); totals kept for the player who started the game (a count belongs to
+  whoever earned it, and the command's issuer is always known); counting in the app layer from
+  event text (D-42).
 - **Why:** One template makes the whole list from the counter table, so a new counter brings its
   achievements with it and none needs its own code. The 1, 2, 5 steps keep the rungs evenly
   spaced by ratio, close together for a new player and far apart for an old one, and the scale
@@ -430,6 +432,57 @@ inferences, waiting for review.
   that ends the game is still announced, after the ending.
 - **Evidence:** R-42 tests, and R-38 for the kind's 20 wordings. Whether the wordings read
   well in play is unmeasured (U-15 is manual).
+
+### D-49 The viewer shows the game's goals and the achievements of the player who started it — *Decided; the frame's shape, the panels' placement, the order's measure and the `#achievements` link are Proposed*
+- **Choice:** The viewer page shows the game's three goals, always, and the player's
+  achievements in a panel that a button opens. There is no player page and no sign-in in the
+  browser. The goals travel in the GameView, which the core makes. The achievements travel in
+  the same view frame, added by the app layer from the PlayerStore, and they are those of the
+  player who started the game: `new_game` stores that player beside the game in the GameStore,
+  never inside the Game. Both frames carry them, the one after a command and the one a viewer
+  gets on connecting. The frame holds rows, never the player's id. The stored player decides
+  nothing else: no command is checked against it.
+- **Alternatives:** a player page behind sign-in (a second page and a sign-in flow in the
+  browser, for a list that is not personal information, when the viewer's link is already
+  unguessable); the achievements of whoever issued the command (a viewer that connects has no
+  command in hand, so its first frame would have none, and the list would change with the
+  issuer); the player inside the core's Game (the core is a pure function of one game and knows
+  no player, D-44); the player's id in the frame for the page to look up (the id is the auth/
+  `sub`, and nothing on the page needs it); a second frame type or an HTTP route for
+  achievements (a second message to keep in step with the first; typed frames leave room to
+  split them later); the goals rebuilt by the app layer from a Result (the app layer would
+  read the Game's state to make a view, which is the core's job, D-31); the achievements always
+  open (a row per counter pushes the map and ship status off a laptop screen); a modal dialog
+  (it covers the board and holds the page until dismissed); a separate store keyed by `view_id`
+  for the player (a second record to keep in step with the game, D-32).
+- **Why:** G-3 and F-command. The designer decided the viewer shows both: the link is a one-way
+  hash of an unguessable id (D-32), and a path of achievements names nobody. A viewer has to see
+  the same list whenever it connects, so the list must belong to the game, and the player who
+  started a game is the one fact about a player a game can keep without the core knowing it.
+  With one player per game that is also the player commanding (D-18). The frame after a command
+  is made after the totals move, so the page shows a rung in the frame of the command that
+  reached it. On Cloudflare the game's object reads the achievements from the player's object
+  with its other requests held back (`blockConcurrencyWhile`): the read is the one await between
+  reading the game and sending the frame, and a command stored or published during it would
+  otherwise be missed by the new socket, or be overtaken by this older frame. It is held per
+  connecting viewer, not per command.
+- **Proposed details:** the frame is `{type: "view", view, achievements}`. The objectives sit
+  under the survey on a wide screen, where the side column has room, and between the board and
+  ship status on a phone, where they are short enough to leave the board and the gauges on the
+  first screen. The achievements open as a sheet fixed over the lower right (the lower screen
+  on a phone), which scrolls inside itself, so opening it moves nothing, and at a laptop
+  screen's size it lies under the galaxy panel and beside the board. The order is by how far
+  each total has come from its last rung toward the next, as a share; a total that has just
+  reached a rung therefore drops to the end, and the flash is what marks it. The page labels
+  the panels Objectives and Achievements, the words the crew uses. A viewer link ending
+  `#achievements` opens with the panel showing, which is how the committed screenshot script
+  pictures it.
+- **Stored data:** a game stored before this has no player beside it and answers "Game not
+  found". No migration.
+- **Evidence:** R-28 (the goals in the view), R-43 (the stored player and both frames, in the app
+  layer, on Node's sockets and on the Durable Object's), U-13 and U-16 in headless Chromium.
+  Screenshots at 1100×800 and 375×700 were looked at (2026-11-16). Not watched alongside a real
+  LLM session, and not exercised on deployed Cloudflare.
 
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function

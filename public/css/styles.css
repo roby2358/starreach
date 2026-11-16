@@ -41,7 +41,7 @@ body {
     font-family: "Oxanium", "Segoe UI", system-ui, sans-serif;
 }
 
-h1, h2, dl, dd, ul, p { margin: 0; padding: 0; }
+h1, h2, dl, dd, ul, ol, p { margin: 0; padding: 0; }
 h1, h2 { font-size: inherit; font-weight: inherit; }
 
 .bridge-header {
@@ -124,6 +124,7 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
     display: grid;
     grid-template:
         "tank" auto
+        "goals" auto
         "ship" auto
         "galaxy" auto
         "survey" auto
@@ -133,6 +134,7 @@ body[data-link="absent"] .console, body[data-link="connecting"] .console { displ
 }
 
 .tank-section { grid-area: tank; min-width: 0; }
+.goals-panel { grid-area: goals; }
 .ship-panel { grid-area: ship; }
 .survey-panel { grid-area: survey; }
 .galaxy-panel { grid-area: galaxy; }
@@ -295,6 +297,88 @@ body[data-status="lost"] #board { box-shadow: 0 0 0 1px var(--enemy), 0 0 70px v
 .gauge.dropped { animation: dropped 600ms ease-out; }
 @keyframes dropped { from { background: #ff3f8655; } }
 
+/* Objectives: a gauge per goal, in the ship status's form. A met goal turns the starbase's green.
+   The button sits beside the title where the panel is wide, and under the goals in the side column. */
+.goals-panel {
+    display: grid;
+    grid-template:
+        "title button" auto
+        "goals goals" auto
+        / 1fr auto;
+    align-items: center;
+    gap: 10px 12px;
+}
+
+.goals-panel h2 { grid-area: title; margin-bottom: 0; }
+.goals-panel .record-button { grid-area: button; }
+.goals { grid-area: goals; }
+
+.goals, .achievements { display: grid; gap: 10px; list-style: none; }
+.goal .gauge-label, .achievement .gauge-label { align-items: baseline; }
+.goal .gauge-value, .achievement .gauge-value { white-space: nowrap; }
+.goal.met .gauge-fill { background: var(--base); }
+.goal.met .gauge-value { color: var(--base); }
+.goal-met { margin-right: 6px; font-size: 0.6875rem; letter-spacing: 0.16em; }
+.goal.reached, .achievement.reached { animation: reached 1600ms ease-out; }
+@keyframes reached { from { background: color-mix(in srgb, var(--base) 45%, transparent); } }
+
+/* The text stays upright on a plate skewed like the gauges. */
+.record-button {
+    position: relative;
+    isolation: isolate;
+    padding: 4px 14px 3px;
+    border: 0;
+    background: none;
+    color: var(--cyan);
+    font: inherit;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.record-button::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border: 1px solid var(--glass-edge);
+    background: var(--grid);
+    transform: skewX(-24deg);
+}
+
+.record-button:hover::before, .record-button[aria-expanded="true"]::before { border-color: var(--cyan); box-shadow: 0 0 10px var(--grid); }
+.record-button:focus-visible { outline: none; }
+.record-button:focus-visible::before { border-color: var(--ship); }
+
+/* Achievements: a sheet over the page's lower corner, scrolling inside itself, so opening it
+   moves nothing. */
+.record {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    width: calc(100vw - 32px);
+    max-height: 62vh;
+    padding: 14px 0 14px 14px;
+    background: color-mix(in srgb, var(--space) 88%, var(--glow));
+    clip-path: var(--chamfer);
+    outline: 1px solid var(--glass-edge);
+    outline-offset: -1px;
+}
+
+.record[hidden], body[data-link="absent"] .record, body[data-link="connecting"] .record { display: none; }
+.record-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding-right: 22px; }
+.record h2 { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-bottom: 0; }
+.record h2 span { font-weight: 300; letter-spacing: 0.1em; text-transform: none; }
+.achievements { overflow-y: auto; padding-right: 14px; scrollbar-color: var(--glass-edge) transparent; scrollbar-width: thin; }
+.achievement .gauge-track { height: 6px; }
+.rungs { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--dim); font-size: 0.6875rem; letter-spacing: 0.06em; font-variant-numeric: tabular-nums; }
+.rungs .rung-reached { color: var(--base); }
+
 .survey { display: grid; gap: 8px; }
 .survey div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .survey dd { color: var(--cyan); font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -303,15 +387,29 @@ body[data-status="lost"] #board { box-shadow: 0 0 0 1px var(--enemy), 0 0 70px v
     .console {
         grid-template:
             "ship tank galaxy" auto
-            "survey tank galaxy" 1fr
+            "survey tank galaxy" auto
+            "goals tank galaxy" 1fr
             / minmax(220px, 0.8fr) minmax(0, 2.2fr) minmax(250px, 0.9fr);
         align-items: start;
         max-width: 1700px;
         margin-inline: auto;
     }
+
+    .goals-panel {
+        grid-template:
+            "title" auto
+            "goals" auto
+            "button" auto
+            / minmax(0, 1fr);
+    }
+
+    .goals-panel .record-button { margin: 2px 4px 0; }
+
+    /* Beside the tank, under the galaxy panel, about that column's width. */
+    .record { width: clamp(250px, 23vw, 380px); max-height: 44vh; }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .ship-marker, .gauge-fill, .console { transition: none; }
-    .sector.revealed, .sector.struck, .gauge.dropped, .tank.warping, .tank.warping #board, .tank.struck #board { animation: none; }
+    .sector.revealed, .sector.struck, .gauge.dropped, .goal.reached, .achievement.reached, .tank.warping, .tank.warping #board, .tank.struck #board { animation: none; }
 }

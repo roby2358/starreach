@@ -1,5 +1,6 @@
 // Achievements (ONTOLOGY "Lifetime totals", D-44): what a command counted goes to its player's
-// lifetime totals, and each rung a total reaches is announced by Star Central.
+// lifetime totals, and each rung a total reaches is announced by Star Central. A player's list of
+// them goes to the viewers of the games that player started (D-49).
 
 import type { Core } from "./core.ts";
 import { totalOf, totalsOwner, type PlayerStore, type Totals } from "./players.ts";
@@ -48,9 +49,10 @@ export async function awardLifetime({ core, players, player, random }: Achievers
     );
 }
 
-/** The player's achievements, a row per counter in the counter table's order. */
-export async function achievements({ core, players, player }: Pick<Achievers, "core" | "players" | "player">): Promise<Achievement[]> {
-  const totals = await players.totals(totalsOwner(player));
+/** The achievements of the player who owns the totals named `owner`, a row per counter in the
+ *  counter table's order. */
+export async function achievements({ core, players }: Pick<Achievers, "core" | "players">, owner: string): Promise<Achievement[]> {
+  const totals = await players.totals(owner);
   return core.counterTable().map((row) => {
     const total = totalOf(totals, row.key);
     return { key: row.key, label: row.label, total, ...core.ladderStanding(row.key, total) };

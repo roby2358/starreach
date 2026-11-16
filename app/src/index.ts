@@ -2,7 +2,7 @@
 // Viewers, the instructions text, and a way to serve stdio, HTTP and viewer sockets.
 
 export { loadCore, type Command, type CommandResult, type Core, type CounterRow, type GameJson, type GameView, type GoalState, type LadderStanding } from "./core.ts";
-export { MemoryStore, type GameStore } from "./store.ts";
+export { MemoryStore, type GameStore, type StoredGame } from "./store.ts";
 export { addTotals, LOCAL_PLAYER, MemoryPlayerStore, type PlayerStore, type Totals, type TotalsChange } from "./players.ts";
 export { achievements, type Achievement, type Achievers } from "./achievements.ts";
 export {

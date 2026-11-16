@@ -6,6 +6,7 @@ import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 
 import { DurableObjectStore } from "../../src/store.ts";
+import { PLAYER } from "../helpers/tokens.ts";
 import { callTool, connectViewer, createGame, upgrade } from "../helpers/worker.ts";
 
 test("a viewer gets the current view on connecting", async () => {
@@ -59,7 +60,7 @@ test("an unknown game closes the socket with the not-found code", async () => {
 
 test("a stored game the core can't read is not found, for the player and for a viewer", async () => {
   const { gameId, view } = await createGame();
-  await new DurableObjectStore(env.GAMES).put(view, JSON.stringify({ seed: 7, stardate: 1234567.0, last_event_stardate: 1234567.0 }));
+  await new DurableObjectStore(env.GAMES).put(view, { game: JSON.stringify({ seed: 7, stardate: 1234567.0, last_event_stardate: 1234567.0 }), player: PLAYER });
 
   const state = await callTool("state", { game_id: gameId });
   expect(state).toEqual({ ok: false, error: "Game not found", events: [], report: null, state: null });

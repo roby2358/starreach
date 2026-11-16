@@ -8,9 +8,9 @@ import { achievements } from "../../src/index.ts";
 import { testDeps } from "../helpers/deps.ts";
 
 test("a player with no totals stands below the first rung of every counter", async () => {
-  const deps = { ...testDeps(), player: "alice" };
+  const deps = testDeps();
 
-  const rows = await achievements(deps);
+  const rows = await achievements(deps, "alice");
 
   assert.deepEqual(rows.map((row) => row.key), deps.core.counterTable().map((row) => row.key));
   for (const [index, row] of deps.core.counterTable().entries()) {
@@ -19,22 +19,14 @@ test("a player with no totals stands below the first rung of every counter", asy
 });
 
 test("each counter shows its total, the last rung reached and the next", async () => {
-  const deps = { ...testDeps(), player: "alice" };
+  const deps = testDeps();
   await deps.players.add("alice", { enemies_destroyed: 137, docks: 5, shield_damage: 999 });
+  await deps.players.add("bob", { enemies_destroyed: 9000 });
 
-  const rows = await achievements(deps);
+  const rows = await achievements(deps, "alice");
   const byKey = Object.fromEntries(rows.map((row) => [row.key, row]));
 
   assert.deepEqual(byKey.enemies_destroyed, { key: "enemies_destroyed", label: "enemies destroyed", total: 137, reached: 100, next: 200 });
   assert.deepEqual(byKey.docks, { key: "docks", label: "docks at a starbase", total: 5, reached: 5, next: 10 });
   assert.deepEqual(byKey.shield_damage, { key: "shield_damage", label: "shield damage taken", total: 999, reached: null, next: 1000 });
-});
-
-test("with no sign-in the achievements are the local player's", async () => {
-  const deps = testDeps();
-  await deps.players.add("local", { scans: 2 });
-
-  const scans = (await achievements(deps)).find((row) => row.key === "scans");
-
-  assert.deepEqual(scans, { key: "scans", label: "long range scans", total: 2, reached: 2, next: 5 });
 });

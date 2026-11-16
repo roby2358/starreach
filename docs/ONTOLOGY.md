@@ -76,7 +76,7 @@ One name per concept. These names are used in code, tools and docs.
 | **Game id** | The name a client uses for one stored game (`game_id`) | |
 | **View id** | The hex SHA-256 of a `game_id` (`view_id`). It keys the GameStore and the Viewers, and is all the viewer's link and socket carry | |
 | **Viewer** | A browser page watching one game over its socket | main viewer |
-| **Frame** | One message on a viewer's socket, `{type, …}` | |
+| **Frame** | One message on a viewer's socket, `{type, …}`. A view frame carries the GameView and the starting player's achievements | |
 
 ---
 
@@ -244,11 +244,15 @@ never sees it.
 |---|---|---|
 | `view_id` | str | The hex SHA-256 of the `game_id`; the store never holds a `game_id` |
 | `game` | Game | Stored as the core returned it |
+| `player` | str | The player who started the game: the PlayerStore's `player` that `new_game` ran for. It never changes, and it is not in the Game: the core knows no player (D-49) |
 
 The `game_id` is random and unguessable, chosen by the app layer, and one app-layer function
-hashes it to the `view_id` (D-32). The Node adapter keeps games in process memory. The
+hashes it to the `view_id` (D-32). The store reads and writes the game and its player together.
+The player is kept only to say whose achievements the game's viewers see; no command is
+checked against it. [D] The Node adapter keeps games in process memory. The
 Cloudflare adapter keeps one SQLite-backed Durable Object per `view_id`, named by it. [D] The
-object holds the game JSON under one key of its key-value storage. [P]
+object holds the game JSON under one key of its key-value storage and the player under another,
+and a game with no player beside it is no game. [P]
 
 ### PlayerStore
 *Serves: G-1.* [D] Where the app layer keeps each player's lifetime totals. The core never sees
@@ -269,8 +273,8 @@ in its key-value storage. [P]
 An **achievement** is not stored: it is a lifetime total at or past a rung of its counter's
 ladder, so a player's whole list follows from the totals and the counter table (D-44). The app
 layer gives the list out as a row per counter, `{key, label, total, reached, next}`: the total,
-the last rung reached (null below the first) and the next. [D] No MCP tool returns it; it is for
-the viewer, which doesn't show it yet. [D, unbuilt]
+the last rung reached (null below the first) and the next. [D] No MCP tool returns it; it goes
+to the viewer, in every view frame (Viewer socket, D-49). [D]
 
 ### Star Central messages
 *Serves: G-1, F-command.* [D] The messages fleet command sends the captain, held in the core as
@@ -290,7 +294,8 @@ for every label and for an amount of 1. [P]
 
 ### GameView
 *Serves: G-3, F-discovery.* [D] What a read-only display may see of a Game. The core makes
-it from a Game and it holds only what the player has uncovered.
+it from a Game and it holds only what the player has uncovered, and the game's goals, which the
+player was given when the game started.
 
 | Field | Type | Notes |
 |---|---|---|
@@ -300,6 +305,7 @@ it from a Game and it holds only what the player has uncovered.
 | `ship` | Ship | Every Ship field |
 | `board` | str[10] | The ship's sector as map rows, the same as GameState's `map` |
 | `galaxy` | 10×10 of `{enemies, starbases, stars}` or null | Null while the sector is hidden |
+| `goals` | GoalState[`GOALS_PER_GAME`] | The game's goals with their progress, the same as GameState's `goals` |
 
 ### Viewers
 *Serves: G-3.* [D] The sockets watching each game. The app layer makes frames and calls
@@ -307,7 +313,9 @@ it from a Game and it holds only what the player has uncovered.
 keeping a socket open belong to the platform. The Node adapter keeps a list per `view_id` in
 process memory. The Cloudflare adapter keeps them on the game's Durable Object, as hibernating
 WebSockets, so the object can leave memory while viewers stay connected. Its `publish` is a
-call on that object, which sends the frame to each of its sockets. [D]
+call on that object, which sends the frame to each of its sockets. [D] A frame is made from a
+stored game: the core's view of it, and the achievements of the game's `player`, read from the
+PlayerStore when the frame is made. [D]
 
 ### Agents
 - **Enemies** act only inside EnemiesTurn. They know the ship's cell exactly and follow the
@@ -334,6 +342,7 @@ call on that object, which sends the frame to each of its sockets. [D]
 | ActiveSector *contains* Ship, Starbase, Enemy, Star | ship 1; starbase 0..1; enemies 0..`ENEMY_MAX_PER_SECTOR`; stars per record |
 | Cell *holds* occupant | 0..1 |
 | Game *is watched by* Viewer | 1 → 0..n |
+| Game *was started by* player (GameStore `player`) | each game 1 player; a player 0..n games |
 
 ## 4. Invariants
 
@@ -361,6 +370,7 @@ call on that object, which sends the frame to each of its sockets. [D]
   the start time is an input. [D]
 - A viewer never changes a game: nothing it sends reaches the store or the core. [D]
 - A GameView never shows a hidden sector, the seed or the RNG. [D]
+- A frame never carries a player's id or a `game_id`: the achievements go out as rows. [D]
 
 ---
 
@@ -658,13 +668,18 @@ report's `time` is the duration form.
 In the app layer.
 ```
 new_game: seed = random u32;  game_id = random id;  view_id = sha256(game_id)
-          store new_game(seed, the adapter's clock in Unix seconds) under view_id
+          store new_game(seed, the adapter's clock in Unix seconds) under view_id,
+          with player = the signed-in player, or `local` where there is no sign-in
 any other tool: load sha256(game_id), else error "Game not found"
                 a stored game the core can't read is not found too
 apply the command;  if refused: return the result
-store the returned game, publish its view frame to the viewers
+store the returned game, beside the same player
+run the Lifetime totals rule for the commanding player
+publish the game's view frame to the viewers (Viewer socket)
 append the Lifetime totals rule's messages to the result's events;  return the result
 ```
+The frame is published after the totals move, so its achievements include what the command
+counted. [D]
 `new_game` answers with the core's state query on the new game, and its report carries the
 `game_id`, the goals as that state shows them, and the viewer's link. A command's events are in
 this order: the game's own, then any goal met (Goal check, from the core), then any lifetime
@@ -857,7 +872,7 @@ stardate is a day), `state`'s description gives the stardate form, and each acti
 says how to read `report.time` [D].
 
 No tool returns a player's lifetime totals or achievements [D]: a player sees them only on the
-viewer. [D, unbuilt: the viewer page doesn't show them yet] They reach the conversation one at a time, as Star Central's message in the `events`
+viewer (D-49). They reach the conversation one at a time, as Star Central's message in the `events`
 of the command that reached the rung (Lifetime totals), and the instructions tell the LLM to
 relay each in character and to point the captain to the viewer for the list. [D]
 
@@ -911,11 +926,20 @@ in `public/` is served, which adds the font's licence text to the pages' files. 
 ```
 on connect to /live/<view_id>:
     unknown game, or a stored game the core can't read: close with code 4404
-    otherwise: add to the game's viewers, send {type: "view", view: GameView}
-on an accepted command: send {type: "view", view: GameView} to the game's viewers
+    otherwise: add to the game's viewers, send the view frame
+on an accepted command: send the view frame to the game's viewers
 on any frame from a viewer: ignore it; one over VIEWER_MAX_FRAME_BYTES closes that socket (1009)
+
+view frame = {type: "view", view: GameView of the stored game,
+              achievements: [{key, label, total, reached, next} per counter, in table order]
+                            of the stored game's player, as the PlayerStore has them now}
 ```
-Both adapters enforce the size limit, which the app layer defines. [D]
+Both adapters enforce the size limit, which the app layer defines. [D] The achievements are
+those of the player who started the game on both paths, whoever issued the command, so a
+viewer sees the same list on connecting as after a command (D-49). [D] On Cloudflare the game's
+object reads them from the player's object while it holds back its other requests, so a viewer
+that connects during a command neither misses that command's frame nor gets an older one after
+it. [P]
 Every frame carries a `type`, so other kinds can join the same socket. [P]
 
 ### Events (messages)
@@ -936,9 +960,24 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 ### Client contract
 - **LLM:** MCP tools and the instructions only. It holds the `game_id`, and the link it hands the captain holds only the `view_id`. [D]
 - **Browser:** reads `view` from its URL, opens the game's socket, draws each frame's GameView as the current sector's
-  board, the galaxy map, ship status and a survey panel (sectors charted, enemies sighted and
-  starbases found, totalled from the map), and reconnects after losing the socket. It sends
-  nothing and never changes state. [D] It is one display with nothing to click: the board as a
-  tilted hologram (Holotank) in the middle, with the map, ship status and survey around it. [D]
+  board, the galaxy map, ship status, a survey panel (sectors charted, enemies sighted and
+  starbases found, totalled from the map) and the game's goals, and reconnects after losing the
+  socket. It sends nothing and never changes state. [D] It is one display: the board as a
+  tilted hologram (Holotank) in the middle, with the map, ship status, survey and goals around
+  it, all showing with nothing to click. [D]
+  - **Objectives panel:** the game's three goals, always showing, each a gauge of its count
+    against its amount; a met goal turns green and carries the word "Met", and flashes once
+    when a frame first shows it met. [D] It sits under the survey on a wide screen and between
+    the board and ship status on a phone. [P]
+  - **Achievements panel:** the page's one control, the Achievements button in the objectives
+    panel, opens a panel that scrolls inside itself and lies over the page's lower right (the
+    lower screen on a phone), so opening it moves nothing. It lists every counter of the frame's
+    achievements, the negative ones too: the lifetime total, the last rung reached and the next,
+    and a bar of how far the total has come from the one toward the other. The counter nearest
+    its next rung by that measure comes first, and equal ones keep the table's order. A counter
+    whose last rung changed since the previous frame flashes once. The button again, its Close
+    button or Escape closes it. [D] A viewer link ending `#achievements` opens with the panel
+    showing. [P]
+  - The page shows no player id and gets none. Opening and closing the panel sends nothing. [D]
 - **App layer:** stores and forwards Games; it never reads or edits a Game's fields. What a
   command counted it reads from the Results' `state.counters`. [D]

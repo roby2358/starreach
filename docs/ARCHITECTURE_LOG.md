@@ -3,6 +3,30 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — The viewer shows the game's goals and the starting player's achievements
+The viewer showed the board, the map, ship status and the survey; goals and achievements
+reached the player only through the crew. Now the page has an Objectives panel with the three
+goals and their progress, and an Achievements button that opens a scrolling panel of lifetime
+totals, the counter nearest its next rung first. Added: D-49; R-43; U-16. U-13 went from not
+yet covered to automated, and its row now says how the panel behaves. R-28 gained the goals.
+U-10 and the Client contract said "nothing to click"; they now say everything but the
+achievements shows with nothing to click, and name the one button. D-31 said a connecting
+viewer touches no second object; on Cloudflare it now reads the player's object. D-44's
+rejected "totals per game owner (games have no owners)" became "totals for the player who
+started the game", since a game now remembers that player.
+
+The core's GameView gained `goals` (the state's GoalStates, through a shared
+`Game::goal_states`). The GameStore now keeps `{game, player}`: `new_game` stores the player it
+ran for, `local` where there is no sign-in, and each command stores the same player back; the
+Cloudflare game object holds the player under a second key. The view frame became
+`{type: "view", view, achievements}`, made by one app-layer function from a stored game on both
+paths; a command now adds its lifetime totals before it publishes, where it published first, so
+the frame shows the new totals. `achievements` takes the totals' owner instead of the signed-in
+player. The Cloudflare game object makes a connecting viewer's frame inside
+`blockConcurrencyWhile`, because it now awaits the player's object. The page's gauge building
+became a shared bar that the goals and achievements use too. Games stored before this have no
+player and answer "Game not found". No migration.
+
 ### 2026-11-16 — Three goals per game, and Star Central says when one is met
 A game had no aim but clearing the galaxy. Now `new_game` sets `GOALS_PER_GAME` goals from the
 seed, each a random rung of a different offered counter at or below its `goal_ceiling`, and

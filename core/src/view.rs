@@ -2,13 +2,15 @@
 //!
 //! A view takes the Game by shared reference, so making one can't change the game. It carries
 //! only what the player has uncovered: a hidden sector is null, and the seed and the RNG stay
-//! out. The board is the ship's own sector, which the player can always see.
+//! out. The board is the ship's own sector, which the player can always see, and the goals are
+//! the game's own, which the player was given when it started.
 
 use serde::Serialize;
 
 use crate::galaxy::SectorRecord;
 use crate::game::{format_stardate, Game, Ship, Status};
 use crate::geometry::Yx;
+use crate::goals::GoalState;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SectorView {
@@ -27,6 +29,8 @@ pub struct GameView {
     pub board: Vec<String>,
     /// Indexed `[y][x]`. Null while the sector is hidden.
     pub galaxy: Vec<Vec<Option<SectorView>>>,
+    /// The game's goals with their progress, the same as `GameState.goals`.
+    pub goals: Vec<GoalState>,
 }
 
 pub fn view(game: &Game) -> GameView {
@@ -37,6 +41,7 @@ pub fn view(game: &Game) -> GameView {
         ship: game.ship.clone(),
         board: game.sector.map_rows(),
         galaxy: game.galaxy.sectors.iter().map(|row| row.iter().map(sector_view).collect()).collect(),
+        goals: game.goal_states(),
     }
 }
 

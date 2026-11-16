@@ -395,6 +395,28 @@ Q-12 (docs/RATIONALE.md): MCP command results signal failure inconsistently — 
 ----
 Priority:   50
 Status: Done
+ID: goalpanel-zs67
+Created: 2026-11-16T00:40:36Z
+Updated: 2026-11-16T02:27:55Z
+
+Show the game's goals and the player's achievements on the viewer page.
+
+Decided [D]: the viewer shows both. Its link is unguessable, and an achievement path is not personal information, so no sign-in or separate player page is needed. The viewer stays read-only.
+
+This needs goals in the game (three per game, with progress and met or not) and per-player lifetime totals with a ladder per counter.
+
+Do:
+- Goals: the GameView the page receives carries the game's three goals with progress (counter label, current count, amount, met). The page shows them in a small panel, each with its progress, and marks a goal met when it happens.
+- Achievements: for each counter, the player's lifetime total, the last rung reached and the next rung. These come from the player's totals, not from the game, so the frame sent to viewers needs them added by the app layer. A frame is sent after each command (the commanding player is known then) and also when a viewer first connects, when no command is in hand: the game must therefore remember which player started it, stored beside the game when new_game runs. With no sign-in (local play) that is the single local player.
+- Layout [D]: be creative. A button that opens a scrollable panel is fine. The sector board, galaxy map and ship status stay the page's subject. The three goals are always visible in a small strip; a button opens the scrollable achievements panel, ordered by how close the next rung is, with negative counters shown as well. Take a screenshot with the committed screenshot script for the user's review.
+- When a goal is met or a rung reached, the page may flash that row; no sound, no modal.
+- The page never shows the player's id.
+- Plain HTML, CSS and JS with no build step, as the page is today. Use the existing CSS custom properties for colour.
+
+Tests: the view carries the goals; a frame carries the starting player's achievements both after a command and on first connect; the page renders three goals and marks a met one (the page tests or the screenshot script). Update ONTOLOGY (GameView, the viewer frame, the viewer page section), CRITERIA (U-rows), RATIONALE (why the viewer and not a player page; that the frame's achievements belong to the player who started the game), README and the log. Run `just cc-test-all`. Don't deploy.
+----
+Priority:   50
+Status: Done
 ID: sectorseed-9xmy
 Created: 2026-11-04T23:54:06Z
 Updated: 2026-11-05T01:44:39Z

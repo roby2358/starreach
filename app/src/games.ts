@@ -2,8 +2,8 @@
 
 import { awardLifetime, type Achievers } from "./achievements.ts";
 import type { Command, CommandResult, Core, GameJson } from "./core.ts";
-import type { Totals } from "./players.ts";
-import type { GameStore } from "./store.ts";
+import { totalsOwner, type Totals } from "./players.ts";
+import type { GameStore, StoredGame } from "./store.ts";
 import { viewerUrl, viewFrame, viewId, type Viewers } from "./view.ts";
 
 export interface Games extends Achievers {
@@ -15,32 +15,34 @@ export interface Games extends Achievers {
   unixSeconds: () => number;
 }
 
-/** A new game under a random, unguessable game_id, stored under its view_id. The core's state query supplies the Result,
+/** A new game under a random, unguessable game_id, stored under its view_id with the player who
+ *  started it beside it. The core's state query supplies the Result,
  *  so new_game has the same shape as every other tool, with the id, the game's goals as its
  *  state shows them, and the viewer's link as its report. */
-export async function newGame({ core, store, viewOrigin, unixSeconds }: Games): Promise<CommandResult> {
+export async function newGame({ core, store, player, viewOrigin, unixSeconds }: Games): Promise<CommandResult> {
   const gameId = crypto.randomUUID();
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
   const game = core.newGame(seed, unixSeconds());
   const view = await viewId(gameId);
-  await store.put(view, game);
+  await store.put(view, { game, player: totalsOwner(player) });
   const { result } = own(core.apply(game, { type: "state" }));
   return { ...result, report: { game_id: gameId, goals: result.state!.goals, viewer_url: viewerUrl(viewOrigin, view) } };
 }
 
 /** Runs one command on a stored game, stores what the core returns, and tells its viewers. What
- *  an accepted command counted goes to the player's lifetime totals, and Star Central's message
- *  for each rung reached joins the Result's events, after the core's own, which end with any
- *  goal of the game the command met. A stored game the core can't read is
+ *  an accepted command counted goes to the commanding player's lifetime totals, and Star
+ *  Central's message for each rung reached joins the Result's events, after the core's own, which
+ *  end with any goal of the game the command met. The viewers' frame is made after the totals
+ *  move, so its achievements include this command. A stored game the core can't read is
  *  answered like an unknown one. */
 export async function runCommand(games: Games, gameId: string, command: Command): Promise<CommandResult> {
   const { core, store, viewers } = games;
   const view = await viewId(gameId);
-  const game = await store.get(view);
-  if (game === undefined) {
+  const stored = await store.get(view);
+  if (stored === undefined) {
     return gameNotFound();
   }
-  const applied = core.apply(game, command);
+  const applied = core.apply(stored.game, command);
   if (applied === undefined) {
     return gameNotFound();
   }
@@ -48,9 +50,10 @@ export async function runCommand(games: Games, gameId: string, command: Command)
   if (!result.ok) {
     return result;
   }
-  await store.put(view, applied.game);
-  await viewers.publish(view, viewFrame(own(core.view(applied.game))));
-  const commendations = await awardLifetime(games, counters(core, game), result.state!.counters as Totals);
+  const played: StoredGame = { game: applied.game, player: stored.player };
+  await store.put(view, played);
+  const commendations = await awardLifetime(games, counters(core, stored.game), result.state!.counters as Totals);
+  await viewers.publish(view, own(await viewFrame(games, played)));
   return { ...result, events: [...result.events, ...commendations] };
 }
 

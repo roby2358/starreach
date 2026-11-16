@@ -1,6 +1,9 @@
-//! R-28: the view carries what the player has uncovered and nothing else.
+//! R-28: the view carries what the player has uncovered and the game's goals, and nothing else.
 
+use starreach_core::constants::GOALS_PER_GAME;
+use starreach_core::counters::counter_row;
 use starreach_core::geometry::all_cells;
+use starreach_core::goals::{Goal, GoalState};
 use starreach_core::{apply, view, view_json, Command};
 
 use crate::helpers::{new_game, SEED};
@@ -34,12 +37,28 @@ fn the_ship_status_and_position_come_from_the_game() {
 }
 
 #[test]
+fn the_goals_and_their_progress_come_from_the_game() {
+    let mut game = new_game(SEED);
+    assert_eq!(view(&game).goals.len(), GOALS_PER_GAME);
+    assert_eq!(view(&game).goals, game.state().goals);
+
+    game.goals[0] = Goal { counter: counter_row("scans").unwrap(), amount: 5, met: false };
+    game.counters.scans = 3;
+    let shown = |met| GoalState { counter: "scans".to_string(), label: "long range scans".to_string(), count: 3, amount: 5, met };
+    assert_eq!(view(&game).goals[0], shown(false));
+
+    game.goals[0].met = true;
+    assert_eq!(view(&game).goals[0], shown(true));
+    assert_eq!(view(&game).goals, game.state().goals);
+}
+
+#[test]
 fn the_json_has_only_the_view_fields() {
     let text = serde_json::to_string(&new_game(SEED)).unwrap();
     let seen: serde_json::Value = serde_json::from_str(&view_json(&text).unwrap()).unwrap();
     let mut keys: Vec<&String> = seen.as_object().unwrap().keys().collect();
     keys.sort();
-    assert_eq!(keys, ["board", "galaxy", "sector_yx", "ship", "stardate", "status"]);
+    assert_eq!(keys, ["board", "galaxy", "goals", "sector_yx", "ship", "stardate", "status"]);
 }
 
 #[test]

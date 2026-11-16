@@ -1,27 +1,5 @@
 Priority:   50
 Status: ToDo
-ID: goalpanel-zs67
-Created: 2026-11-16T00:40:36Z
-Updated: 2026-11-16T00:40:36Z
-
-Show the game's goals and the player's achievements on the viewer page.
-
-Decided [D]: the viewer shows both. Its link is unguessable, and an achievement path is not personal information, so no sign-in or separate player page is needed. The viewer stays read-only.
-
-This needs goals in the game (three per game, with progress and met or not) and per-player lifetime totals with a ladder per counter.
-
-Do:
-- Goals: the GameView the page receives carries the game's three goals with progress (counter label, current count, amount, met). The page shows them in a small panel, each with its progress, and marks a goal met when it happens.
-- Achievements: for each counter, the player's lifetime total, the last rung reached and the next rung. These come from the player's totals, not from the game, so the frame sent to viewers needs them added by the app layer. A frame is sent after each command (the commanding player is known then) and also when a viewer first connects, when no command is in hand: the game must therefore remember which player started it, stored beside the game when new_game runs. With no sign-in (local play) that is the single local player.
-- Layout [D]: be creative. A button that opens a scrollable panel is fine. The sector board, galaxy map and ship status stay the page's subject. The three goals are always visible in a small strip; a button opens the scrollable achievements panel, ordered by how close the next rung is, with negative counters shown as well. Take a screenshot with the committed screenshot script for the user's review.
-- When a goal is met or a rung reached, the page may flash that row; no sound, no modal.
-- The page never shows the player's id.
-- Plain HTML, CSS and JS with no build step, as the page is today. Use the existing CSS custom properties for colour.
-
-Tests: the view carries the goals; a frame carries the starting player's achievements both after a command and on first connect; the page renders three goals and marks a met one (the page tests or the screenshot script). Update ONTOLOGY (GameView, the viewer frame, the viewer page section), CRITERIA (U-rows), RATIONALE (why the viewer and not a player page; that the frame's achievements belong to the player who started the game), README and the log. Run `just cc-test-all`. Don't deploy.
-----
-Priority:   50
-Status: ToDo
 ID: homeshot-6qjv
 Created: 2026-11-16T01:14:44Z
 Updated: 2026-11-16T01:14:44Z
@@ -82,6 +60,34 @@ Do:
 - Keep the policy small and readable; it is a yardstick, not an AI player.
 
 Then rerun `just cc-model-balance 2000`, update the Evidence lines in RATIONALE that quote battle length, and check that the shortest warp still outlasts a long battle (the benchmark constant in the warp criterion's test). Add a log entry if any quoted number changes. Don't deploy.
+----
+Priority:   40
+Status: ToDo
+ID: surveywrap-7zue
+Created: 2026-11-16T02:27:20Z
+Updated: 2026-11-16T02:27:20Z
+
+Stop the viewer's survey panel from breaking its numbers across lines in the narrow side column.
+
+On the viewer page (`public/viewer.html`, `public/css/styles.css`) at a laptop width such as 1100px, the left column is 220px wide. Once ten or more sectors are charted, the survey row "Sectors charted" shows "12 / 100" broken over two lines ("12 /" then "100"), and its label wraps too, so the panel grows and looks broken. With "9 / 100" it still fits, which is why the page tests don't see it.
+
+Do: in `styles.css`, keep each survey value on one line (`white-space: nowrap` on `.survey dd`) and let the label wrap instead if it must. Add a page test in `adapters/node/test-browser/viewer_page.test.ts` that charts more than nine sectors (several long range scans from different sectors, or a rewritten stored game) at 1100x800 and checks the `#charted` value is one line high (its height equals that of `#bases`).
+
+Done when: "12 / 100" stays on one line at 1100px wide, the new test passes, and `just cc-test-all` passes. Don't deploy.
+----
+Priority:   40
+Status: ToDo
+ID: smokeframe-f5wp
+Created: 2026-11-16T02:27:25Z
+Updated: 2026-11-16T02:27:25Z
+
+Make the smoke test check that a viewer's frame carries the game's goals and the achievements.
+
+`tools/smoke.ts` (`just cc-smoke <base_url>`) checks that a viewer socket gets a `{type: "view"}` frame on connecting and another after `long_range_scan`, and compares only `view.ship.energy`. A frame now also carries `view.goals` (three goals, each `{counter, label, count, amount, met}`) and `achievements` (a row per counter, `{key, label, total, reached, next}`), and nothing checks them against a running server, which is the only check a deployed Worker gets.
+
+Do: in `checkFrame`, also require `frame.view.goals` to be an array of 3 and `frame.achievements` to be a non-empty array whose rows have a string `key` and a numeric `total`. After the scan, require the `scans` row's `total` in the second frame to be one more than in the first. Update the `cc-smoke` row in `.claude/skills/starreach-recipes/SKILL.md` to say so.
+
+Done when: `just cc-smoke http://127.0.0.1:8572` passes against `just serve`, and fails with a clear message against a server whose frames lack either field. Don't deploy.
 ----
 Priority:   35
 Status: ToDo
@@ -190,6 +196,20 @@ The player's lifetime totals, the ladder of rungs per counter and Star Central's
 Do: add one row to the "Secondary mechanics and what they feed" table for lifetime totals with a commendation at each rung (feeds: play adds up across games; drivers: Accumulation and Windfall, and Comedy for the notoriety messages), extend the "Supporting: Accumulation" line under Drivers to say play also adds up toward the captain's lifetime totals, and mention them in the strategy and mechanic cross-check. Tag as [D] what the designer decided (the mechanic) and leave the driver reading as [P], as the rest of the file is. DYNAMICS describes the current state only; no history. Add a short ARCHITECTURE_LOG entry.
 
 Done when: DYNAMICS.md names the driver for lifetime totals and commendations, and `just cc-test-all` passes. Docs only; don't deploy.
+----
+Priority:   30
+Status: ToDo
+ID: connectrace-akrd
+Created: 2026-11-16T02:27:29Z
+Updated: 2026-11-16T02:27:29Z
+
+Test that a viewer who connects on Cloudflare while a command is under way ends up showing that command.
+
+The Cloudflare game object (`adapters/cloudflare/src/game_object.ts`, `welcome`) makes a connecting viewer's first frame inside `ctx.blockConcurrencyWhile`, because making it awaits the starting player's Durable Object for the achievements. Without that, a command stored or published during the await could be missed by the new socket, or be followed by the older first frame. Nothing tests this; CRITERIA's Status lists it as partial coverage of the row on a view frame's achievements.
+
+Do: add a test under `adapters/cloudflare/test/` beside the other tests of that row. Create a game, then many times over start `callTool("long_range_scan", ...)` and `connectViewer(view)` together without awaiting either first (`Promise.all`), wait for both, then issue a `state` command to learn the game's final ship energy and read the viewer's frames until one arrives for that `state` command. Assert that the frames each viewer received never go back in time: `view.stardate` never decreases from one frame to the next, and the last frame's `view.ship.energy` equals the state's. If the test passes with the `blockConcurrencyWhile` removed as well, say so in the test's header comment rather than claiming it proves the guard.
+
+Done when: the test passes under `just cc-test-cloudflare`, the partial-coverage line for that row in `docs/CRITERIA.md` is removed or reworded to what is still untested, and `just cc-test-all` passes. Don't deploy.
 ----
 Priority:   20
 Status: ToDo

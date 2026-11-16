@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
-import { createMcpServer, loadCore, MemoryPlayerStore, MemoryStore, viewId, type CommandResult, type GoalState, type McpDeps, type Viewers } from "../../src/index.ts";
+import { createMcpServer, loadCore, LOCAL_PLAYER, MemoryPlayerStore, MemoryStore, viewId, type CommandResult, type GoalState, type McpDeps, type Viewers } from "../../src/index.ts";
 
 const WASM = new URL("../../src/wasm/starreach_core_bg.wasm", import.meta.url);
 const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(WASM))));
@@ -43,7 +43,7 @@ export function goalsOf(result: CommandResult): GoalState[] {
   return result.state!.goals as GoalState[];
 }
 
-/** Stores a game one of whose goals is `amount` on `counter`, and returns its game_id. A game's
+/** Stores a game one of whose goals is `amount` on `counter`, started by the local player, and returns its game_id. A game's
  *  goals follow from its seed, so this takes the first seed from 0 that sets that goal. */
 export async function storeGameWithGoal(deps: McpDeps, counter: string, amount: number): Promise<string> {
   for (let seed = 0; seed < 10_000; seed++) {
@@ -51,7 +51,7 @@ export async function storeGameWithGoal(deps: McpDeps, counter: string, amount: 
     const goals = goalsOf(deps.core.apply(game, { type: "state" })!.result);
     if (goals.some((goal) => goal.counter === counter && goal.amount === amount)) {
       const gameId = `game-with-goal-${seed}`;
-      await deps.store.put(await viewId(gameId), game);
+      await deps.store.put(await viewId(gameId), { game, player: LOCAL_PLAYER });
       return gameId;
     }
   }

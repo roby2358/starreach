@@ -26,7 +26,7 @@ test("a command sent down the socket does nothing", async () => {
   viewer.socket.ping();
   await once(viewer.socket, "pong");
 
-  assert.equal(await running.deps.store.get(await viewId(gameId)), before);
+  assert.deepEqual(await running.deps.store.get(await viewId(gameId)), before);
   viewer.socket.close();
 });
 
@@ -53,5 +53,5 @@ test("a frame over the size limit closes that socket and leaves the game alone",
   viewer.socket.send("x".repeat(VIEWER_MAX_FRAME_BYTES + 1));
 
   assert.equal(await viewer.closed, FRAME_TOO_BIG_CLOSE);
-  assert.equal(await running.deps.store.get(await viewId(gameId)), before);
+  assert.deepEqual(await running.deps.store.get(await viewId(gameId)), before);
 });

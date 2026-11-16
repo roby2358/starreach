@@ -31,6 +31,8 @@ export interface GameView {
   /** The ship's sector, a row per string, as in the state's `map`. */
   board: string[];
   galaxy: ({ enemies: number; starbases: number; stars: number } | null)[][];
+  /** The game's goals with their progress, as the state's `goals`. */
+  goals: GoalState[];
 }
 
 /** One row of the core's counter table: a counter a game keeps (`state.counters[key]`), its label,

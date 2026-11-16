@@ -37,6 +37,12 @@
             <div id="gauges" class="gauges"></div>
         </section>
 
+        <section class="panel goals-panel" aria-labelledby="goals-title">
+            <h2 id="goals-title">Objectives</h2>
+            <ol id="goals" class="goals"></ol>
+            <button id="record-toggle" class="record-button" type="button" aria-expanded="false" aria-controls="record">Achievements</button>
+        </section>
+
         <section class="panel survey-panel" aria-labelledby="survey-title">
             <h2 id="survey-title">Survey</h2>
             <dl class="survey">
@@ -56,6 +62,14 @@
             </ul>
         </section>
     </main>
+
+    <aside id="record" class="record" aria-labelledby="record-title" hidden>
+        <div class="record-head">
+            <h2 id="record-title">Achievements <span>Lifetime totals</span></h2>
+            <button id="record-close" class="record-button" type="button">Close</button>
+        </div>
+        <ol id="achievements" class="achievements"></ol>
+    </aside>
 
     <script src="js/script.js"></script>
 </body>

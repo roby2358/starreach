@@ -2,16 +2,22 @@
 // layer only makes frames. Each adapter owns the sockets, because upgrading a request and
 // holding a socket are the platform's business.
 
-import type { Core, GameView } from "./core.ts";
-import type { GameStore } from "./store.ts";
+import { achievements, type Achievement, type Achievers } from "./achievements.ts";
+import type { GameView } from "./core.ts";
+import type { GameStore, StoredGame } from "./store.ts";
 
 /** The sockets watching each game. Nothing comes back from a viewer. */
 export interface Viewers {
   publish(viewIdValue: string, frame: string): Promise<void>;
 }
 
-/** Everything on a viewer's socket is a frame with a `type`, so other kinds can join it. */
-export type Frame = { type: "view"; view: GameView };
+/** Everything on a viewer's socket is a frame with a `type`, so other kinds can join it. A view
+ *  frame carries the game's view and the achievements of the player who started the game, as
+ *  rows and never with the player's id (D-49). */
+export type Frame = { type: "view"; view: GameView; achievements: Achievement[] };
+
+/** What making a frame needs: the core for the view, and the players' totals for the achievements. */
+export type FrameMakers = Pick<Achievers, "core" | "players">;
 
 /** The WebSocket close code for an unknown game. A browser can't read an HTTP status from a
  *  failed upgrade, so the socket opens and then closes with this. */
@@ -43,18 +49,21 @@ export function viewerUrl(origin: string, viewIdValue: string): string {
   return `${origin}/viewer?view=${viewIdValue}`;
 }
 
-export function viewFrame(view: GameView): string {
-  const frame: Frame = { type: "view", view };
+/** A stored game's view frame, or undefined for a stored game the core can't read. The
+ *  achievements are read when the frame is made, so they are the starting player's as they
+ *  stand now. */
+export async function viewFrame(makers: FrameMakers, { game, player }: StoredGame): Promise<string | undefined> {
+  const view = makers.core.view(game);
+  if (view === undefined) {
+    return undefined;
+  }
+  const frame: Frame = { type: "view", view, achievements: await achievements(makers, player) };
   return JSON.stringify(frame);
 }
 
 /** The frame a viewer gets on connecting, or undefined for an unknown game or a stored game the
  *  core can't read. */
-export async function currentFrame(
-  { core, store }: { core: Core; store: GameStore },
-  viewIdValue: string,
-): Promise<string | undefined> {
-  const game = await store.get(viewIdValue);
-  const view = game === undefined ? undefined : core.view(game);
-  return view === undefined ? undefined : viewFrame(view);
+export async function currentFrame(makers: FrameMakers & { store: GameStore }, viewIdValue: string): Promise<string | undefined> {
+  const stored = await makers.store.get(viewIdValue);
+  return stored === undefined ? undefined : viewFrame(makers, stored);
 }

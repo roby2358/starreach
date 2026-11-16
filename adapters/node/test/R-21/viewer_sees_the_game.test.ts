@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 
-import { newGame, runCommand, viewId } from "@starreach/app";
+import { LOCAL_PLAYER, newGame, runCommand, viewId } from "@starreach/app";
 
 import { startServer, stopServer, Viewer, type Running } from "../helpers/server.ts";
 
@@ -22,7 +22,7 @@ test("a viewer gets the current view on connecting", async () => {
   const viewer = new Viewer(running.port, await viewId(gameId));
   const frame = await viewer.nextFrame();
   assert.equal(frame.type, "view");
-  assert.deepEqual(frame.view, running.deps.core.view((await running.deps.store.get(await viewId(gameId)))!));
+  assert.deepEqual(frame.view, running.deps.core.view((await running.deps.store.get(await viewId(gameId)))!.game));
   viewer.socket.close();
 });
 
@@ -62,7 +62,7 @@ test("an unknown game closes the socket with the not-found code", async () => {
 
 test("a stored game the core can't read closes the socket with the not-found code", async () => {
   const view = await viewId("old-game");
-  await running.deps.store.put(view, JSON.stringify({ seed: 7, stardate: 1234567.0, last_event_stardate: 1234567.0 }));
+  await running.deps.store.put(view, { game: JSON.stringify({ seed: 7, stardate: 1234567.0, last_event_stardate: 1234567.0 }), player: LOCAL_PLAYER });
   const viewer = new Viewer(running.port, view);
   assert.equal(await viewer.closed, 4404);
 });
