@@ -3,6 +3,22 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — Counter rows carry a ladder scale and a goal ceiling, set from modeled whole games
+A counter table row was key, label and goal flag. It gained `scale` and `goal_ceiling`, in the
+core, over JSON and in the app layer's `CounterRow`. The values follow the rule of D-43 (added)
+from `just cc-model-games 1000`: scales of 100 for enemies destroyed, 1000 for shield and hull
+damage, 10 for sectors cleared, sectors warped to, docks, blasts that hit, torpedoes fired and
+scans, 1 for the rest; ceilings of 127, 41, 56, 18, 3, 57, 67 and 33 for the eight counters
+offered as goals, and 0 for games won, which three games in four don't reach. R-36 extended.
+
+The balance harness played single battles and one tank of energy, never a game. It gained a
+whole-game run with a scripted captain that fights, scans, docks and chooses its next sector,
+reading each game's counts from the counters in the game's state. `core/examples/model_balance.rs`
+became the directory `core/examples/model_balance/` (`main.rs`, `battle.rs`, `tank.rs`,
+`captain.rs`, `games.rs`, `stats.rs`); the binary now takes the run's name first (`balance <n>`
+or `games <n>`). `just cc-model-balance <galaxies>` is unchanged and prints the same numbers;
+`just cc-model-games` is new, with 1000 games unless told otherwise.
+
 ### 2026-11-16 — The core counts what happens in a game
 A game recorded nothing about what happened in it: kills and damage existed only as text in a
 command's events. Game gained `counters`, a Counters value of 14 named counts starting at 0, and

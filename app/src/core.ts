@@ -34,11 +34,14 @@ export interface GameView {
 }
 
 /** One row of the core's counter table: a counter a game keeps (`state.counters[key]`), its label,
- *  which reads after a number, and whether it may be a game's goal. */
+ *  which reads after a number, whether it may be a game's goal, the unit of its ladder of lifetime
+ *  totals (1, 10, 100 or 1000), and the most a goal may ask of it (0: not offered as a goal). */
 export interface CounterRow {
   key: string;
   label: string;
   may_be_goal: boolean;
+  scale: number;
+  goal_ceiling: number;
 }
 
 /** `apply` and `view` return undefined for text that isn't a Game this core reads, such as a

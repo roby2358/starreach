@@ -208,6 +208,30 @@ Q-3 (docs/RATIONALE.md): Warp and subwarp have no energy check and drive ship en
 ----
 Priority:   70
 Status: Done
+ID: goalsim-icnj
+Created: 2026-11-16T00:36:44Z
+Updated: 2026-11-16T01:43:54Z
+
+Project reasonable per-game goals: make the balance harness play whole games and report, per game, the counts that achievements and goals will be built on.
+
+Why: players are to get a long list of achievements (lifetime totals climbing a ladder such as 1, 2, 5, 10, 20, 50…, each counter with its own scale) and three goals per game, each a positive objective on one counter that can be met within a single game and should not be too hard. To set the objective sizes and each ladder's scale we need to know what a game typically produces. Today that isn't known: the harness (`just cc-model-balance`, core/examples/model_balance.rs) fights single battles with a fresh ship and never plays a game through.
+
+Counters to report, per game:
+- Positive (candidates for goals): enemies destroyed; sectors cleared; sectors warped to; docks at a starbase; starbases discovered; blasts that hit; torpedoes fired; long range scans; games won.
+- Negative (achievements only, never goals): shield damage taken; hull damage taken; blasts that missed; games lost; times stranded.
+- Also: the game's length in starticks or stardates, commands issued, and how the game ended (won, hull lost, stranded, or the script gave up).
+
+Do:
+- A scripted captain that plays a whole game with the real commands: fight the sector it is in (the existing battle policy), scan, choose the next sector, warp, and dock to resupply when energy, torpedoes or hull run low. Keep it small and readable; it is a yardstick, not an AI player. A command cap ends a game the script can't finish.
+- Read each game's counts from the counters the core keeps in the game and reports in its state; don't count again in the harness. If the core doesn't count yet, that comes first.
+- Print, for each counter over N seeded games: mean, median, the 10th and 90th percentiles, and the share of games in which it was at least 1. Print how games ended.
+- From those, set two [T] numbers on each row of the core's counter table, by rule, so no further ruling is needed: `scale`, the ladder's unit for lifetime achievements, is the largest of 1, 10, 100, 1000 that is at most the counter's median per game (1 if the median is below 1), which should give enemies in 10s, docks in 1s, shield damage in 1000s and hull damage in 100s or close to it; `goal_ceiling`, for counters that may be goals, is the counter's 25th percentile per game, so three games in four reach it. A goal-allowed counter whose 25th percentile is below its scale gets a ceiling of 0 and is not offered as a goal.
+- Run this on the game's rules as they stand when the task is worked. Energy scarcity (warp energy per startick, shields recharged on a warp) decides how many sectors a game reaches, so the scripted captain must manage energy: prefer nearer enemy sectors, and return to a starbase before the energy to reach one runs out.
+
+Done when: the recipe prints the per-game table for N seeded games; every counter row in the core has its `scale`, and its `goal_ceiling` where it may be a goal; ONTOLOGY's numbers table lists them as [T]; a RATIONALE decision states the rule and quotes the figures as Modeled Evidence (unverified in play); the log has an entry; `just cc-test-all` passes. Report the table to the user.
+----
+Priority:   70
+Status: Done
 ID: enemyrange-4e6f
 Created: 2026-11-14T23:58:32Z
 Updated: 2026-11-15T00:54:33Z

@@ -203,4 +203,8 @@ cc-typecheck: cc-build-wasm
 
 # Model generation, combat, battle, warp and energy-reach numbers (energy to a starbase, sectors cleared on one tank, how a tank ends) cited as Evidence in docs/RATIONALE.md
 cc-model-balance galaxies:
-    cargo run --quiet --release --manifest-path core/Cargo.toml --example model_balance -- {{galaxies}}
+    cargo run --quiet --release --manifest-path core/Cargo.toml --example model_balance -- balance {{galaxies}}
+
+# Play whole games with a scripted captain: how they end, each counter per game, and the scale and goal_ceiling the D-43 rule gives, cited as Evidence in docs/RATIONALE.md
+cc-model-games games="1000":
+    cargo run --quiet --release --manifest-path core/Cargo.toml --example model_balance -- games {{games}}

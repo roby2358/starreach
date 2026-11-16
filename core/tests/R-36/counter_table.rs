@@ -36,5 +36,28 @@ fn every_row_has_a_label() {
 fn the_json_table_is_the_same_rows() {
     let rows: serde_json::Value = serde_json::from_str(&counter_table_json()).unwrap();
     assert_eq!(rows, serde_json::to_value(counter_table()).unwrap());
-    assert_eq!(rows[0], serde_json::json!({"key": "enemies_destroyed", "label": "enemies destroyed", "may_be_goal": true}));
+    let row = &counter_table()[0];
+    assert_eq!(
+        rows[0],
+        serde_json::json!({
+            "key": "enemies_destroyed",
+            "label": "enemies destroyed",
+            "may_be_goal": true,
+            "scale": row.scale,
+            "goal_ceiling": row.goal_ceiling,
+        })
+    );
+}
+
+#[test]
+fn every_scale_is_a_ladder_unit() {
+    assert!(counter_table().iter().all(|row| [1, 10, 100, 1000].contains(&row.scale)));
+}
+
+#[test]
+fn a_goal_ceiling_is_zero_or_at_least_one_unit_and_zero_where_the_counter_may_not_be_a_goal() {
+    for row in counter_table() {
+        assert!(row.goal_ceiling == 0 || row.goal_ceiling >= row.scale, "{}", row.key);
+        assert!(row.may_be_goal || row.goal_ceiling == 0, "{}", row.key);
+    }
 }

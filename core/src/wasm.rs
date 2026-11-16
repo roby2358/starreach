@@ -22,7 +22,8 @@ pub fn view(game: &str) -> Option<String> {
     crate::view_json(game).ok()
 }
 
-/// Returns the counter table as JSON text: an array of `{key, label, may_be_goal}`.
+/// Returns the counter table as JSON text: an array of
+/// `{key, label, may_be_goal, scale, goal_ceiling}`.
 #[wasm_bindgen]
 pub fn counter_table() -> String {
     crate::counter_table_json()

@@ -61,7 +61,8 @@ pub fn new_game(seed: u32, start_unix_seconds: i64) -> Game {
     Game::new(seed, start_unix_seconds)
 }
 
-/// The counter table: every counter's key, label and whether it may be a goal (D-42).
+/// The counter table: every counter's key, label, whether it may be a goal (D-42), its ladder's
+/// scale and its goal ceiling (D-43).
 pub fn counter_table() -> &'static [CounterRow] {
     &COUNTER_TABLE
 }

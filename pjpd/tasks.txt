@@ -1,27 +1,3 @@
-Priority:   70
-Status: ToDo
-ID: goalsim-icnj
-Created: 2026-11-16T00:36:44Z
-Updated: 2026-11-16T00:36:44Z
-
-Project reasonable per-game goals: make the balance harness play whole games and report, per game, the counts that achievements and goals will be built on.
-
-Why: players are to get a long list of achievements (lifetime totals climbing a ladder such as 1, 2, 5, 10, 20, 50…, each counter with its own scale) and three goals per game, each a positive objective on one counter that can be met within a single game and should not be too hard. To set the objective sizes and each ladder's scale we need to know what a game typically produces. Today that isn't known: the harness (`just cc-model-balance`, core/examples/model_balance.rs) fights single battles with a fresh ship and never plays a game through.
-
-Counters to report, per game:
-- Positive (candidates for goals): enemies destroyed; sectors cleared; sectors warped to; docks at a starbase; starbases discovered; blasts that hit; torpedoes fired; long range scans; games won.
-- Negative (achievements only, never goals): shield damage taken; hull damage taken; blasts that missed; games lost; times stranded.
-- Also: the game's length in starticks or stardates, commands issued, and how the game ended (won, hull lost, stranded, or the script gave up).
-
-Do:
-- A scripted captain that plays a whole game with the real commands: fight the sector it is in (the existing battle policy), scan, choose the next sector, warp, and dock to resupply when energy, torpedoes or hull run low. Keep it small and readable; it is a yardstick, not an AI player. A command cap ends a game the script can't finish.
-- Read each game's counts from the counters the core keeps in the game and reports in its state; don't count again in the harness. If the core doesn't count yet, that comes first.
-- Print, for each counter over N seeded games: mean, median, the 10th and 90th percentiles, and the share of games in which it was at least 1. Print how games ended.
-- From those, set two [T] numbers on each row of the core's counter table, by rule, so no further ruling is needed: `scale`, the ladder's unit for lifetime achievements, is the largest of 1, 10, 100, 1000 that is at most the counter's median per game (1 if the median is below 1), which should give enemies in 10s, docks in 1s, shield damage in 1000s and hull damage in 100s or close to it; `goal_ceiling`, for counters that may be goals, is the counter's 25th percentile per game, so three games in four reach it. A goal-allowed counter whose 25th percentile is below its scale gets a ceiling of 0 and is not offered as a goal.
-- Run this on the game's rules as they stand when the task is worked. Energy scarcity (warp energy per startick, shields recharged on a warp) decides how many sectors a game reaches, so the scripted captain must manage energy: prefer nearer enemy sectors, and return to a starbase before the energy to reach one runs out.
-
-Done when: the recipe prints the per-game table for N seeded games; every counter row in the core has its `scale`, and its `goal_ceiling` where it may be a goal; ONTOLOGY's numbers table lists them as [T]; a RATIONALE decision states the rule and quotes the figures as Modeled Evidence (unverified in play); the log has an entry; `just cc-test-all` passes. Report the table to the user.
-----
 Priority:   65
 Status: ToDo
 ID: achieve-jkrw
@@ -114,6 +90,20 @@ Retake the home page's viewer picture so it shows the current stardate form.
 Do: start a local server (`just serve`), start a game over MCP and play a few commands so the picture shows a charted map and a sector with something in it, then retake the picture with `just cc-screenshot <viewer url> public/images/viewer.jpg 1100 575` (the size the current picture uses). Look at the result before committing it.
 
 Done when: the home page's picture shows the stardate in the new form, `just cc-test-all` passes, and the page test for the home page still finds the image. Don't deploy.
+----
+Priority:   50
+Status: ToDo
+ID: criteriarows-r2p6
+Created: 2026-11-16T01:32:49Z
+Updated: 2026-11-16T01:34:57Z
+
+Move the stray R-rows in docs/CRITERIA.md back into the rules table. The rows from R-30 onward sit at the very end of the file, after the "Status" section's "Partial coverage" list, instead of in the "R — Rules (automated)" table that ends at R-29. A reader of the rules table misses them, and the Status section appears to end in a table.
+
+Why: the doc reads wrongly, though the coverage test still passes because it scans every line that starts with "| R-".
+
+Do: cut those rows from the end of the file and paste them, unchanged, directly after the R-29 row in the rules table. Change no wording, IDs or Instrument cells. No log entry is needed, since no rule or design changes.
+
+Done when: every "| R-" row is inside the rules table, the Status section is the last thing in the file, and `just cc-test-core` passes (its coverage test reads CRITERIA.md).
 ----
 Priority:   45
 Status: ToDo
@@ -220,17 +210,15 @@ RATIONALE D-3's Evidence quotes generation figures that no longer match the harn
 ----
 Priority:   30
 Status: ToDo
-ID: criteriarows-r2p6
-Created: 2026-11-16T01:32:49Z
-Updated: 2026-11-16T01:32:49Z
+ID: captainboxed-s9yr
+Created: 2026-11-16T01:43:54Z
+Updated: 2026-11-16T01:43:54Z
 
-Move the stray R-rows in docs/CRITERIA.md back into the rules table. The rows from R-30 onward sit at the very end of the file, after the "Status" section's "Partial coverage" list, instead of in the "R — Rules (automated)" table that ends at R-29. A reader of the rules table misses them, and the Status section appears to end in a table.
+Stop the whole-game scripted captain from shuffling forever when no cell within one subwarp has a line of fire. In `just cc-model-games 1000` (core/examples/model_balance/captain.rs), 0.4% of games end "script gave up" at the 5000-command cap. Cause: `close_in` picks the best firing position within one hostile subwarp (3 cells); when an enemy sits behind stars so that no such cell has a clear line, it picks the cell nearest the enemy, and from there the previous cell is the best again, so the ship steps back and forth between two cells while the boxed-in enemy can neither advance nor fire.
 
-Why: the doc reads wrongly, though the coverage test still passes because it scans every line that starts with "| R-".
+Do: when no reachable cell has a line of fire, search further: a breadth-first search over subwarp moves (each move a straight run of up to SUBWARP_MAX_STEPS_HOSTILE empty cells) for the nearest position with a clear line to an enemy, and take its first move. Keep it small; the captain is a yardstick, not an AI player.
 
-Do: cut those rows from the end of the file and paste them, unchanged, directly after the R-29 row in the rules table. Change no wording, IDs or Instrument cells. No log entry is needed, since no rule or design changes.
-
-Done when: every "| R-" row is inside the rules table, the Status section is the last thing in the file, and `just cc-test-core` passes (its coverage test reads CRITERIA.md).
+Done when: `just cc-model-games 1000` reports no (or nearly no) games ended by the script giving up; if any figure quoted in RATIONALE's whole-game Evidence or any `scale` or `goal_ceiling` the rule gives changes, update the counter table in core/src/counters.rs, ONTOLOGY's Numbers table and the RATIONALE Evidence, and add a log entry; `just cc-test-all` passes. Don't deploy.
 ----
 Priority:   20
 Status: ToDo

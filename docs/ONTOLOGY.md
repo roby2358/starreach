@@ -114,10 +114,16 @@ is counted by reading event text. Every Result reports them in `GameState.counte
 caller can take the difference between two Results (D-42).
 
 This is also the **counter table**: the core holds one row per counter with its key (the field
-name), its label and whether it may be a goal, and gives it out through the Core API's
-`counter_table`. It is the single source of the list for the app layer and the displays.
-Positive counters may be a game's goal; negative ones never are. [D] A label reads after a
-number ("12 enemies destroyed"). [P]
+name), its label, whether it may be a goal, its `scale` and its `goal_ceiling`, and gives it out
+through the Core API's `counter_table`. It is the single source of the list for the app layer
+and the displays. Positive counters may be a game's goal; negative ones never are. [D] A label
+reads after a number ("12 enemies destroyed"). [P]
+
+`scale` is the unit of the counter's ladder of lifetime totals: 1, 10, 100 or 1000. [D]
+`goal_ceiling` is the most a game's goal may ask of the counter; 0 means the counter is not
+offered as a goal, and every counter that may not be a goal has 0. [D; 0 for "not offered" is P]
+Both are set by the rule of D-43 from modeled whole games; their values are in the Numbers table
+(`COUNTER_SCALE`, `COUNTER_GOAL_CEILING`). [T]
 
 | Field (key) | Type | Label | May be a goal | Counts, and the rule that counts it |
 |---|---|---|---|---|
@@ -612,6 +618,8 @@ Referred to by name everywhere else.
 | `SHIELD_REPLENISH` | 500 | hp per firing | D-27 |
 | `SHIELD_POINTS_PER_ENERGY` | 10 | hp per energy, in a sector and on a warp [T] | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
+| `COUNTER_SCALE` | `enemies_destroyed` 100; `sectors_cleared`, `sectors_warped`, `docks`, `blasts_hit`, `torpedoes_fired`, `scans` 10; `starbases_discovered`, `games_won` 1; `shield_damage`, `hull_damage` 1000; `blasts_missed`, `games_lost`, `times_stranded` 1 | each counter's `scale` in the counter table: the unit of its ladder [T] | D-43 |
+| `COUNTER_GOAL_CEILING` | `enemies_destroyed` 127; `sectors_cleared` 41; `sectors_warped` 56; `docks` 18; `starbases_discovered` 3; `blasts_hit` 57; `torpedoes_fired` 67; `scans` 33; `games_won` 0; every counter that may not be a goal 0 | each counter's `goal_ceiling` in the counter table: the most a goal may ask, 0 for not offered [T] | D-43 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
 | `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |
@@ -630,7 +638,7 @@ Four JSON functions. The core holds no state between calls.
 | `new_game` | `seed: u32`, `start_unix_seconds` | Game |
 | `apply` | `game: Game`, `command: Command` | `{game: Game, result: Result}` |
 | `view` | `game: Game` | GameView |
-| `counter_table` | — | The counter table: `[{key, label, may_be_goal}]`, a row per Counters field |
+| `counter_table` | — | The counter table: `[{key, label, may_be_goal, scale, goal_ceiling}]`, a row per Counters field |
 
 `Game` is opaque to the app layer. The RNG's 64-bit state inside it is serialized as a string so a
 JavaScript round trip can't lose precision; the startick clock is a plain number, far below the
