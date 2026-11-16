@@ -342,7 +342,7 @@ it can't tell is null. [D; the three fields P]
 |---|---|
 | `subwarp` | `{distance, energy_cost}`: cells moved, and the report's `energy_cost` |
 | `galaxy_warp` | `{distance, energy_cost, shield_recharge}`: Euclidean distance in sectors to two decimals, the report's `energy_cost` (the warp's alone), and the shield points the warp recharged |
-| `blast` | `{range, hit, energy_cost}`: Euclidean distance to the enemy on the line, to two decimals; the report's `destroyed`; the report's `energy_cost`. A blast deals no amount of damage: it kills or does nothing, so `hit` is the whole of it [P] |
+| `blast` | `{range, hit, energy_cost, damage}`: Euclidean distance to the enemy on the line, to two decimals; the report's `destroyed`; the report's `energy_cost`; `BLAST_HIT_DAMAGE` on a hit and 0 on a miss. A blast kills or does nothing, so `damage` is a placeholder that says no more than `hit` does [D] |
 | `torpedo` | `{range, hit}`: as for a blast. An accepted torpedo always hits; one with no enemy on its line is a refusal |
 | `dock`, `long_range_scan`, `state`, `galaxy_map` | `{}`. A dock is told by its event being accepted, and a scan by `sectors_revealed` |
 
@@ -918,6 +918,7 @@ Referred to by name everywhere else.
 | `COUNTER_GOAL_CEILING` | `enemies_destroyed` 127; `sectors_cleared` 41; `sectors_warped` 56; `docks` 18; `starbases_discovered` 3; `blasts_hit` 57; `torpedoes_fired` 67; `scans` 33; `games_won` 0; every counter that may not be a goal 0 | each counter's `goal_ceiling` in the counter table: the most a goal may ask, 0 for not offered [T] | D-43 |
 | `RULES_VERSION` | 1 | the rules version a new game's telemetry record carries; bumped by hand (Telemetry rule) [D] | D-51 |
 | `PLAYER_HASH_SALT` | `starreach-player-hash-1` | text hashed with a player id into the player hash; a constant in the code [D] | D-51 |
+| `BLAST_HIT_DAMAGE` | 1000 | the `damage` a hitting blast's telemetry event carries: a telemetry placeholder, used by no rule of the game [D] | D-51 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
 | `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |

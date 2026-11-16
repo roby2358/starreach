@@ -16,6 +16,10 @@ export const RULES_VERSION = 1;
  *  keeps nothing from someone who has the code; changing it starts every player's hash afresh. */
 export const PLAYER_HASH_SALT = "starreach-player-hash-1";
 
+/** The damage a blast that hits is recorded as doing. A placeholder: a blast kills or does
+ *  nothing, so there is no amount to measure until blasts do graded damage. */
+export const BLAST_HIT_DAMAGE = 1000;
+
 /** Sets a telemetry game key apart from the view_id, which is the bare hash of the game_id. */
 const GAME_KEY_DOMAIN = "starreach-telemetry-game-1";
 
@@ -302,6 +306,7 @@ const DETAILS: Record<string, Detail> = {
     range: distance(was.shipXy, report.hit_xy as [number, number]),
     hit: report.destroyed as boolean,
     energy_cost: report.energy_cost as number,
+    damage: (report.destroyed as boolean) ? BLAST_HIT_DAMAGE : 0,
   }),
   torpedo: (was, _now, report) => ({
     range: distance(was.shipXy, report.hit_xy as [number, number]),

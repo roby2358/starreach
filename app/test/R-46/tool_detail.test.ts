@@ -4,6 +4,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { BLAST_HIT_DAMAGE } from "../../src/telemetry.ts";
 import { testDeps } from "../helpers/deps.ts";
 import { play, playScript, SCRIPT_SEED, STEP, storeSeededGame } from "../helpers/telemetry.ts";
 
@@ -42,7 +43,7 @@ test("a warp that recharges the shields tells the points recharged", async () =>
   assert.equal(deps.telemetry.events()[1].detail.shield_recharge, Number(said![1]));
 });
 
-test("a blast's event tells the range to the enemy on the line, that it missed, and the energy cost", async () => {
+test("a blast's event tells the range to the enemy on the line, that it missed, the energy cost and no damage", async () => {
   const deps = testDeps();
 
   const { results } = await playScript(deps);
@@ -52,6 +53,7 @@ test("a blast's event tells the range to the enemy on the line, that it missed, 
     range: 7.21,
     hit: false,
     energy_cost: results[STEP.blastMiss].report!.energy_cost as number,
+    damage: 0,
   });
 });
 
@@ -63,6 +65,15 @@ test("a blast that kills is told as a hit, at the range the state gave for that 
   const [enemy] = results[STEP.blastKill - 1].state!.enemies as { range: number }[];
   const { range, hit } = deps.telemetry.events()[STEP.blastKill].detail;
   assert.deepEqual([range, hit], [enemy.range, true]);
+});
+
+test("a blast that hits is told as doing BLAST_HIT_DAMAGE", async () => {
+  const deps = testDeps();
+
+  const { results } = await playScript(deps);
+
+  assert.equal(results[STEP.blastKill].report!.destroyed, true);
+  assert.equal(deps.telemetry.events()[STEP.blastKill].detail.damage, BLAST_HIT_DAMAGE);
 });
 
 test("a torpedo's event tells the range and the hit", async () => {

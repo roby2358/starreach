@@ -522,8 +522,14 @@ inferences, waiting for review.
     recorded is the very number the core was given, and both it and the events' times come from
     the adapter's one clock, in whole seconds. [P]
   - **The sink numbers a game's events** as it receives them. [P]
-  - **A blast records no damage**: an enemy has no hull (D-19), so a blast kills or does nothing
-    and `hit` says which. The damage recorded for any call is what the ship took. [P]
+  - **A blast's event carries a `damage` figure**: `BLAST_HIT_DAMAGE` on a hit, 0 on a miss. It
+    is a placeholder: an enemy has no hull (D-19), so a blast kills or does nothing and the
+    figure says no more than `hit` does. It is there so that reports can total blast damage and
+    the records keep their shape if blasts later do graded damage; until then it measures
+    nothing. It is a constant of the telemetry code, and no rule reads it, so it is not a number
+    that play depends on and changing it does not bump `RULES_VERSION`. [D; the name
+    `BLAST_HIT_DAMAGE` is P] A torpedo's event carries no such figure. `damage_taken`, on every
+    event, is what the ship took.
 - **Alternatives:** counting in the core (the rules stay pure and play per seed unchanged; the
   app layer already holds every Result); an optional sink or a default one (the designer: passed
   in like the stores, no optional parameter); the `view_id` as the join key (a telemetry reader

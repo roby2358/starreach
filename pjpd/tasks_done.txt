@@ -133,6 +133,25 @@ Done when:
 
 Don't deploy.
 ----
+Priority:   68
+Status: Done
+ID: blastdamage-n5as
+Created: 2026-11-16T19:38:51Z
+Updated: 2026-11-16T19:45:30Z
+
+A blast's telemetry event records the damage it did, as a fixed 1000 for now.
+
+Goal: the telemetry event for an accepted `blast` carries a `damage` figure, so that reports can total blast damage and the records keep their shape if blasts later do graded damage. Today a blast either destroys its target or does nothing, so the figure is a placeholder constant.
+
+Design (settled by the designer):
+- In the app layer's telemetry (`app/src/telemetry.ts`), the `detail` of an accepted `blast` event gains `damage`: the constant on a hit, 0 on a miss. The existing `range`, `hit` and `energy_cost` fields stay.
+- The figure is a named constant in the app layer's telemetry code, value 1000, listed in ONTOLOGY's Numbers table as a telemetry placeholder, and referred to by name in docs and tests.
+- Refused blasts keep an empty `detail`, as now.
+- Nothing in the Rust core or the game's rules changes; the rules version is not bumped.
+- Docs in the same change: ONTOLOGY's Telemetry event detail for `blast`, the CRITERIA row that covers per-tool event detail (and its tests), a RATIONALE note that the figure is a placeholder until blasts do graded damage, and a dated ARCHITECTURE_LOG entry.
+
+Done when: a test shows a hitting blast's event with `damage` equal to the constant and a missing blast's with 0, and `just cc-test-all` passes. Don't deploy.
+----
 Priority:   65
 Status: Done
 ID: oblique-sxti

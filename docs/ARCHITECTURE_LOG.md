@@ -3,6 +3,16 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — A blast's telemetry event records the damage it did, as a fixed placeholder
+A blast's event `detail` was `{range, hit, energy_cost}`, and D-51 said a blast records no
+damage. The designer now wants a figure there, so that reports can total blast damage and the
+records keep their shape if blasts later do graded damage: `detail` gains `damage`,
+`BLAST_HIT_DAMAGE` on a hit and 0 on a miss. The figure is a new constant in
+`app/src/telemetry.ts`, listed in ONTOLOGY's Numbers table; its name is Claude's proposal. A
+refused blast's `detail` stays empty. The core and the rules are unchanged and `RULES_VERSION`
+is not bumped, so events recorded before and after this change differ in shape under the same
+rules version. D-51's note on blast damage and R-46 were changed to match.
+
 ### 2026-11-16 — The local server gives its telemetry out at GET /telemetry, and `just telemetry` prints it
 Until now the Node adapter's in-memory sink could be read only from inside the process, by
 tests; ONTOLOGY said no route or tool gave telemetry out. The Node adapter's HTTP server now
