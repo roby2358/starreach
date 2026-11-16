@@ -6,3 +6,4 @@ node_modules/
 /app/src/wasm/
 /adapters/node/test-browser/out/
 /adapters/cloudflare/.wrangler/
+/.run/

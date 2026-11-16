@@ -9,6 +9,10 @@ CF_CONFIG := "adapters/cloudflare/wrangler.jsonc"
 CF_RUN := "adapters/cloudflare/.wrangler"
 CF_PIDFILE := CF_RUN / "pids/cf.pid"
 CF_LOG := CF_RUN / "logs/cf.log"
+# Where `up` keeps the local server's pidfile and log
+RUN := ".run"
+PIDFILE := RUN / "serve.pid"
+LOG := RUN / "serve.log"
 # Where cc-setup puts what a rebuilt container lacks
 CONTAINER_TOOLS := env("HOME") / ".local/share/starreach-tools"
 # The names and URLs `add` and `add-local` register with Claude Code, and the scope they use
@@ -40,6 +44,65 @@ serve: cc-build-wasm
 # Serve MCP over stdio, with everything `serve` offers on the HTTP port too
 stdio: cc-build-wasm
     node adapters/node/src/main.ts stdio --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
+
+# Its own process group (setsid), the PGID in .run/serve.pid and output in .run/serve.log; waits
+# for the server's "Starreach on" line. In a container: just HTTP_HOST=0.0.0.0 VIEW_ORIGIN=http://localhost:8572 up
+# Run `serve` in the background (stop with down, follow with logs)
+up: cc-build-wasm
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p {{RUN}}
+    if [ -f {{PIDFILE}} ] && pgrep -g "$(cat {{PIDFILE}})" >/dev/null 2>&1; then
+      echo "server already running (pgid $(cat {{PIDFILE}})); stop it with: just down"
+      exit 0
+    fi
+    rm -f {{PIDFILE}}
+    # The inner bash writes its pid, which setsid made the PGID, then execs node in its place
+    setsid bash -c 'echo $$ > "$1"; shift; exec node "$@"' _ {{PIDFILE}} \
+      adapters/node/src/main.ts http --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}} \
+      </dev/null >{{LOG}} 2>&1 &
+    for _ in $(seq 1 100); do
+      if grep -q "Starreach on" {{LOG}}; then
+        echo "server started (pgid $(cat {{PIDFILE}})): $(grep -m 1 'Starreach on' {{LOG}})"
+        echo "follow with: just logs    stop with: just down"
+        exit 0
+      fi
+      if [ -s {{PIDFILE}} ] && ! pgrep -g "$(cat {{PIDFILE}})" >/dev/null 2>&1; then
+        echo "server exited during startup; the log:" >&2
+        cat {{LOG}} >&2
+        exit 1
+      fi
+      sleep 0.1
+    done
+    echo "server not ready after 10 s; see {{LOG}} (still running, stop with: just down)" >&2
+    exit 1
+
+# TERM to its process group, then KILL after 4 s
+# Stop what up started
+down:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ ! -f {{PIDFILE}} ] || ! pgrep -g "$(cat {{PIDFILE}})" >/dev/null 2>&1; then
+      rm -f {{PIDFILE}}
+      echo "server not running"
+      exit 0
+    fi
+    pgid=$(cat {{PIDFILE}})
+    rm -f {{PIDFILE}}
+    kill -TERM -- "-$pgid" 2>/dev/null || true
+    for _ in $(seq 1 40); do
+      if ! pgrep -g "$pgid" >/dev/null 2>&1; then
+        echo "server stopped (pgid $pgid)"
+        exit 0
+      fi
+      sleep 0.1
+    done
+    kill -KILL -- "-$pgid" 2>/dev/null || true
+    echo "server killed (pgid $pgid)"
+
+# Follow the log of the server that up started
+logs:
+    tail -n 50 -f {{LOG}}
 
 # Add the deployed Starreach to Claude Code as the MCP server `starreach`
 add:
