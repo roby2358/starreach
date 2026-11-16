@@ -533,10 +533,31 @@ inferences, waiting for review.
 
 ## World
 
-### D-1 A 10×10 galaxy of 10×10 sectors, addressed (y, x) — *Decided*
-- **Alternatives:** (x, y) coordinates; other grid sizes.
-- **Why:** (y, x) matches how the LLM prints grids, row first. The instructions tell the
-  LLM so explicitly. A 10×10 grid fits single-digit headers, so it stays readable as text.
+### D-1 A 10×10 galaxy of 10×10 sectors — *Decided*
+- **Alternatives:** other grid sizes.
+- **Why:** A 10×10 grid fits single-digit headers, so it stays readable as text. How a sector
+  or a cell is addressed is D-50.
+
+### D-50 A coordinate is (x, y), column then row, wherever it is seen; grids are rows of columns — *Decided*
+- **Alternatives:** Row first, y before x, which matches how a grid is printed and looked up
+  (`grid[y][x]`) and which the designer finds easier to read. (x, y) at the MCP tools only, with
+  the core and its stored games row first and the app layer converting. Grids stored as columns
+  of rows, so a lookup would read `grid[x][y]`.
+- **Why:** [D] A player, a captain LLM and a reader of the code should all meet one order, and
+  x first is the one people expect; row first would confuse them, though the designer reads it more
+  easily. So everything seen or said is x first: the tools' `x` and `y`, `[x, y]` in a Result, a
+  view and a stored Game, `(x, y)` in messages, the instructions and the viewer. Converting at
+  the tools alone would leave the stored game and the core's own fields telling a reader the
+  other order. Grids stay rows of columns [D]: a map is ten strings printed top to bottom, and
+  a lookup is `grid[y][x]`. That mismatch with a pair said x first is the ordinary one and is
+  accepted. Inside the code the order is wanted only where it is convenient [D]. The core holds
+  a pair as `Xy {x, y}` and reads its parts by name [P], so no rule depends on a position in a
+  tuple, a swap at one end only fails to compile, and the order is set in one place: the type's
+  constructor `xy(x, y)`, its `[x, y]` serialization and its `(x, y)` text. Walking a grid stays
+  row by row, which also keeps what a seed generates.
+- **Evidence:** `Measured by: just cc-test-core` → R-44's recorded game, seed 7 through 15
+  commands, gives its recorded Results and final Game; `just cc-test-app` → every coordinate
+  tool declares `x` before `y`.
 
 ### D-2 Start at Star Central, `GALAXY_CENTER`, with a starbase and no enemies — *Decided*
 - **Alternatives:** a random start sector; a hostile start.
@@ -703,7 +724,7 @@ inferences, waiting for review.
 
 ### D-35 On arrival each enemy fires with probability 0.3 — *Decided; the placement is Proposed*
 - **Alternatives:** no arrival fire (the old rule: the player always got the first shot, and every hostile sector in the first live game was entered unharmed); every enemy gets a full EnemiesTurn on arrival; only enemies within a range fire; scanning first lowers the chance.
-- **Why:** Designer decision: 30% of enemies fire when you enter the sector. Entering a hostile sector should cost something, but a full turn would make warping into a crowd near-certain ruin. Rolls use the game's seeded rng, and shots reuse the enemy fire rule, so range and cover still matter. [P] The ambush runs after the sector is instantiated and before the starbase hail, enemies in `enemies_yx` order, and stops once the hull is 0; the usual end-of-action check then loses the game.
+- **Why:** Designer decision: 30% of enemies fire when you enter the sector. Entering a hostile sector should cost something, but a full turn would make warping into a crowd near-certain ruin. Rolls use the game's seeded rng, and shots reuse the enemy fire rule, so range and cover still matter. [P] The ambush runs after the sector is instantiated and before the starbase hail, enemies in `enemies_xy` order, and stops once the hull is 0; the usual end-of-action check then loses the game.
 - **Evidence:** Tested by R-31 (share over 4000 seeds, damage equals the fire formula, a fatal ambush loses).
 
 ### D-36 A blast kills with a chance that decays exponentially from 0.9 at range 4 to 0.1 at range 9 — *Decided*

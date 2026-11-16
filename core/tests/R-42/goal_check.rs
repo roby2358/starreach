@@ -38,9 +38,9 @@ fn announcement(game: &Game, index: usize) -> String {
 fn reaching_the_amount_marks_the_goal_met_and_says_so_exactly_once() {
     let game = battle(vec![goal("torpedoes_fired", 2), goal("docks", 5), goal("scans", 5)]);
 
-    let first = run(&game, torpedo(0, 6));
-    let second = run(&first.game, torpedo(0, 7));
-    let third = run(&second.game, torpedo(0, 8));
+    let first = run(&game, torpedo(6, 0));
+    let second = run(&first.game, torpedo(7, 0));
+    let third = run(&second.game, torpedo(8, 0));
 
     assert!(!first.game.goals[0].met);
     assert!(central(&first.result.events).is_empty());
@@ -53,7 +53,7 @@ fn reaching_the_amount_marks_the_goal_met_and_says_so_exactly_once() {
 #[test]
 fn the_message_names_the_goals_label_and_amount() {
     let game = battle(vec![goal("torpedoes_fired", 1), goal("docks", 5), goal("scans", 5)]);
-    let message = central(&run(&game, torpedo(0, 6)).result.events)[0].clone();
+    let message = central(&run(&game, torpedo(6, 0)).result.events)[0].clone();
     assert!(message.contains("torpedoes fired"), "{message}");
     assert!(message.contains('1'), "{message}");
 }
@@ -61,8 +61,8 @@ fn the_message_names_the_goals_label_and_amount() {
 #[test]
 fn the_state_shows_the_count_rising_and_the_goal_met() {
     let game = battle(vec![goal("torpedoes_fired", 2), goal("docks", 5), goal("scans", 5)]);
-    let first = run(&game, torpedo(0, 6));
-    let second = run(&first.game, torpedo(0, 7));
+    let first = run(&game, torpedo(6, 0));
+    let second = run(&first.game, torpedo(7, 0));
     let shown = |applied: &starreach_core::Applied| {
         let goal = &applied.result.state.goals[0];
         (goal.count, goal.amount, goal.met)
@@ -74,7 +74,7 @@ fn the_state_shows_the_count_rising_and_the_goal_met() {
 #[test]
 fn one_action_can_meet_several_goals_each_announced_in_goal_order() {
     let game = battle(vec![goal("enemies_destroyed", 1), goal("docks", 5), goal("torpedoes_fired", 1)]);
-    let applied = run(&game, torpedo(0, 6));
+    let applied = run(&game, torpedo(6, 0));
     assert_eq!(central(&applied.result.events), [&announcement(&game, 0), &announcement(&game, 2)]);
     assert_eq!(applied.game.goals.iter().map(|goal| goal.met).collect::<Vec<bool>>(), [true, false, true]);
 }
@@ -85,12 +85,12 @@ fn the_message_comes_after_the_games_own_events_even_the_end_of_the_game() {
         "S..E......", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ]);
-    for yx in all_cells().filter(|&yx| yx != game.sector_yx) {
-        game.galaxy.record_mut(yx).enemies = 0;
+    for xy in all_cells().filter(|&xy| xy != game.sector_xy) {
+        game.galaxy.record_mut(xy).enemies = 0;
     }
     game.goals = vec![goal("enemies_destroyed", 1), goal("docks", 5), goal("scans", 5)];
 
-    let applied = run(&game, torpedo(0, 3));
+    let applied = run(&game, torpedo(3, 0));
 
     assert_eq!(applied.game.status, Status::Won);
     let events = &applied.result.events;
@@ -102,7 +102,7 @@ fn the_message_comes_after_the_games_own_events_even_the_end_of_the_game() {
 fn a_met_goal_stays_met_and_is_not_announced_again() {
     let mut game = battle(vec![goal("torpedoes_fired", 5), goal("docks", 5), goal("scans", 5)]);
     game.goals[0].met = true;
-    let applied = run(&game, torpedo(0, 6));
+    let applied = run(&game, torpedo(6, 0));
     assert!(applied.game.goals[0].met);
     assert!(central(&applied.result.events).is_empty());
 }
@@ -119,7 +119,7 @@ fn a_query_and_a_refused_command_check_no_goal() {
     assert!(query.result.events.is_empty());
     assert_refused(&game, Command::Dock);
 
-    let action = run(&game, subwarp(1, 0));
+    let action = run(&game, subwarp(0, 1));
     assert!(action.game.goals[0].met);
 }
 
@@ -127,7 +127,7 @@ fn a_query_and_a_refused_command_check_no_goal() {
 /// whether the goal is met on the way or far out of reach.
 #[test]
 fn a_game_plays_the_same_whether_or_not_a_goal_is_announced() {
-    let commands = [torpedo(0, 6), blast(0, 7), subwarp(3, 0), torpedo(0, 8), Command::LongRangeScan];
+    let commands = [torpedo(6, 0), blast(7, 0), subwarp(0, 3), torpedo(8, 0), Command::LongRangeScan];
     let play = |amount: u32| {
         let start = battle(vec![goal("torpedoes_fired", amount), goal("docks", 5), goal("scans", 5)]);
         commands.iter().fold(start, |game, command| run(&game, command.clone()).game)

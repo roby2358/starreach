@@ -19,7 +19,7 @@ use starreach_core::constants::{
 };
 use starreach_core::events::fire_damage;
 use starreach_core::galaxy::{Galaxy, SectorRecord};
-use starreach_core::geometry::all_cells;
+use starreach_core::geometry::{all_cells, xy};
 use starreach_core::new_game;
 use starreach_core::rng::Rng;
 
@@ -90,19 +90,19 @@ fn print_combat() {
 
 /// What a warp takes and costs, to set beside a battle.
 fn print_warps() {
-    let warps = [("next sector", (0, 1)), ("diagonal", (1, 1)), ("5 sectors", (0, 5)), ("corner to corner", (9, 9))];
+    let warps = [("next sector", xy(1, 0)), ("diagonal", xy(1, 1)), ("5 sectors", xy(5, 0)), ("corner to corner", xy(9, 9))];
     for (label, to) in warps {
-        let time = warp_time((0, 0), to);
+        let time = warp_time(xy(0, 0), to);
         println!(
             "warp {label}: {time} starticks ({:.2} stardates), {} energy",
             time as f64 / STARTICKS_PER_STARDATE as f64,
-            warp_cost((0, 0), to)
+            warp_cost(xy(0, 0), to)
         );
     }
     println!(
         "a full tank ({SHIP_MAX_ENERGY}) is {} next-sector warps or {} corner-to-corner warps, with nothing else spent",
-        SHIP_MAX_ENERGY / warp_cost((0, 0), (0, 1)),
-        SHIP_MAX_ENERGY / warp_cost((0, 0), (9, 9))
+        SHIP_MAX_ENERGY / warp_cost(xy(0, 0), xy(1, 0)),
+        SHIP_MAX_ENERGY / warp_cost(xy(0, 0), xy(9, 9))
     );
 }
 
@@ -123,10 +123,10 @@ fn print_starbase_reach(n: u32) {
     let mut nearest = Vec::new();
     for seed in 0..n {
         let starbases = new_game(seed, START_UNIX_SECONDS).galaxy.starbase_sectors();
-        let open = all_cells().filter(|yx| !starbases.contains(yx));
-        nearest.extend(open.filter_map(|yx| cost_to_nearest(yx, &starbases)).map(f64::from));
+        let open = all_cells().filter(|xy| !starbases.contains(xy));
+        nearest.extend(open.filter_map(|xy| cost_to_nearest(xy, &starbases)).map(f64::from));
     }
-    let home = all_cells().filter_map(|yx| cost_to_nearest(yx, &[GALAXY_CENTER])).map(f64::from);
+    let home = all_cells().filter_map(|xy| cost_to_nearest(xy, &[GALAXY_CENTER])).map(f64::from);
     print_reach_row("the nearest starbase", &sorted(nearest.into_iter()));
     print_reach_row("Star Central", &sorted(home));
 }

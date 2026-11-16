@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
-use crate::geometry::Yx;
+use crate::geometry::Xy;
 
 const GOLDEN_GAMMA: u64 = 0x9E37_79B9_7F4A_7C15;
 /// The first side-stream index past the sectors' (a galaxy has 100).
@@ -32,8 +32,8 @@ impl Rng {
     }
 
     /// A sector stream: depends only on the seed and the sector.
-    pub fn for_sector(seed: u32, sector_yx: Yx) -> Rng {
-        Rng::side(seed, (sector_yx.0 * 10 + sector_yx.1 + 1) as u64)
+    pub fn for_sector(seed: u32, sector_xy: Xy) -> Rng {
+        Rng::side(seed, (sector_xy.y * 10 + sector_xy.x + 1) as u64)
     }
 
     /// The goals stream: chooses a game's goals, from the seed alone (D-47).

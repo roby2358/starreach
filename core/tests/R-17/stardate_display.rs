@@ -91,12 +91,12 @@ const BASE_ADJACENT: [&str; 10] = [
 /// Every action, on a board where it is legal.
 fn actions() -> Vec<([&'static str; 10], Command)> {
     vec![
-        (EMPTY_WITH_SHIP_AT_00, warp(4, 6)),
-        (EMPTY_WITH_SHIP_AT_00, subwarp(0, 4)),
+        (EMPTY_WITH_SHIP_AT_00, warp(6, 4)),
+        (EMPTY_WITH_SHIP_AT_00, subwarp(4, 0)),
         (BASE_ADJACENT, Command::Dock),
         (EMPTY_WITH_SHIP_AT_00, Command::LongRangeScan),
-        (BASE_AND_ENEMY, blast(0, 4)),
-        (BASE_AND_ENEMY, torpedo(0, 4)),
+        (BASE_AND_ENEMY, blast(4, 0)),
+        (BASE_AND_ENEMY, torpedo(4, 0)),
     ]
 }
 

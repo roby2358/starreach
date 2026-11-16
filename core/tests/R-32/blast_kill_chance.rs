@@ -61,7 +61,7 @@ fn over_many_seeds_the_kill_share_is_near_the_chance() {
     for seed in 0..seeds {
         let mut game = board(ONE_AT_RANGE_6);
         game.rng = Rng::seeded(seed);
-        kills += run(&game, blast(0, 6)).game.sector.enemies_yx.is_empty() as u32;
+        kills += run(&game, blast(6, 0)).game.sector.enemies_xy.is_empty() as u32;
     }
     let share = kills as f64 / seeds as f64;
     assert!((share - blast_kill_chance(6.0)).abs() < 0.03, "share {share}");
@@ -72,6 +72,6 @@ fn the_same_seed_blasts_the_same_way() {
     for seed in 0..50 {
         let mut game = board(ONE_AT_RANGE_6);
         game.rng = Rng::seeded(seed);
-        assert_eq!(run(&game, blast(0, 6)), run(&game, blast(0, 6)));
+        assert_eq!(run(&game, blast(6, 0)), run(&game, blast(6, 0)));
     }
 }

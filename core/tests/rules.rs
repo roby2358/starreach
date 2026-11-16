@@ -112,3 +112,9 @@ mod r_41_goals_at_creation;
 
 #[path = "R-42/goal_check.rs"]
 mod r_42_goal_check;
+
+#[path = "R-44/recorded_game.rs"]
+mod r_44_recorded_game;
+
+#[path = "R-44/pairs_are_x_first.rs"]
+mod r_44_pairs_are_x_first;

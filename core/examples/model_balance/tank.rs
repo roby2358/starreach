@@ -1,7 +1,7 @@
 //! One tank of energy: how far a ship goes from a new game without docking or scanning.
 
 use starreach_core::actions::warp_time;
-use starreach_core::geometry::{all_cells, Yx};
+use starreach_core::geometry::{all_cells, Xy};
 use starreach_core::{apply, new_game, Command, Game, Status};
 
 use crate::battle::{fight_on, START_UNIX_SECONDS};
@@ -33,15 +33,15 @@ struct Tank {
 }
 
 /// Decides whether the ship warps on to `target`, the next sector with enemies.
-pub type Captain = fn(&Game, Yx) -> bool;
+pub type Captain = fn(&Game, Xy) -> bool;
 
 
 /// The cheapest sector to warp to that still has enemies. The script reads the galaxy's
 /// records, so it knows what a captain would have to scan for.
-fn nearest_enemy_sector(game: &Game) -> Option<Yx> {
+fn nearest_enemy_sector(game: &Game) -> Option<Xy> {
     all_cells()
-        .filter(|&yx| yx != game.sector_yx && game.galaxy.record(yx).enemies > 0)
-        .min_by_key(|&yx| warp_time(game.sector_yx, yx))
+        .filter(|&xy| xy != game.sector_xy && game.galaxy.record(xy).enemies > 0)
+        .min_by_key(|&xy| warp_time(game.sector_xy, xy))
 }
 
 fn lost_how(game: &Game) -> TankEnd {
@@ -57,13 +57,13 @@ fn one_tank(seed: u32, captain: Captain) -> Tank {
     let mut game = new_game(seed, START_UNIX_SECONDS);
     let mut cleared = 0;
     loop {
-        let Some((y, x)) = nearest_enemy_sector(&game) else {
+        let Some(target) = nearest_enemy_sector(&game) else {
             return Tank { cleared, end: TankEnd::Won };
         };
-        if !captain(&game, (y, x)) {
+        if !captain(&game, target) {
             return Tank { cleared, end: TankEnd::Halted };
         }
-        game = fight_on(apply(&game, &Command::GalaxyWarp { y, x }).game);
+        game = fight_on(apply(&game, &Command::GalaxyWarp { x: target.x, y: target.y }).game);
         if game.status == Status::Lost {
             return Tank { cleared, end: lost_how(&game) };
         }

@@ -21,7 +21,7 @@ test("a command sent down the socket does nothing", async () => {
   await viewer.nextFrame();
 
   viewer.socket.send(JSON.stringify({ type: "long_range_scan" }));
-  viewer.socket.send(JSON.stringify({ type: "galaxy_warp", game_id: gameId, y: 0, x: 0 }));
+  viewer.socket.send(JSON.stringify({ type: "galaxy_warp", game_id: gameId, x: 0, y: 0 }));
   // A socket keeps its order, so the pong means the server has read everything above.
   viewer.socket.ping();
   await once(viewer.socket, "pong");

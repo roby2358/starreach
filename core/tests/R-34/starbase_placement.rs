@@ -10,8 +10,8 @@ fn galaxy(seed: u32) -> Galaxy {
 
 fn empty_galaxy_with_home() -> Galaxy {
     let mut g = galaxy(0);
-    for yx in g.starbase_sectors() {
-        g.record_mut(yx).starbases = (yx == GALAXY_CENTER) as u32;
+    for xy in g.starbase_sectors() {
+        g.record_mut(xy).starbases = (xy == GALAXY_CENTER) as u32;
     }
     g
 }

@@ -16,10 +16,10 @@ fn moves_toward_the_ship_on_a_clear_line() {
         "S....E....", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ], 0);
-    let dest = (0, 5 - ENEMY_ADVANCE_STEPS as i32);
-    assert_eq!(game.sector.enemies_yx, vec![dest]);
+    let dest = xy(5 - ENEMY_ADVANCE_STEPS as i32, 0);
+    assert_eq!(game.sector.enemies_xy, vec![dest]);
     assert_eq!(game.sector.at(dest), Some(ENEMY));
-    assert!(game.sector.is_empty((0, 5)));
+    assert!(game.sector.is_empty(xy(5, 0)));
 }
 
 #[test]
@@ -28,7 +28,7 @@ fn stays_when_adjacent_to_the_ship() {
         "SE........", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ], 0);
-    assert_eq!(game.sector.enemies_yx, vec![(0, 1)]);
+    assert_eq!(game.sector.enemies_xy, vec![xy(1, 0)]);
 }
 
 #[test]
@@ -37,15 +37,15 @@ fn stays_when_the_destination_is_a_star() {
         "S..*.E....", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ], 0);
-    assert_eq!(game.sector.enemies_yx, vec![(0, 5)]);
+    assert_eq!(game.sector.enemies_xy, vec![xy(5, 0)]);
 }
 
 #[test]
 fn stays_when_the_next_cell_holds_another_enemy() {
-    // enemies_yx is in row order, so index 1 is the enemy at (0, 5), behind (0, 4).
+    // enemies_xy is in row order, so index 1 is the enemy at (5, 0), behind (4, 0).
     let game = advance([
         "S...EE....", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ], 1);
-    assert_eq!(game.sector.enemies_yx, vec![(0, 4), (0, 5)]);
+    assert_eq!(game.sector.enemies_xy, vec![xy(4, 0), xy(5, 0)]);
 }

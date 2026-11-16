@@ -26,7 +26,8 @@ export interface GameView {
   status: string;
   /** The game clock as a stardate, `ddd.dddd.dd.d`. */
   stardate: string;
-  sector_yx: [number, number];
+  /** The ship's sector, `[x, y]`: column, then row. */
+  sector_xy: [number, number];
   ship: Record<string, number>;
   /** The ship's sector, a row per string, as in the state's `map`. */
   board: string[];

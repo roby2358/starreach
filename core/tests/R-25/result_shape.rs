@@ -13,7 +13,7 @@ fn keys(value: &serde_json::Value) -> Vec<String> {
 fn accepted_and_refused_results_have_the_same_fields() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
     let expected = vec!["error", "events", "ok", "report", "state"];
-    for command in [Command::State, Command::GalaxyMap, subwarp(0, 3), Command::Dock, blast(5, 5)] {
+    for command in [Command::State, Command::GalaxyMap, subwarp(3, 0), Command::Dock, blast(5, 5)] {
         let result = serde_json::to_value(run(&game, command).result).unwrap();
         assert_eq!(keys(&result), expected);
         let ok = result["ok"].as_bool().unwrap();
@@ -27,8 +27,8 @@ fn accepted_and_refused_results_have_the_same_fields() {
 #[test]
 fn coordinates_outside_the_board_are_refused() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
-    for (y, x) in [(-1, 0), (0, 10), (10, 10)] {
-        for command in [warp(y, x), subwarp(y, x), blast(y, x), torpedo(y, x)] {
+    for (x, y) in [(0, -1), (10, 0), (10, 10)] {
+        for command in [warp(x, y), subwarp(x, y), blast(x, y), torpedo(x, y)] {
             assert_refused(&game, command);
         }
     }

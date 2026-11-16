@@ -5,7 +5,7 @@ use starreach_core::{apply, Command, Game};
 fn play(seed: u32) -> Game {
     let commands = [
         Command::LongRangeScan, warp(5, 5), subwarp(0, 0), blast(3, 3),
-        torpedo(9, 9), warp(2, 7), subwarp(9, 9), Command::State,
+        torpedo(9, 9), warp(7, 2), subwarp(9, 9), Command::State,
     ];
     commands.iter().fold(new_game(seed), |game, c| apply(&game, c).game)
 }

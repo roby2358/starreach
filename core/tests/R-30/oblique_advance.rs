@@ -15,14 +15,14 @@ const OPEN: [&str; 10] = [
 #[test]
 fn an_oblique_advance_never_ends_farther_from_the_ship() {
     for approach in [Approach::Left, Approach::Right] {
-        for (y, x) in [(5, 5), (9, 2), (3, 8), (4, 6), (7, 3), (9, 9)] {
+        for (x, y) in [(5, 5), (2, 9), (8, 3), (6, 4), (3, 7), (9, 9)] {
             let mut rows: Vec<String> = OPEN.iter().map(|r| r.replace('E', ".")).collect();
             rows[y].replace_range(x..x + 1, "E");
             let rows: [&str; 10] = std::array::from_fn(|i| rows[i].as_str());
             let mut game = board(rows);
-            let (ship, from) = (game.sector.ship_yx, game.sector.enemies_yx[0]);
+            let (ship, from) = (game.sector.ship_xy, game.sector.enemies_xy[0]);
             advance_by(&mut game, 0, approach);
-            let to = game.sector.enemies_yx[0];
+            let to = game.sector.enemies_xy[0];
             assert!(euclid(to, ship) <= euclid(from, ship), "{approach:?} from {from:?} to {to:?}");
             assert!(to != from, "{approach:?} from {from:?} should move in the open");
         }
@@ -35,8 +35,8 @@ fn the_two_oblique_approaches_end_on_opposite_sides_of_the_ray() {
     let mut right = board(OPEN);
     advance_by(&mut left, 0, Approach::Left);
     advance_by(&mut right, 0, Approach::Right);
-    assert_ne!(left.sector.enemies_yx, right.sector.enemies_yx);
-    assert!(left.sector.enemies_yx[0].1 < right.sector.enemies_yx[0].1);
+    assert_ne!(left.sector.enemies_xy, right.sector.enemies_xy);
+    assert!(left.sector.enemies_xy[0].x < right.sector.enemies_xy[0].x);
 }
 
 #[test]
@@ -49,12 +49,12 @@ fn an_oblique_advance_stops_when_blocked_without_falling_back() {
     ]);
     let mut open = blocked_left.clone();
     advance_by(&mut open, 0, Approach::Left);
-    let first_step = open.sector.enemies_yx[0];
-    assert_ne!(first_step, (5, 5));
+    let first_step = open.sector.enemies_xy[0];
+    assert_ne!(first_step, xy(5, 5));
     // Put a star where the left approach would end; it must stay put.
     blocked_left.sector.set(first_step, '*');
     let messages = advance_by(&mut blocked_left, 0, Approach::Left);
-    assert_eq!(blocked_left.sector.enemies_yx, vec![(5, 5)]);
+    assert_eq!(blocked_left.sector.enemies_xy, vec![xy(5, 5)]);
     assert!(messages[0].contains("blocked"));
 }
 
@@ -65,10 +65,10 @@ fn an_oblique_advance_never_lands_on_another_enemy() {
             "S.........", ".EEEE.....", ".EEEE.....", ".EEEE.....", "..........",
             ".....E....", "..........", "..........", "..........", "..........",
         ]);
-        let index = game.sector.enemies_yx.iter().position(|&e| e == (5, 5)).unwrap();
+        let index = game.sector.enemies_xy.iter().position(|&e| e == xy(5, 5)).unwrap();
         advance_by(&mut game, index, approach);
-        let mut cells = game.sector.enemies_yx.clone();
-        cells.sort();
+        let mut cells = game.sector.enemies_xy.clone();
+        cells.sort_by_key(|cell| (cell.y, cell.x));
         cells.dedup();
         assert_eq!(cells.len(), 13);
         assert_eq!(cells_of(&game, ENEMY).len(), 13);
@@ -80,7 +80,7 @@ fn no_oblique_step_exceeds_the_advance_limit() {
     for approach in [Approach::Left, Approach::Right] {
         let mut game = board(OPEN);
         advance_by(&mut game, 0, approach);
-        let (dy, dx) = (game.sector.enemies_yx[0].0 - 5, game.sector.enemies_yx[0].1 - 5);
+        let (dx, dy) = (game.sector.enemies_xy[0].x - 5, game.sector.enemies_xy[0].y - 5);
         assert!(dy.abs().max(dx.abs()) as usize <= ENEMY_ADVANCE_STEPS);
     }
 }
@@ -91,7 +91,7 @@ fn the_approach_follows_the_seed() {
         let mut game = board(OPEN);
         game.rng = Rng::seeded(seed);
         enemy_advance(&mut game, 0);
-        game.sector.enemies_yx[0]
+        game.sector.enemies_xy[0]
     };
     for seed in 0..50 {
         assert_eq!(run(seed), run(seed));
@@ -103,7 +103,7 @@ fn over_many_seeds_all_three_approaches_occur_at_the_set_rate() {
     let head_on = {
         let mut game = board(OPEN);
         advance_by(&mut game, 0, Approach::HeadOn);
-        game.sector.enemies_yx[0]
+        game.sector.enemies_xy[0]
     };
     let (mut left, mut right) = (0, 0);
     let mut straight = 0;
@@ -115,11 +115,11 @@ fn over_many_seeds_all_three_approaches_occur_at_the_set_rate() {
         let mut game = board(OPEN);
         game.rng = Rng::seeded(seed);
         enemy_advance(&mut game, 0);
-        let dest = game.sector.enemies_yx[0];
+        let dest = game.sector.enemies_xy[0];
         match dest {
             d if d == head_on => straight += 1,
-            d if d == left_dest.sector.enemies_yx[0] => left += 1,
-            d if d == right_dest.sector.enemies_yx[0] => right += 1,
+            d if d == left_dest.sector.enemies_xy[0] => left += 1,
+            d if d == right_dest.sector.enemies_xy[0] => right += 1,
             d => panic!("unexpected destination {d:?}"),
         }
     }

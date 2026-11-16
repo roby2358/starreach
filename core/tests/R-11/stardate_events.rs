@@ -9,7 +9,7 @@ fn short_actions_accumulate_until_the_interval() {
     let start = game.last_event_startick;
     let mut events_seen = Vec::new();
     for x in 1..=EVENT_INTERVAL as i32 {
-        let applied = run(&game, subwarp(0, x));
+        let applied = run(&game, subwarp(x, 0));
         events_seen.push(applied.result.events.clone());
         game = applied.game;
     }
@@ -23,7 +23,7 @@ fn short_actions_accumulate_until_the_interval() {
 #[test]
 fn the_clock_does_not_move_until_events_run() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
-    let next = run(&game, subwarp(0, 1)).game;
+    let next = run(&game, subwarp(1, 0)).game;
     assert_eq!(next.last_event_startick, game.last_event_startick);
 }
 
@@ -34,7 +34,7 @@ fn shield_replenish_runs_before_the_enemies_turn() {
         "..........", "..........", "..........", "..........", ".........E",
     ]);
     game.ship.shields = 0;
-    let events = run(&game, subwarp(0, 3)).result.events;
+    let events = run(&game, subwarp(3, 0)).result.events;
     assert!(events[0].starts_with("Shields recharged"));
     assert!(events[1].starts_with("Enemy"));
 }
@@ -42,7 +42,7 @@ fn shield_replenish_runs_before_the_enemies_turn() {
 #[test]
 fn only_events_that_can_occur_run() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
-    let applied = run(&game, subwarp(0, 3));
+    let applied = run(&game, subwarp(3, 0));
     assert!(applied.result.events.is_empty());
     assert_eq!(applied.game.last_event_startick, applied.game.startick);
 }

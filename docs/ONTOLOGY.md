@@ -50,9 +50,9 @@ One name per concept. These names are used in code, tools and docs.
 | Term | Meaning | Synonyms in flavor text |
 |---|---|---|
 | **Galaxy** | The 10×10 grid of sectors | |
-| **Sector** | One square of the galaxy, addressed `(y, x)` | quadrant |
-| **Cell** | One square of a sector's 10×10 board, addressed `(y, x)` | position, space |
-| **Coordinate** | `(y, x)`: row, then column, each in `0..9` | |
+| **Sector** | One square of the galaxy, addressed `(x, y)` | quadrant |
+| **Cell** | One square of a sector's 10×10 board, addressed `(x, y)` | position, space |
+| **Coordinate** | `(x, y)`: column, then row, each in `0..9`. `x` counts columns from the left and `y` rows from the top (D-50) | |
 | **Warp** | A move from one sector to another | galaxy warp |
 | **Subwarp** | A move from cell to cell within a sector | impulse |
 | **Ray** | The cells a straight move or shot passes through, up to and including the first obstacle | path, beam path |
@@ -93,8 +93,8 @@ receives it, returns a new one, and never keeps it.
 | `status` | `playing` \| `won` \| `lost` | |
 | `galaxy` | Galaxy | |
 | `ship` | Ship | |
-| `sector_yx` | Coordinate | The sector the ship is in |
-| `sector` | ActiveSector | The live board of `sector_yx` |
+| `sector_xy` | Coordinate | The sector the ship is in |
+| `sector` | ActiveSector | The live board of `sector_xy` |
 | `startick` | int | The game clock, in whole starticks [D] |
 | `last_event_startick` | int | The clock when stardate events last ran, or when the ship entered the sector |
 | `counters` | Counters | What has happened in this game so far [D] |
@@ -112,7 +112,7 @@ The event kinds and their order are fixed by the rules, not stored.
 | `energy`, `max_energy` | int | Spent by actions and by shield recharge |
 | `quantorpedoes`, `max_quantorpedoes` | int | Spent by torpedoes |
 
-The ship's cell is `ActiveSector.ship_yx`.
+The ship's cell is `ActiveSector.ship_xy`.
 
 ### Counters
 *Serves: G-1, G-2.* [D] What has happened in one game: a named count per kind of thing, all 0 in
@@ -192,37 +192,37 @@ when it leaves.
 | Field | Type | Notes |
 |---|---|---|
 | `map` | char[10][10] | `.` empty · `S` ship · `B` starbase · `E` enemy · `*` star |
-| `ship_yx` | Coordinate | |
-| `starbase_yx` | Coordinate \| null | |
-| `enemies_yx` | Coordinate[] | One per live enemy |
+| `ship_xy` | Coordinate | |
+| `starbase_xy` | Coordinate \| null | |
+| `enemies_xy` | Coordinate[] | One per live enemy |
 | `stars` | int | Stars placed |
 
-Live counts are derived: `enemies = len(enemies_yx)`, `starbases = (starbase_yx ≠ null)`.
+Live counts are derived: `enemies = len(enemies_xy)`, `starbases = (starbase_xy ≠ null)`.
 
 ### Enemy
 *Serves: F-danger.* [D] An occupant of one cell. Its only property is its position (an
-entry in `enemies_yx`). All enemies are alike and have no hull: a hit either destroys one or
+entry in `enemies_xy`). All enemies are alike and have no hull: a hit either destroys one or
 leaves it untouched. A torpedo always destroys it; a blast does with a chance that falls with range
 (Blast).
 
 ### EnemySight
 *Serves: F-danger, G-4.* [D] One enemy as the ship sees it, made in the core for every
-GameState from `ship_yx` and the board, so every client reads one source. Not stored.
+GameState from `ship_xy` and the board, so every client reads one source. Not stored.
 
 | Field | Type | Notes |
 |---|---|---|
-| `yx` | Coordinate | The enemy's cell |
-| `range` | float | `euclid(ship_yx, yx)` rounded to two decimals: the distance Blast checks against `BLAST_RANGE` |
+| `xy` | Coordinate | The enemy's cell |
+| `range` | float | `euclid(ship_xy, xy)` rounded to two decimals: the distance Blast checks against `BLAST_RANGE` |
 | `bearing` | int | Whole degrees clockwise from up, in `0..359`: toward row 0 is 0, right 90, down 180, left 270 [D] |
-| `clear_shot` | bool | `first enemy on ray(ship_yx, yx) == yx`, the ray Blast and Torpedo use. Says nothing about range: a clear shot beyond `BLAST_RANGE` is torpedo-only |
+| `clear_shot` | bool | `first enemy on ray(ship_xy, xy) == xy`, the ray Blast and Torpedo use. Says nothing about range: a clear shot beyond `BLAST_RANGE` is torpedo-only |
 
 ```
-dy = ship.y - yx.y;  dx = yx.x - ship.x          # up and right are positive
-bearing = round(degrees(atan2(dx, dy))) mod 360
+up = ship.y - xy.y;  right = xy.x - ship.x
+bearing = round(degrees(atan2(right, up))) mod 360
 ```
 
 ### Starbase
-*Serves: G-4, F-discovery.* [D] An occupant of one cell (`starbase_yx`). It can't be
+*Serves: G-4, F-discovery.* [D] An occupant of one cell (`starbase_xy`). It can't be
 destroyed. It is an obstacle and the only source of resupply and of hull repair
 (D-7).
 
@@ -301,7 +301,7 @@ player was given when the game started.
 |---|---|---|
 | `status` | playing \| won \| lost | |
 | `stardate` | str | The Stardate display form |
-| `sector_yx` | Coordinate | The ship's sector |
+| `sector_xy` | Coordinate | The ship's sector |
 | `ship` | Ship | Every Ship field |
 | `board` | str[10] | The ship's sector as map rows, the same as GameState's `map` |
 | `galaxy` | 10×10 of `{enemies, starbases, stars}` or null | Null while the sector is hidden |
@@ -337,8 +337,8 @@ PlayerStore when the frame is made. [D]
 | Game *has* Goal | 1 → `GOALS_PER_GAME` |
 | Goal *is on* Counter | each goal 1 counter; a counter 0..1 goal of a game |
 | Galaxy *has* SectorRecord | 1 → 100 |
-| Ship *is in* Sector (`sector_yx`) | exactly one sector |
-| ActiveSector *is the live form of* the SectorRecord at `sector_yx` | 1 : 1 |
+| Ship *is in* Sector (`sector_xy`) | exactly one sector |
+| ActiveSector *is the live form of* the SectorRecord at `sector_xy` | 1 : 1 |
 | ActiveSector *contains* Ship, Starbase, Enemy, Star | ship 1; starbase 0..1; enemies 0..`ENEMY_MAX_PER_SECTOR`; stars per record |
 | Cell *holds* occupant | 0..1 |
 | Game *is watched by* Viewer | 1 → 0..n |
@@ -347,9 +347,16 @@ PlayerStore when the frame is made. [D]
 ## 4. Invariants
 
 - Every coordinate is in `0..9`. [D]
-- Each cell holds at most one occupant. Exactly one cell is `S`, and it is `ship_yx`. [D]
-- Each `enemies_yx` entry is an `E` cell, and every `E` cell is in `enemies_yx`. [D]
-- `galaxy[sector_yx].enemies == len(sector.enemies_yx)` after every command. Positions are
+- A coordinate is passed, returned, stored and said x first: a command's `x` and `y`, `[x, y]`
+  in a Result, a view and a stored Game, `(x, y)` in a message. A field that holds one ends in
+  `xy`. [D]
+- A grid is rows of columns: `map`, `board` and the galaxy's `sectors` hold row 0 first, and the
+  cell or sector at `(x, y)` is `grid[y][x]`. The core holds a coordinate as `Xy {x, y}` and
+  reads its parts by name; that type is the one place the order of a pair is set. Where the core
+  walks a grid it goes in row order: along row 0 from column 0, then each row below. [D]
+- Each cell holds at most one occupant. Exactly one cell is `S`, and it is `ship_xy`. [D]
+- Each `enemies_xy` entry is an `E` cell, and every `E` cell is in `enemies_xy`. [D]
+- `galaxy[sector_xy].enemies == len(sector.enemies_xy)` after every command. Positions are
   never stored in the galaxy. [D]
 - The `GALAXY_CENTER` record starts as `(visible, 0, 1, START_SECTOR_STARS)`. [D]
 - `visible` only goes from false to true. [D]
@@ -407,7 +414,7 @@ once, the first time its sector is seen. [D]
   generation, enemy choices, blast kill rolls and enemy fire damage draw from it.
 - **A side stream** `side_rng(seed, index)`, made fresh from the seed and an index each time it
   is needed and never stored. It depends on nothing else and leaves the game stream alone. Each
-  use owns its indices: a **sector stream** `sector_rng(seed, sector_yx)` per sector, so a
+  use owns its indices: a **sector stream** `sector_rng(seed, sector_xy)` per sector, so a
   sector's layout depends only on the seed, the sector and its record; the **goals stream**
   `goals_rng(seed)`, which chooses a game's goals; and a **goal message stream**
   `goal_message_rng(seed, i)` per goal, which picks the wording that announces goal `i` as met.
@@ -431,7 +438,7 @@ in `0..9`; then its own legality. A failed check refuses the action: `ok = false
 new_game(seed, start_unix_seconds):
 rng = seeded(seed);  galaxy = generate(rng)
 startick = floor(start_unix_seconds × STARTICKS_PER_STARDATE / SECONDS_PER_STARDATE) + STARDATE_EPOCH_OFFSET × STARTICKS_PER_STARDATE
-ship = full;  sector_yx = GALAXY_CENTER;  sector = instantiate(GALAXY_CENTER)
+ship = full;  sector_xy = GALAXY_CENTER;  sector = instantiate(GALAXY_CENTER)
 last_event_startick = startick;  status = playing;  counters = all 0
 goals = select_goals(seed)
 ```
@@ -475,7 +482,7 @@ starbase sector's enemies and stars are left as generated [P]. Constants are [T]
 
 ### Sector instantiation — *Serves: G-2, F-discovery* [D]
 ```
-r = sector_rng(seed, sector_yx);  map = all '.'
+r = sector_rng(seed, sector_xy);  map = all '.'
 place the starbase (if any), then each star, then each live enemy, then the ship,
 each on a cell drawn from r among the empty cells
 ```
@@ -485,13 +492,13 @@ visit, and its enemies stand where the first of the original enemies stood.
 
 ### Warp — *Serves: G-2, F-discovery* [D]
 ```
-illegal if target == sector_yx
-time = round(WARP_TIME_K × ln(euclid(sector_yx, target) + 1));  cost = time × WARP_ENERGY_PER_TICK
+illegal if target == sector_xy
+time = round(WARP_TIME_K × ln(euclid(sector_xy, target) + 1));  cost = time × WARP_ENERGY_PER_TICK
 illegal if energy < cost
 if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
 energy -= cost;  startick += time
 recharge(max_shields)      # the Shield recharge rule: to full, as far as the energy left allows [D]
-reveal(target);  sector_yx = target;  sector = instantiate(target);  last_event_startick = startick
+reveal(target);  sector_xy = target;  sector = instantiate(target);  last_event_startick = startick
 counters.sectors_warped += 1      # the ship has arrived, whatever the ambush then does [P]
 ambush: for each enemy in order, while hull > 0: with probability ENEMY_AMBUSH_CHANCE it fires once (the EnemiesTurn fire rule) [D]
 run warp events
@@ -505,9 +512,9 @@ ship meets the ambush with the recharged shields. The hull is not repaired [D].
 ### Subwarp — *Serves: G-2, F-danger* [D]
 ```
 limit = SUBWARP_MAX_STEPS_HOSTILE if enemies are present else SUBWARP_MAX_STEPS
-r = ray(ship_yx, dest), dropping a final obstacle;  steps = min(len(r) − 1, limit)
+r = ray(ship_xy, dest), dropping a final obstacle;  steps = min(len(r) − 1, limit)
 illegal if steps == 0;  illegal if energy < steps × SUBWARP_ENERGY_PER_STEP
-ship_yx = r[steps];  energy -= steps × SUBWARP_ENERGY_PER_STEP
+ship_xy = r[steps];  energy -= steps × SUBWARP_ENERGY_PER_STEP
 startick += steps × SUBWARP_TIME_PER_STEP;  run stardate events
 ```
 
@@ -522,15 +529,15 @@ run stardate events
 ```
 illegal if energy < LRS_ENERGY
 energy -= LRS_ENERGY;  counters.scans += 1
-for each sector in the 3×3 block around sector_yx: reveal it, report "E|B|S"; off-galaxy → "....."
+for each sector in the 3×3 block around sector_xy: reveal it, report "E|B|S"; off-galaxy → "....."
 startick += LRS_TIME [T]
 run stardate events      # enemies present act; in a cleared sector the clock still advances, no one acts [D]
 ```
 
 ### Blast — *Serves: F-danger, G-4* [D]
 ```
-hit = first enemy on ray(ship_yx, target);  illegal if none
-r = euclid(ship_yx, hit);  illegal if r > BLAST_RANGE
+hit = first enemy on ray(ship_xy, target);  illegal if none
+r = euclid(ship_xy, hit);  illegal if r > BLAST_RANGE
 cost = int(BLAST_ENERGY_BASE × √r);  illegal if energy < cost
 destroyed = rng.unit() < kill_chance(r)      # one draw per blast [D]
 if destroyed: destroy hit;  counters.blasts_hit += 1
@@ -546,7 +553,7 @@ kill_chance(r):
 ### Torpedo — *Serves: F-danger, G-4* [D]
 ```
 illegal if quantorpedoes == 0, or energy < TORPEDO_ENERGY
-hit = first enemy on ray(ship_yx, target);  illegal if none
+hit = first enemy on ray(ship_xy, target);  illegal if none
 destroy hit;  quantorpedoes -= 1;  counters.torpedoes_fired += 1
 energy -= TORPEDO_ENERGY;  startick += TORPEDO_TIME
 run stardate events
@@ -554,8 +561,8 @@ run stardate events
 
 ### Destroy enemy — *Serves: F-danger* [D]
 ```
-remove from enemies_yx and map;  galaxy[sector_yx].enemies = len(enemies_yx)
-counters.enemies_destroyed += 1;  if enemies_yx is empty: counters.sectors_cleared += 1
+remove from enemies_xy and map;  galaxy[sector_xy].enemies = len(enemies_xy)
+counters.enemies_destroyed += 1;  if enemies_xy is empty: counters.sectors_cleared += 1
 ```
 
 ### Stardate events — *Serves: F-danger* [D]
@@ -576,7 +583,7 @@ else if stranded: status = lost;  counters.games_lost += 1;  counters.times_stra
 Each way of ending is one row: its status, its message and what it counts. A ship the starbase
 rescues is not counted as stranded: the game didn't end. [P]
 *Stranded* [P]: energy is below the warp cost to the nearest visible starbase sector other
-than `sector_yx` (infinite if there is none), by the Warp rule's `cost`. Outside Star
+than `sector_xy` (infinite if there is none), by the Warp rule's `cost`. Outside Star
 Central, Star Central is always that fallback. `STARBASE_EMERGENCY_ENERGY` is less than any
 warp costs: it pays for moving and fighting inside the starbase's sector, to dock (D-30).
 
@@ -595,7 +602,7 @@ The message follows the game's own events, the end of the game included (D-48). 
 ### EnemiesTurn — *Serves: F-danger* [D]
 ```
 can_occur: enemies are present
-for each enemy in enemies_yx order:
+for each enemy in enemies_xy order:
   EnemyAdvance with probability ENEMY_ADVANCE_FRACTION (from rng), else EnemyFire
 ```
 
@@ -603,10 +610,10 @@ for each enemy in enemies_yx order:
 ```
 roll = rng.unit()    # one draw per advance
 approach = left if roll < ENEMY_OBLIQUE_CHANCE/2, right if roll ≥ 1 − ENEMY_OBLIQUE_CHANCE/2, else head-on [D]
-head-on:  r = ray(enemy, ship_yx);  dest = r[min(ENEMY_ADVANCE_STEPS, len(r) − 1)]
+head-on:  r = ray(enemy, ship_xy);  dest = r[min(ENEMY_ADVANCE_STEPS, len(r) − 1)]
 oblique [P]:  repeat ENEMY_ADVANCE_STEPS times from `at`:
-                head = ray(at, ship_yx)[1];  side = at + (head − at) turned one octant left or right
-                next = head if euclid(side, ship_yx) > euclid(at, ship_yx) else side
+                head = ray(at, ship_xy)[1];  side = at + (head − at) turned one octant left or right
+                next = head if euclid(side, ship_xy) > euclid(at, ship_xy) else side
                 if next is not empty: stay (no fallback)
                 at = next
               dest = at
@@ -615,9 +622,9 @@ if dest is empty: move enemy to dest   else: stay
 
 ### EnemyFire — *Serves: F-danger* [D]
 ```
-if ray(enemy, ship_yx) doesn't end at ship_yx: no effect
+if ray(enemy, ship_xy) doesn't end at ship_xy: no effect
 factor = uniform(rng, ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX)      # one draw per shot, blocked or not
-d = euclid(enemy, ship_yx)
+d = euclid(enemy, ship_xy)
 base = d ≥ ENEMY_FIRE_FAR_RANGE:  ENEMY_FIRE_FAR
        d > ENEMY_FIRE_NEAR_RANGE: ENEMY_FIRE_NEAR × (ENEMY_FIRE_FAR / ENEMY_FIRE_NEAR) ^ ((d − ENEMY_FIRE_NEAR_RANGE) / (ENEMY_FIRE_FAR_RANGE − ENEMY_FIRE_NEAR_RANGE))
        otherwise:                 linear from ENEMY_FIRE_BASE at 1 to ENEMY_FIRE_NEAR at ENEMY_FIRE_NEAR_RANGE      [D, D-39]
@@ -831,20 +838,21 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 |---|---|---|---|---|
 | `state` | — | query | — | null |
 | `galaxy_map` | — | query | — | `{map: string[10]}` |
-| `galaxy_warp` | `y, x` | action | Warp | `{sector_yx, energy_cost, time}` |
-| `subwarp` | `y, x` | action | Subwarp | `{ship_yx, path, energy_cost, time}` |
+| `galaxy_warp` | `x, y` | action | Warp | `{sector_xy, energy_cost, time}` |
+| `subwarp` | `x, y` | action | Subwarp | `{ship_xy, path, energy_cost, time}` |
 | `dock` | — | action | Dock | `{time}` |
 | `long_range_scan` | — | action | Long-range scan | `{scan: string[3], energy_cost, time}` |
-| `blast` | `y, x` | action | Blast | `{hit_yx, path, destroyed, energy_cost, time}` |
-| `torpedo` | `y, x` | action | Torpedo | `{hit_yx, path, destroyed, energy_cost, time}`; `destroyed` is always true |
+| `blast` | `x, y` | action | Blast | `{hit_xy, path, destroyed, energy_cost, time}` |
+| `torpedo` | `x, y` | action | Torpedo | `{hit_xy, path, destroyed, energy_cost, time}`; `destroyed` is always true |
 
-`galaxy_map` rows are 10 space-separated entries: visible `E|B|S`, hidden `.....`.
+A coordinate argument is the command's `x` (column) and `y` (row). `path` is the ray's cells in
+order, each `[x, y]`. `galaxy_map` rows are 10 space-separated entries: visible `E|B|S`, hidden `.....`.
 Every `time` is how long the action took, as a string in the duration form of the Stardate
 display rule. [D]
 
-**GameState:** `status, sector_yx, ship_yx, ship_hull, ship_max_hull, ship_shields,
+**GameState:** `status, sector_xy, ship_xy, ship_hull, ship_max_hull, ship_shields,
 ship_max_shields, ship_energy, ship_max_energy, ship_quantorpedoes,
-ship_max_quantorpedoes, starbase_yx, enemies: EnemySight[], star_count, base_count, enemy_count,
+ship_max_quantorpedoes, starbase_xy, enemies: EnemySight[], star_count, base_count, enemy_count,
 map: string[10], stardate: "ddd.dddd.dd.d", counters: Counters, goals: GoalState[]`.
 `goals` are the game's goals in the Game's order, each `{counter, label, count, amount, met}`
 (Goal), so every Result shows where they stand. [D]
@@ -948,10 +956,10 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | Event | Messages |
 |---|---|
 | StarbaseHail | `Starbase communication: all clear, approach for docking` · `… under attack, needs assistance` |
-| Blast miss | `Blaston beam misses the enemy at (y, x)! Distance: d` |
+| Blast miss | `Blaston beam misses the enemy at (x, y)! Distance: d` |
 | Shield recharge (ShieldReplenish, Warp) | `Shields recharged by n using m energy` |
-| EnemyFire | `Enemy at (y, x) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
-| EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
+| EnemyFire | `Enemy at (x, y) fires raxxon beam! Distance: d, Damage: n` + `Ship takes n damage` · `… path is blocked` |
+| EnemyAdvance | `Enemy advanced from (x, y) to (x, y)` · `Enemy attempted to advance but path was blocked` |
 | Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` |
 | Emergency energy | `Starbase transfers emergency energy: n` |
 | Goal met (Goal check, after the game's other events) | One wording of `objective_met`, such as `Star Central to captain: objective met. This patrol's orders called for enemies destroyed: 50, and you have delivered.` One message per goal |

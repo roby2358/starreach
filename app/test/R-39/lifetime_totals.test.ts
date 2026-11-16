@@ -58,7 +58,7 @@ test("a refused command adds nothing", async () => {
   const deps = { ...testDeps(), player: "alice" };
   const gameId = (await newGame(deps)).report!.game_id as string;
 
-  const refused = await runCommand(deps, gameId, { type: "galaxy_warp", y: 99, x: 99 });
+  const refused = await runCommand(deps, gameId, { type: "galaxy_warp", x: 99, y: 99 });
 
   assert.equal(refused.ok, false);
   assert.deepEqual(await deps.players.totals("alice"), {});

@@ -91,6 +91,32 @@ Q-14 (docs/RATIONALE.md): Warping out of a sector with enemies never triggers an
 ----
 Priority:   60
 Status: Done
+ID: xyorder-6p7m
+Created: 2026-11-16T17:56:37Z
+Updated: 2026-11-16T18:09:46Z
+
+Coordinates are written and passed as (x, y), column then row, everywhere; today they are (y, x).
+
+Goal: a player, a captain LLM and a reader of the code all meet one order, x first. The designer finds (y, x) easier to read but expects it to confuse people. [D]
+
+Settled design:
+- A coordinate is `(x, y)`: x is the column, 0..9 left to right; y is the row, 0..9 top to bottom. Only the order changes: the geometry, the maps' row layout, bearings (0 is up, toward row 0, clockwise) and every game outcome per seed stay as they are.
+- This holds for sectors of the galaxy and for cells of a sector alike.
+- Everything shown or said puts x first: MCP tool argument schemas (x declared before y) and tool descriptions, event and message texts such as "Enemy at (x, y) fires", report and state fields that carry a pair, public/instructions.txt (the line that explains the order, the enemy table, any examples), the viewer page and its scripts wherever a pair is printed, README, and the smoke and screenshot tools.
+- Inside the code, x first only where it is convenient: grids stay rows of columns (`board[y][x]`), and code that naturally goes row then column may stay so. Where the code and the interface differ, the conversion happens at one clear point, and the docs say which order the code holds. Do not transpose stored maps.
+- Any serialized pair changes order, which breaks stored games. No migration: no production game needs keeping. Say so in the architecture log.
+- Docs in the same change: ONTOLOGY (the Sector, Cell and Coordinate vocabulary rows, field tables, command and event tables, message texts), CRITERIA rows whose Given or Expect quote a pair, RATIONALE with a new decision recording the choice, its alternative (y, x) and why, DYNAMICS if it quotes pairs, and a dated ARCHITECTURE_LOG entry. Current-state docs carry no history.
+
+Done when:
+- A search of the repo finds no `(y, x)`, `(y,x)` or "row, then column" left in anything a player or reader sees: tool schemas and descriptions, message texts, instructions, pages and docs, other than the log entry that records the change and any note of the order the code holds.
+- A test fails if a tool's coordinate schema or a message text puts y first.
+- A game played from one seed with the same commands (their pairs swapped) reaches the same state as before the change.
+- `just cc-test-all` passes, and a local server plays a short game through MCP with x-first coordinates in every reply and on the viewer.
+
+Don't deploy.
+----
+Priority:   60
+Status: Done
 ID: hullrepair-e76s
 Created: 2026-11-04T23:53:48Z
 Updated: 2026-11-05T01:44:39Z

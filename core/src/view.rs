@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::galaxy::SectorRecord;
 use crate::game::{format_stardate, Game, Ship, Status};
-use crate::geometry::Yx;
+use crate::geometry::Xy;
 use crate::goals::GoalState;
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
@@ -23,7 +23,7 @@ pub struct SectorView {
 pub struct GameView {
     pub status: Status,
     pub stardate: String,
-    pub sector_yx: Yx,
+    pub sector_xy: Xy,
     pub ship: Ship,
     /// The ship's sector, a row per string, in the same form as `GameState.map`.
     pub board: Vec<String>,
@@ -37,7 +37,7 @@ pub fn view(game: &Game) -> GameView {
     GameView {
         status: game.status,
         stardate: format_stardate(game.startick),
-        sector_yx: game.sector_yx,
+        sector_xy: game.sector_xy,
         ship: game.ship.clone(),
         board: game.sector.map_rows(),
         galaxy: game.galaxy.sectors.iter().map(|row| row.iter().map(sector_view).collect()).collect(),

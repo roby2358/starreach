@@ -1,10 +1,10 @@
 //! Every tunable number (ONTOLOGY Numbers, D-28). The rest of the core refers to these by name.
 
-use crate::geometry::Yx;
+use crate::geometry::{xy, Xy};
 
 pub const GALAXY_SIZE: i32 = 10;
 pub const SECTOR_SIZE: i32 = 10;
-pub const GALAXY_CENTER: Yx = (4, 4);
+pub const GALAXY_CENTER: Xy = xy(4, 4);
 pub const START_SECTOR_STARS: u32 = 4;
 
 pub const ENEMY_BASE_ROLL: (i32, i32) = (-3, 9);

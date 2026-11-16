@@ -30,7 +30,7 @@ use actions::{Refusal, Report};
 use counters::counter_row;
 pub use counters::{CounterRow, Counters, COUNTER_TABLE};
 pub use game::{Game, GameState, Status};
-use geometry::{in_bounds, Yx};
+use geometry::{format_xy, in_bounds, Xy};
 pub use ladder::Standing;
 pub use view::{view, GameView};
 
@@ -40,12 +40,12 @@ pub use view::{view, GameView};
 pub enum Command {
     State,
     GalaxyMap,
-    GalaxyWarp { y: i32, x: i32 },
-    Subwarp { y: i32, x: i32 },
+    GalaxyWarp { x: i32, y: i32 },
+    Subwarp { x: i32, y: i32 },
     Dock,
     LongRangeScan,
-    Blast { y: i32, x: i32 },
-    Torpedo { y: i32, x: i32 },
+    Blast { x: i32, y: i32 },
+    Torpedo { x: i32, y: i32 },
 }
 
 /// The one result shape (D-29). Every field is always present.
@@ -107,12 +107,12 @@ fn run(game: &mut Game, command: &Command, events: &mut Vec<String>) -> Result<O
     match *command {
         Command::State => Ok(None),
         Command::GalaxyMap => Ok(Some(Report::GalaxyMap { map: game.galaxy.map_rows() })),
-        Command::GalaxyWarp { y, x } => action(game, events, |g, e| actions::warp(g, coordinate(y, x)?, e)),
-        Command::Subwarp { y, x } => action(game, events, |g, e| actions::subwarp(g, coordinate(y, x)?, e)),
+        Command::GalaxyWarp { x, y } => action(game, events, |g, e| actions::warp(g, coordinate(x, y)?, e)),
+        Command::Subwarp { x, y } => action(game, events, |g, e| actions::subwarp(g, coordinate(x, y)?, e)),
         Command::Dock => action(game, events, actions::dock),
         Command::LongRangeScan => action(game, events, actions::long_range_scan),
-        Command::Blast { y, x } => action(game, events, |g, e| actions::blast(g, coordinate(y, x)?, e)),
-        Command::Torpedo { y, x } => action(game, events, |g, e| actions::torpedo(g, coordinate(y, x)?, e)),
+        Command::Blast { x, y } => action(game, events, |g, e| actions::blast(g, coordinate(x, y)?, e)),
+        Command::Torpedo { x, y } => action(game, events, |g, e| actions::torpedo(g, coordinate(x, y)?, e)),
     }
 }
 
@@ -132,10 +132,12 @@ fn action(
     Ok(Some(report))
 }
 
-fn coordinate(y: i32, x: i32) -> Result<Yx, Refusal> {
-    match in_bounds((y, x)) {
-        true => Ok((y, x)),
-        false => Err(format!("Coordinates ({y}, {x}) are outside 0..9")),
+/// A command's `x` and `y` as a coordinate on the grid.
+fn coordinate(x: i32, y: i32) -> Result<Xy, Refusal> {
+    let at = Xy { x, y };
+    match in_bounds(at) {
+        true => Ok(at),
+        false => Err(format!("Coordinates {} are outside 0..9", format_xy(at))),
     }
 }
 

@@ -3,6 +3,40 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — Coordinates are (x, y), column then row, wherever they are seen
+Coordinates were (y, x), row then column, everywhere: the tools' arguments, the state and
+report fields (`sector_yx`, `ship_yx`, `starbase_yx`, `enemies_yx`, `hit_yx`, an enemy's `yx`),
+the messages, the instructions, the viewer and the core's tuples. The designer finds (y, x)
+easier to read but expects it to confuse people, so everything a player, a captain LLM or a
+reader meets is now x first. Added: D-50, R-44. D-1 no longer says how a sector is addressed.
+
+What changed: the four coordinate tools declare `x` before `y` and their descriptions say
+`(x, y)`; `state`'s description says every pair is `[x, y]`. The fields are now `sector_xy`,
+`ship_xy`, `starbase_xy`, `enemies_xy`, `hit_xy` and an enemy's `xy`, each `[x, y]`, as are the
+cells of a `path`. Messages say `(x, y)`. The instructions explain the order with two cells of
+their example sector, and the enemy table's example cell reads `(7, 2)`. The viewer's sector
+readout and its cell and sector labels print x first, and the home page's briefing says so.
+
+Inside the core the pair was a tuple alias `Yx = (i32, i32)` read by position. It is now a
+struct `Xy {x, y}` read by name, built by `xy(x, y)` and serialized `[x, y]`, so the order is
+set in one place and a swap at one end only does not compile. The designer asked for x first
+inside the code only where convenient: grids stay rows of columns (`map[y][x]`,
+`sectors[y][x]`), the maps stay ten strings top to bottom, and the core still walks a grid row
+by row and draws a random sector's row before its column, so each seed gives the galaxy,
+boards and play it gave before. Bearings are unchanged. The octant and neighbour step tables
+are written (dx, dy) in the same clockwise order.
+
+How it was checked: before the change a game from seed 7 was played through 15 commands and
+its Results and final Game recorded, with every pair turned x first; after the change the same
+commands give that record (R-44, `core/tests/fixtures/recorded_game.json`). `just
+cc-model-balance 300` and `just cc-model-games 300` print the same text before and after, so no
+RATIONALE Evidence moved. The existing rule tests pass with their pairs swapped and their
+boards untouched.
+
+Stored games break: a Game stored before this holds `sector_yx` and `[y, x]` pairs, which the
+core no longer reads, so it answers "Game not found". No migration; no production game needs
+keeping.
+
 ### 2026-11-16 — The viewer shows the game's goals and the starting player's achievements
 The viewer showed the board, the map, ship status and the survey; goals and achievements
 reached the player only through the crew. Now the page has an Objectives panel with the three

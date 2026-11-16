@@ -1,0 +1,2415 @@
+{
+  "game": {
+    "counters": {
+      "blasts_hit": 1,
+      "blasts_missed": 1,
+      "docks": 1,
+      "enemies_destroyed": 2,
+      "games_lost": 0,
+      "games_won": 0,
+      "hull_damage": 0,
+      "scans": 2,
+      "sectors_cleared": 1,
+      "sectors_warped": 2,
+      "shield_damage": 601,
+      "starbases_discovered": 0,
+      "times_stranded": 0,
+      "torpedoes_fired": 1
+    },
+    "galaxy": {
+      "sectors": [
+        [
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 1,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 7,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 7,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": true
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 7,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 3,
+            "visible": true
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 2,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 5,
+            "visible": true
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 1,
+            "stars": 4,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": true
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 5,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 1,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 2,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 4,
+            "visible": true
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": true
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 1,
+            "stars": 3,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 7,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 6,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 7,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          }
+        ],
+        [
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 2,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 0,
+            "starbases": 0,
+            "stars": 5,
+            "visible": false
+          },
+          {
+            "enemies": 4,
+            "starbases": 0,
+            "stars": 8,
+            "visible": false
+          },
+          {
+            "enemies": 5,
+            "starbases": 0,
+            "stars": 6,
+            "visible": false
+          },
+          {
+            "enemies": 7,
+            "starbases": 0,
+            "stars": 4,
+            "visible": false
+          },
+          {
+            "enemies": 1,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          },
+          {
+            "enemies": 3,
+            "starbases": 0,
+            "stars": 2,
+            "visible": false
+          }
+        ]
+      ]
+    },
+    "goals": [
+      {
+        "amount": 5,
+        "counter": "blasts_hit",
+        "met": false
+      },
+      {
+        "amount": 20,
+        "counter": "enemies_destroyed",
+        "met": false
+      },
+      {
+        "amount": 20,
+        "counter": "sectors_cleared",
+        "met": false
+      }
+    ],
+    "last_event_startick": 408310280,
+    "rng": "16183468424826860970",
+    "sector": {
+      "enemies_xy": [],
+      "map": [
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          "*",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          "*",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "*"
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          ".",
+          "*",
+          "."
+        ],
+        [
+          ".",
+          ".",
+          ".",
+          ".",
+          "S",
+          ".",
+          ".",
+          ".",
+          "B",
+          "."
+        ]
+      ],
+      "ship_xy": [
+        4,
+        9
+      ],
+      "starbase_xy": [
+        8,
+        9
+      ],
+      "stars": 4
+    },
+    "sector_xy": [
+      4,
+      4
+    ],
+    "seed": 7,
+    "ship": {
+      "energy": 33834,
+      "hull": 2000,
+      "max_energy": 50000,
+      "max_hull": 2000,
+      "max_quantorpedoes": 7,
+      "max_shields": 3000,
+      "quantorpedoes": 6,
+      "shields": 3000
+    },
+    "startick": 408310280,
+    "status": "playing"
+  },
+  "steps": [
+    {
+      "command": {
+        "type": "long_range_scan"
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "energy_cost": 500,
+          "scan": [
+            "0|0|7 0|0|2 2|0|7",
+            "0|0|8 0|1|4 0|0|8",
+            "1|0|2 0|0|4 0|0|8"
+          ],
+          "time": "0.00.7"
+        },
+        "state": {
+          "base_count": 1,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 0,
+            "docks": 0,
+            "enemies_destroyed": 0,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 0,
+            "shield_damage": 0,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 0
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "..........",
+            "..........",
+            "..*.......",
+            "..*......*",
+            "..........",
+            "..........",
+            "..........",
+            "........*.",
+            "....S...B."
+          ],
+          "sector_xy": [
+            4,
+            4
+          ],
+          "ship_energy": 49500,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 7,
+          "ship_shields": 3000,
+          "ship_xy": [
+            4,
+            9
+          ],
+          "star_count": 4,
+          "starbase_xy": [
+            8,
+            9
+          ],
+          "stardate": "102.0773.00.7",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "subwarp",
+        "x": 7,
+        "y": 9
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "energy_cost": 6,
+          "path": [
+            [
+              4,
+              9
+            ],
+            [
+              5,
+              9
+            ],
+            [
+              6,
+              9
+            ],
+            [
+              7,
+              9
+            ]
+          ],
+          "ship_xy": [
+            7,
+            9
+          ],
+          "time": "0.00.7"
+        },
+        "state": {
+          "base_count": 1,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 0,
+            "docks": 0,
+            "enemies_destroyed": 0,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 0,
+            "shield_damage": 0,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 0
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "..........",
+            "..........",
+            "..*.......",
+            "..*......*",
+            "..........",
+            "..........",
+            "..........",
+            "........*.",
+            ".......SB."
+          ],
+          "sector_xy": [
+            4,
+            4
+          ],
+          "ship_energy": 49494,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 7,
+          "ship_shields": 3000,
+          "ship_xy": [
+            7,
+            9
+          ],
+          "star_count": 4,
+          "starbase_xy": [
+            8,
+            9
+          ],
+          "stardate": "102.0773.01.5",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "dock"
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "time": "0.01.2"
+        },
+        "state": {
+          "base_count": 1,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 0,
+            "docks": 1,
+            "enemies_destroyed": 0,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 0,
+            "shield_damage": 0,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 0
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "..........",
+            "..........",
+            "..*.......",
+            "..*......*",
+            "..........",
+            "..........",
+            "..........",
+            "........*.",
+            ".......SB."
+          ],
+          "sector_xy": [
+            4,
+            4
+          ],
+          "ship_energy": 50000,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 7,
+          "ship_shields": 3000,
+          "ship_xy": [
+            7,
+            9
+          ],
+          "star_count": 4,
+          "starbase_xy": [
+            8,
+            9
+          ],
+          "stardate": "102.0773.02.7",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "galaxy_warp",
+        "x": 5,
+        "y": 3
+      },
+      "result": {
+        "error": null,
+        "events": [
+          "Enemy at (5, 6) fires raxxon beam! Distance: 7.21, Damage: 247",
+          "Ship takes 247 damage",
+          "Enemy at (3, 0) fires raxxon beam! Distance: 6.00, Damage: 354",
+          "Ship takes 354 damage"
+        ],
+        "ok": true,
+        "report": {
+          "energy_cost": 5290,
+          "sector_xy": [
+            5,
+            3
+          ],
+          "time": "1.32.2"
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 0,
+            "docks": 1,
+            "enemies_destroyed": 0,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 0
+          },
+          "enemies": [
+            {
+              "bearing": 214,
+              "clear_shot": true,
+              "range": 7.21,
+              "xy": [
+                5,
+                6
+              ]
+            },
+            {
+              "bearing": 270,
+              "clear_shot": true,
+              "range": 6.0,
+              "xy": [
+                3,
+                0
+              ]
+            }
+          ],
+          "enemy_count": 2,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "...E.....S",
+            "...*...*..",
+            ".......*..",
+            "........*.",
+            ".....*....",
+            "..........",
+            ".....E....",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 44710,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 7,
+          "ship_shields": 2399,
+          "ship_xy": [
+            9,
+            0
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.35.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "torpedo",
+        "x": 3,
+        "y": 0
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "destroyed": true,
+          "energy_cost": 100,
+          "hit_xy": [
+            3,
+            0
+          ],
+          "path": [
+            [
+              9,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              3,
+              0
+            ]
+          ],
+          "time": "0.00.2"
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 0,
+            "docks": 1,
+            "enemies_destroyed": 1,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [
+            {
+              "bearing": 214,
+              "clear_shot": true,
+              "range": 7.21,
+              "xy": [
+                5,
+                6
+              ]
+            }
+          ],
+          "enemy_count": 1,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            ".........S",
+            "...*...*..",
+            ".......*..",
+            "........*.",
+            ".....*....",
+            "..........",
+            ".....E....",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 44610,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 2399,
+          "ship_xy": [
+            9,
+            0
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.35.2",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "blast",
+        "x": 5,
+        "y": 6
+      },
+      "result": {
+        "error": null,
+        "events": [
+          "Blaston beam misses the enemy at (5, 6)! Distance: 7.21",
+          "Shields recharged by 500 using 50 energy",
+          "Enemy attempted to advance but path was blocked"
+        ],
+        "ok": true,
+        "report": {
+          "destroyed": false,
+          "energy_cost": 2685,
+          "hit_xy": [
+            5,
+            6
+          ],
+          "path": [
+            [
+              9,
+              0
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              8,
+              2
+            ],
+            [
+              7,
+              3
+            ],
+            [
+              6,
+              4
+            ],
+            [
+              6,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ],
+          "time": "0.00.7"
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 1,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [
+            {
+              "bearing": 214,
+              "clear_shot": true,
+              "range": 7.21,
+              "xy": [
+                5,
+                6
+              ]
+            }
+          ],
+          "enemy_count": 1,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            ".........S",
+            "...*...*..",
+            ".......*..",
+            "........*.",
+            ".....*....",
+            "..........",
+            ".....E....",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 41875,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 2899,
+          "ship_xy": [
+            9,
+            0
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.36.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "subwarp",
+        "x": 7,
+        "y": 4
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "energy_cost": 4,
+          "path": [
+            [
+              9,
+              0
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              8,
+              2
+            ]
+          ],
+          "ship_xy": [
+            8,
+            2
+          ],
+          "time": "0.00.5"
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 0,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 1,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 0,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [
+            {
+              "bearing": 217,
+              "clear_shot": true,
+              "range": 5.0,
+              "xy": [
+                5,
+                6
+              ]
+            }
+          ],
+          "enemy_count": 1,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 0,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 0,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            ".....E....",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 41871,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 2899,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.36.5",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "blast",
+        "x": 5,
+        "y": 6
+      },
+      "result": {
+        "error": null,
+        "events": [
+          "Shields recharged by 101 using 11 energy"
+        ],
+        "ok": true,
+        "report": {
+          "destroyed": true,
+          "energy_cost": 2236,
+          "hit_xy": [
+            5,
+            6
+          ],
+          "path": [
+            [
+              8,
+              2
+            ],
+            [
+              7,
+              3
+            ],
+            [
+              7,
+              4
+            ],
+            [
+              6,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ],
+          "time": "0.00.5"
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 1,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            "..........",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 39624,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.37.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "blast",
+        "x": 5,
+        "y": 6
+      },
+      "result": {
+        "error": "No enemy in beam path",
+        "events": [],
+        "ok": false,
+        "report": null,
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 1,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            "..........",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 39624,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.37.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "subwarp",
+        "x": 10,
+        "y": 2
+      },
+      "result": {
+        "error": "Coordinates (10, 2) are outside 0..9",
+        "events": [],
+        "ok": false,
+        "report": null,
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 1,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            "..........",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 39624,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.37.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "torpedo",
+        "x": 9,
+        "y": 9
+      },
+      "result": {
+        "error": "No enemy in torpedo path",
+        "events": [],
+        "ok": false,
+        "report": null,
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 1,
+            "sectors_cleared": 1,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            "..........",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 39624,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.37.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "long_range_scan"
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "energy_cost": 500,
+          "scan": [
+            "0|0|7 1|0|7 0|0|3",
+            "0|0|2 0|0|7 0|0|5",
+            "0|1|4 0|0|8 1|0|5"
+          ],
+          "time": "0.00.7"
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 2,
+            "sectors_cleared": 1,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            "..........",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 39124,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.37.7",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "galaxy_map"
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": {
+          "map": [
+            "..... ..... ..... ..... ..... ..... ..... ..... ..... .....",
+            "..... ..... ..... ..... ..... ..... ..... ..... ..... .....",
+            "..... ..... ..... ..... 0|0|7 1|0|7 0|0|3 ..... ..... .....",
+            "..... ..... ..... 0|0|7 0|0|2 0|0|7 0|0|5 ..... ..... .....",
+            "..... ..... ..... 0|0|8 0|1|4 0|0|8 1|0|5 ..... ..... .....",
+            "..... ..... ..... 1|0|2 0|0|4 0|0|8 ..... ..... ..... .....",
+            "..... ..... ..... ..... ..... ..... ..... ..... ..... .....",
+            "..... ..... ..... ..... ..... ..... ..... ..... ..... .....",
+            "..... ..... ..... ..... ..... ..... ..... ..... ..... .....",
+            "..... ..... ..... ..... ..... ..... ..... ..... ..... ....."
+          ]
+        },
+        "state": {
+          "base_count": 0,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 2,
+            "sectors_cleared": 1,
+            "sectors_warped": 1,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "...*...*..",
+            ".......*S.",
+            "........*.",
+            ".....*....",
+            "..........",
+            "..........",
+            "..........",
+            ".....*....",
+            ".*........"
+          ],
+          "sector_xy": [
+            5,
+            3
+          ],
+          "ship_energy": 39124,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            8,
+            2
+          ],
+          "star_count": 7,
+          "starbase_xy": null,
+          "stardate": "102.0774.37.7",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "galaxy_warp",
+        "x": 4,
+        "y": 4
+      },
+      "result": {
+        "error": null,
+        "events": [
+          "Starbase communication: all clear, approach for docking"
+        ],
+        "ok": true,
+        "report": {
+          "energy_cost": 5290,
+          "sector_xy": [
+            4,
+            4
+          ],
+          "time": "1.32.2"
+        },
+        "state": {
+          "base_count": 1,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 2,
+            "sectors_cleared": 1,
+            "sectors_warped": 2,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "..........",
+            "..........",
+            "..*.......",
+            "..*......*",
+            "..........",
+            "..........",
+            "..........",
+            "........*.",
+            "....S...B."
+          ],
+          "sector_xy": [
+            4,
+            4
+          ],
+          "ship_energy": 33834,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            4,
+            9
+          ],
+          "star_count": 4,
+          "starbase_xy": [
+            8,
+            9
+          ],
+          "stardate": "102.0775.70.0",
+          "status": "playing"
+        }
+      }
+    },
+    {
+      "command": {
+        "type": "state"
+      },
+      "result": {
+        "error": null,
+        "events": [],
+        "ok": true,
+        "report": null,
+        "state": {
+          "base_count": 1,
+          "counters": {
+            "blasts_hit": 1,
+            "blasts_missed": 1,
+            "docks": 1,
+            "enemies_destroyed": 2,
+            "games_lost": 0,
+            "games_won": 0,
+            "hull_damage": 0,
+            "scans": 2,
+            "sectors_cleared": 1,
+            "sectors_warped": 2,
+            "shield_damage": 601,
+            "starbases_discovered": 0,
+            "times_stranded": 0,
+            "torpedoes_fired": 1
+          },
+          "enemies": [],
+          "enemy_count": 0,
+          "goals": [
+            {
+              "amount": 5,
+              "count": 1,
+              "counter": "blasts_hit",
+              "label": "blasts that hit",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 2,
+              "counter": "enemies_destroyed",
+              "label": "enemies destroyed",
+              "met": false
+            },
+            {
+              "amount": 20,
+              "count": 1,
+              "counter": "sectors_cleared",
+              "label": "sectors cleared",
+              "met": false
+            }
+          ],
+          "map": [
+            "..........",
+            "..........",
+            "..........",
+            "..*.......",
+            "..*......*",
+            "..........",
+            "..........",
+            "..........",
+            "........*.",
+            "....S...B."
+          ],
+          "sector_xy": [
+            4,
+            4
+          ],
+          "ship_energy": 33834,
+          "ship_hull": 2000,
+          "ship_max_energy": 50000,
+          "ship_max_hull": 2000,
+          "ship_max_quantorpedoes": 7,
+          "ship_max_shields": 3000,
+          "ship_quantorpedoes": 6,
+          "ship_shields": 3000,
+          "ship_xy": [
+            4,
+            9
+          ],
+          "star_count": 4,
+          "starbase_xy": [
+            8,
+            9
+          ],
+          "stardate": "102.0775.70.0",
+          "status": "playing"
+        }
+      }
+    }
+  ]
+}

@@ -65,13 +65,14 @@ test("U-1: the map is a labelled 10x10 grid: charted sectors filled, the rest hi
 
   const scan = await runCommand(running.deps, id, { type: "long_range_scan" });
   await page.waitForFunction(() => document.querySelectorAll(".sector:not(.hidden)").length === 9);
-  const [first] = (scan.report as { scan: string[] }).scan[0].split(" ");
-  const label = await page.locator(".sector").nth(3 * 10 + 3).getAttribute("aria-label");
-  const [enemies, bases, stars] = first.split("|");
-  assert.equal(label, `Sector 3,3: ${enemies} enemies, ${bases} starbases, ${stars} stars`);
+  // The scan's top row is row 3, and its last entry is column 5: sector (5, 3), the 6th cell of the map's 4th row.
+  const topRight = (scan.report as { scan: string[] }).scan[0].split(" ")[2];
+  const label = await page.locator(".sector").nth(3 * 10 + 5).getAttribute("aria-label");
+  const [enemies, bases, stars] = topRight.split("|");
+  assert.equal(label, `Sector 5,3: ${enemies} enemies, ${bases} starbases, ${stars} stars`);
 
-  await runCommand(running.deps, id, { type: "galaxy_warp", y: 3, x: 3 });
-  await page.waitForFunction(() => document.querySelector("#sector")!.textContent === "(3, 3)");
+  await runCommand(running.deps, id, { type: "galaxy_warp", x: 5, y: 3 });
+  await page.waitForFunction(() => document.querySelector("#sector")!.textContent === "(5, 3)");
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${OUT}desktop-after-warp.png` });
   await page.close();
@@ -135,14 +136,14 @@ test("U-9: the board shows the ship's sector, following warps and moves", async 
   const { state: start } = await runCommand(running.deps, id, { type: "state" });
   await waitForBoard(page, start!.map as string[]);
 
-  const [y, x] = start!.ship_yx as [number, number];
+  const [x, y] = start!.ship_xy as [number, number];
   const y2 = y === 0 ? 1 : y - 1;
   const x2 = [x - 1, x, x + 1].find((c) => (start!.map as string[])[y2]?.[c] === ".")!;
-  const { state: moved } = await runCommand(running.deps, id, { type: "subwarp", y: y2, x: x2 });
-  assert.deepEqual(moved!.ship_yx, [y2, x2]);
+  const { state: moved } = await runCommand(running.deps, id, { type: "subwarp", x: x2, y: y2 });
+  assert.deepEqual(moved!.ship_xy, [x2, y2]);
   await waitForBoard(page, moved!.map as string[]);
 
-  const { state: warped } = await runCommand(running.deps, id, { type: "galaxy_warp", y: 3, x: 3 });
+  const { state: warped } = await runCommand(running.deps, id, { type: "galaxy_warp", x: 3, y: 3 });
   await waitForBoard(page, warped!.map as string[]);
   await page.waitForTimeout(900);
   await page.screenshot({ path: `${OUT}desktop-quadrant.png` });
@@ -282,7 +283,7 @@ test("U-11: a warp plays on the hologram, and the first frame doesn't", async ()
   const id = await gameId();
   const page = await openGame(id, { width: 1100, height: 800 });
   assert.equal(await tankAnimations(page), 0);
-  await runCommand(running.deps, id, { type: "galaxy_warp", y: 3, x: 3 });
+  await runCommand(running.deps, id, { type: "galaxy_warp", x: 3, y: 3 });
   await page.waitForSelector("#tank.warping");
   assert.ok((await tankAnimations(page)) > 0);
   await page.close();
@@ -295,7 +296,7 @@ test("U-11: an enemy gone from the ship's sector flares the hologram", async () 
   const setEnemies = async (enemies: number) => {
     const stored = (await deps.store.get(await viewId(id)))!;
     const game = JSON.parse(stored.game);
-    const [y, x] = game.sector_yx;
+    const [x, y] = game.sector_xy;
     game.galaxy.sectors[y][x].enemies = enemies;
     await deps.store.put(await viewId(id), { ...stored, game: JSON.stringify(game) });
     await runCommand(deps, id, { type: "state" });

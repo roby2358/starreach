@@ -12,7 +12,7 @@ test("a command sent down the socket does nothing", async () => {
   const first = await viewer.nextFrame();
 
   viewer.socket.send(JSON.stringify({ type: "long_range_scan" }));
-  viewer.socket.send(JSON.stringify({ type: "galaxy_warp", game_id: gameId, y: 0, x: 0 }));
+  viewer.socket.send(JSON.stringify({ type: "galaxy_warp", game_id: gameId, x: 0, y: 0 }));
   // The state query publishes a frame, so the object has had its turn at the frames above.
   const after = await callTool("state", { game_id: gameId });
   const second = await viewer.nextFrame();

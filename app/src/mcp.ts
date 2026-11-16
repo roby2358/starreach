@@ -14,8 +14,8 @@ export interface McpDeps extends Games {
 
 const GAME_ID = { game_id: z.string().describe("The game_id that new_game returned") };
 const COORDINATES = {
-  y: z.number().int().describe("Row, 0..9"),
-  x: z.number().int().describe("Column, 0..9"),
+  x: z.number().int().describe("Column, 0..9, left to right"),
+  y: z.number().int().describe("Row, 0..9, top to bottom"),
 };
 
 /** How to read an action's `report.time`, said on every tool that takes time. */
@@ -23,14 +23,14 @@ const TIME_NOTE = "report.time is how long it took, in stardates (a stardate is 
 
 /** One row per core command: the tool name is the command type. */
 const COMMAND_TOOLS = [
-  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot), and goals: the game's three objectives, each with its label, the count so far, the amount to reach and whether it is met. A stardate is a day, written ddd.dddd.dd.d: 102.0773.36.5 is stardate 1020773.365" },
+  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (cell, range, bearing, clear shot), and goals: the game's three objectives, each with its label, the count so far, the amount to reach and whether it is met. A stardate is a day, written ddd.dddd.dd.d: 102.0773.36.5 is stardate 1020773.365. Every coordinate pair, here and in every report, is [x, y]: column, then row; map rows run top to bottom, row 0 first" },
   { type: "galaxy_map", args: {}, description: "The 10x10 galaxy map: E|B|S (enemies|starbases|stars) per visible sector, ..... when hidden" },
-  { type: "galaxy_warp", args: COORDINATES, description: `Warp the ship to sector (y, x). The next sector is about a day away, far longer than a battle, and costs real energy (thousands; report.energy_cost says how much); farther sectors take and cost only a little more, so one long jump beats several hops. The ship arrives with its shields recharged to full, at 1 energy per 10 shield points on top of the warp (told in events), as far as its energy allows; the hull is not repaired. Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each). ${TIME_NOTE}` },
-  { type: "subwarp", args: COORDINATES, description: `Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present. ${TIME_NOTE}` },
+  { type: "galaxy_warp", args: COORDINATES, description: `Warp the ship to sector (x, y). The next sector is about a day away, far longer than a battle, and costs real energy (thousands; report.energy_cost says how much); farther sectors take and cost only a little more, so one long jump beats several hops. The ship arrives with its shields recharged to full, at 1 energy per 10 shield points on top of the warp (told in events), as far as its energy allows; the hull is not repaired. Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each). ${TIME_NOTE}` },
+  { type: "subwarp", args: COORDINATES, description: `Move the ship within the sector toward cell (x, y), stopping before obstacles; at most 3 cells while enemies are present. ${TIME_NOTE}` },
   { type: "dock", args: {}, description: `Dock with an adjacent starbase in a cleared sector: restores hull, shields, energy and quantorpedoes. ${TIME_NOTE}` },
   { type: "long_range_scan", args: {}, description: `Reveal E|B|S for the 3x3 block of sectors around the ship. Takes a full turn of time, so enemies present act after it. ${TIME_NOTE}` },
-  { type: "blast", args: COORDINATES, description: `Fire a blaston beam toward cell (y, x); it hits the first enemy on the line, up to range 9. It kills 90% of the time up to range 4, falling to 10% at 9; a miss still costs its energy and time (report.destroyed). ${TIME_NOTE}` },
-  { type: "torpedo", args: COORDINATES, description: `Fire a quantorpedo toward cell (y, x); it hits the first enemy on the line, at any range. ${TIME_NOTE}` },
+  { type: "blast", args: COORDINATES, description: `Fire a blaston beam toward cell (x, y); it hits the first enemy on the line, up to range 9. It kills 90% of the time up to range 4, falling to 10% at 9; a miss still costs its energy and time (report.destroyed). ${TIME_NOTE}` },
+  { type: "torpedo", args: COORDINATES, description: `Fire a quantorpedo toward cell (x, y); it hits the first enemy on the line, at any range. ${TIME_NOTE}` },
 ] as const;
 
 function whoami(player: string | null) {

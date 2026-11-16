@@ -10,7 +10,7 @@ use crate::counters::Counters;
 use crate::events::{ambush, enemies_turn, recharge_shields, stardate_events, warp_events};
 use crate::galaxy::scan_block;
 use crate::game::{format_duration, Game, Status};
-use crate::geometry::{adjacent, euclid, exp_falloff, format_yx, Yx};
+use crate::geometry::{adjacent, euclid, exp_falloff, format_xy, Xy};
 
 pub type Refusal = String;
 
@@ -21,37 +21,37 @@ pub type Refusal = String;
 #[serde(untagged)]
 pub enum Report {
     GalaxyMap { map: Vec<String> },
-    Warp { sector_yx: Yx, energy_cost: i32, time: String },
-    Subwarp { ship_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: String },
+    Warp { sector_xy: Xy, energy_cost: i32, time: String },
+    Subwarp { ship_xy: Xy, path: Vec<Xy>, energy_cost: i32, time: String },
     Dock { time: String },
     Scan { scan: Vec<String>, energy_cost: i32, time: String },
-    Shot { hit_yx: Yx, path: Vec<Yx>, destroyed: bool, energy_cost: i32, time: String },
+    Shot { hit_xy: Xy, path: Vec<Xy>, destroyed: bool, energy_cost: i32, time: String },
 }
 
 /// Warp time in starticks: logarithmic in the distance in sectors, rounded to the nearest
 /// whole startick (D-5).
-pub fn warp_time(from: Yx, to: Yx) -> i64 {
+pub fn warp_time(from: Xy, to: Xy) -> i64 {
     (WARP_TIME_K * (euclid(from, to) + 1.0).ln()).round() as i64
 }
 
 /// Warp energy: a flat price per startick of the journey (D-5).
-pub fn warp_cost(from: Yx, to: Yx) -> i32 {
+pub fn warp_cost(from: Xy, to: Xy) -> i32 {
     warp_time(from, to) as i32 * WARP_ENERGY_PER_TICK
 }
 
-pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
-    if target == game.sector_yx {
+pub fn warp(game: &mut Game, target: Xy, events: &mut Vec<String>) -> Result<Report, Refusal> {
+    if target == game.sector_xy {
         return Err("The ship is already in that sector".to_string());
     }
-    let energy_cost = warp_cost(game.sector_yx, target);
+    let energy_cost = warp_cost(game.sector_xy, target);
     afford(game, energy_cost, "warp")?;
     if game.sector.has_enemies() {
         events.extend(enemies_turn(game));
     }
     if game.ship.hull == 0 {
-        return Ok(Report::Warp { sector_yx: game.sector_yx, energy_cost: 0, time: format_duration(0) });
+        return Ok(Report::Warp { sector_xy: game.sector_xy, energy_cost: 0, time: format_duration(0) });
     }
-    let time = warp_time(game.sector_yx, target);
+    let time = warp_time(game.sector_xy, target);
     game.ship.energy -= energy_cost;
     game.startick += time;
     let shield_limit = game.ship.max_shields;
@@ -60,40 +60,40 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
     game.counters.sectors_warped += 1;
     events.extend(ambush(game, ENEMY_AMBUSH_CHANCE));
     events.extend(warp_events(game));
-    Ok(Report::Warp { sector_yx: target, energy_cost, time: format_duration(time) })
+    Ok(Report::Warp { sector_xy: target, energy_cost, time: format_duration(time) })
 }
 
-pub fn subwarp(game: &mut Game, dest: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
+pub fn subwarp(game: &mut Game, dest: Xy, events: &mut Vec<String>) -> Result<Report, Refusal> {
     let limit = match game.sector.has_enemies() {
         true => SUBWARP_MAX_STEPS_HOSTILE,
         false => SUBWARP_MAX_STEPS,
     };
-    let ray = game.sector.ray(game.sector.ship_yx, dest);
+    let ray = game.sector.ray(game.sector.ship_xy, dest);
     let open = ray.iter().skip(1).take_while(|&&cell| game.sector.is_empty(cell)).count();
     let steps = open.min(limit);
     if steps == 0 {
-        return Err(format!("No clear path toward {}", format_yx(dest)));
+        return Err(format!("No clear path toward {}", format_xy(dest)));
     }
     let energy_cost = steps as i32 * SUBWARP_ENERGY_PER_STEP;
     afford(game, energy_cost, "subwarp")?;
     let path = ray[..=steps].to_vec();
-    let ship_yx = path[steps];
+    let ship_xy = path[steps];
     let time = steps as i64 * SUBWARP_TIME_PER_STEP;
-    game.sector.move_occupant(game.sector.ship_yx, ship_yx);
-    game.sector.ship_yx = ship_yx;
+    game.sector.move_occupant(game.sector.ship_xy, ship_xy);
+    game.sector.ship_xy = ship_xy;
     game.ship.energy -= energy_cost;
     pass_time(game, time, events);
-    Ok(Report::Subwarp { ship_yx, path, energy_cost, time: format_duration(time) })
+    Ok(Report::Subwarp { ship_xy, path, energy_cost, time: format_duration(time) })
 }
 
 pub fn dock(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal> {
     if game.sector.has_enemies() {
         return Err("Cannot dock while enemies are present in the sector".to_string());
     }
-    let Some(starbase_yx) = game.sector.starbase_yx else {
+    let Some(starbase_xy) = game.sector.starbase_xy else {
         return Err("No starbase present in this sector".to_string());
     };
-    if !adjacent(starbase_yx, game.sector.ship_yx) {
+    if !adjacent(starbase_xy, game.sector.ship_xy) {
         return Err("Starbase is not adjacent to the ship".to_string());
     }
     game.ship.resupply();
@@ -106,26 +106,26 @@ pub fn long_range_scan(game: &mut Game, events: &mut Vec<String>) -> Result<Repo
     afford(game, LRS_ENERGY, "a long-range scan")?;
     game.ship.energy -= LRS_ENERGY;
     game.counters.scans += 1;
-    for yx in scan_block(game.sector_yx) {
-        game.reveal(yx);
+    for xy in scan_block(game.sector_xy) {
+        game.reveal(xy);
     }
-    let scan = game.galaxy.scan(game.sector_yx);
+    let scan = game.galaxy.scan(game.sector_xy);
     pass_time(game, LRS_TIME, events);
     Ok(Report::Scan { scan, energy_cost: LRS_ENERGY, time: format_duration(LRS_TIME) })
 }
 
-pub fn blast(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
+pub fn blast(game: &mut Game, target: Xy, events: &mut Vec<String>) -> Result<Report, Refusal> {
     let roll = game.rng.unit();
     blast_by(game, target, roll, events)
 }
 
 /// The Blast rule with its kill roll given: the hit enemy is destroyed iff
 /// `roll < blast_kill_chance(range)`. A miss still costs the energy and the time.
-pub fn blast_by(game: &mut Game, target: Yx, roll: f64, events: &mut Vec<String>) -> Result<Report, Refusal> {
-    let (hit_yx, path) = first_enemy(game, target, "beam")?;
-    let range = euclid(game.sector.ship_yx, hit_yx);
+pub fn blast_by(game: &mut Game, target: Xy, roll: f64, events: &mut Vec<String>) -> Result<Report, Refusal> {
+    let (hit_xy, path) = first_enemy(game, target, "beam")?;
+    let range = euclid(game.sector.ship_xy, hit_xy);
     if range > BLAST_RANGE {
-        return Err(format!("Enemy at {} is out of blast range ({range:.2} > {BLAST_RANGE})", format_yx(hit_yx)));
+        return Err(format!("Enemy at {} is out of blast range ({range:.2} > {BLAST_RANGE})", format_xy(hit_xy)));
     }
     let energy_cost = blast_energy(range);
     afford(game, energy_cost, "this blast")?;
@@ -135,11 +135,11 @@ pub fn blast_by(game: &mut Game, target: Yx, roll: f64, events: &mut Vec<String>
         true => game.counters.blasts_hit += 1,
         false => {
             game.counters.blasts_missed += 1;
-            events.push(format!("Blaston beam misses the enemy at {}! Distance: {range:.2}", format_yx(hit_yx)));
+            events.push(format!("Blaston beam misses the enemy at {}! Distance: {range:.2}", format_xy(hit_xy)));
         }
     }
-    fire(game, hit_yx, destroyed, energy_cost, time, events);
-    Ok(Report::Shot { hit_yx, path, destroyed, energy_cost, time: format_duration(time) })
+    fire(game, hit_xy, destroyed, energy_cost, time, events);
+    Ok(Report::Shot { hit_xy, path, destroyed, energy_cost, time: format_duration(time) })
 }
 
 /// The chance a blast destroys the enemy it hits: `BLAST_KILL_CHANCE_NEAR` up to
@@ -161,16 +161,16 @@ pub fn blast_time(range: f64) -> i64 {
     (BLAST_TIME_A + BLAST_TIME_B * range.sqrt()) as i64
 }
 
-pub fn torpedo(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
+pub fn torpedo(game: &mut Game, target: Xy, events: &mut Vec<String>) -> Result<Report, Refusal> {
     if game.ship.quantorpedoes == 0 {
         return Err("No quantorpedoes remaining".to_string());
     }
     afford(game, TORPEDO_ENERGY, "a torpedo")?;
-    let (hit_yx, path) = first_enemy(game, target, "torpedo")?;
+    let (hit_xy, path) = first_enemy(game, target, "torpedo")?;
     game.ship.quantorpedoes -= 1;
     game.counters.torpedoes_fired += 1;
-    fire(game, hit_yx, true, TORPEDO_ENERGY, TORPEDO_TIME, events);
-    Ok(Report::Shot { hit_yx, path, destroyed: true, energy_cost: TORPEDO_ENERGY, time: format_duration(TORPEDO_TIME) })
+    fire(game, hit_xy, true, TORPEDO_ENERGY, TORPEDO_TIME, events);
+    Ok(Report::Shot { hit_xy, path, destroyed: true, energy_cost: TORPEDO_ENERGY, time: format_duration(TORPEDO_TIME) })
 }
 
 fn afford(game: &Game, cost: i32, what: &str) -> Result<(), Refusal> {
@@ -180,16 +180,16 @@ fn afford(game: &Game, cost: i32, what: &str) -> Result<(), Refusal> {
     }
 }
 
-fn first_enemy(game: &Game, target: Yx, weapon: &str) -> Result<(Yx, Vec<Yx>), Refusal> {
+fn first_enemy(game: &Game, target: Xy, weapon: &str) -> Result<(Xy, Vec<Xy>), Refusal> {
     game.sector
-        .first_enemy(game.sector.ship_yx, target)
+        .first_enemy(game.sector.ship_xy, target)
         .ok_or_else(|| format!("No enemy in {weapon} path"))
 }
 
 /// The shared tail of blast and torpedo.
-fn fire(game: &mut Game, hit_yx: Yx, destroyed: bool, energy_cost: i32, time: i64, events: &mut Vec<String>) {
+fn fire(game: &mut Game, hit_xy: Xy, destroyed: bool, energy_cost: i32, time: i64, events: &mut Vec<String>) {
     if destroyed {
-        game.destroy_enemy(hit_yx);
+        game.destroy_enemy(hit_xy);
     }
     game.ship.energy -= energy_cost;
     pass_time(game, time, events);
@@ -232,7 +232,7 @@ pub fn game_end(game: &mut Game, events: &mut Vec<String>) {
     if !stranded(game) {
         return;
     }
-    if game.sector.starbase_yx.is_none() {
+    if game.sector.starbase_xy.is_none() {
         return finish(game, &STRANDED, events);
     }
     let transfer = STARBASE_EMERGENCY_ENERGY - game.ship.energy;
@@ -253,8 +253,8 @@ pub fn stranded(game: &Game) -> bool {
     let nearest = game
         .galaxy
         .visible_starbases()
-        .filter(|&yx| yx != game.sector_yx)
-        .map(|yx| warp_cost(game.sector_yx, yx))
+        .filter(|&xy| xy != game.sector_xy)
+        .map(|xy| warp_cost(game.sector_xy, xy))
         .min();
     match nearest {
         Some(cost) => game.ship.energy < cost,

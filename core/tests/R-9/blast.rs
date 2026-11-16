@@ -18,7 +18,7 @@ fn four_away() -> Game {
 fn blast_rolled(game: &Game, roll: f64) -> (Game, Vec<String>) {
     let mut next = game.clone();
     let mut events = Vec::new();
-    blast_by(&mut next, (0, 4), roll, &mut events).unwrap();
+    blast_by(&mut next, xy(4, 0), roll, &mut events).unwrap();
     (next, events)
 }
 
@@ -28,7 +28,7 @@ fn no_enemy_first_on_the_ray_is_refused() {
         "S.*.E.....", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ]);
-    assert_refused(&game, blast(0, 4));
+    assert_refused(&game, blast(4, 0));
     assert_refused(&game, blast(5, 5));
 }
 
@@ -47,9 +47,9 @@ fn a_far_target_is_fine_when_the_hit_enemy_is_in_range() {
         "S...E.....", "..........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ]);
-    let applied = run(&game, blast(0, 9));
+    let applied = run(&game, blast(9, 0));
     assert!(applied.result.ok);
-    assert_eq!(report(&applied)["hit_yx"], serde_json::json!([0, 4]));
+    assert_eq!(report(&applied)["hit_xy"], serde_json::json!([4, 0]));
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn energy_below_the_cost_is_refused() {
         "..........", "..........", "..........", "..........", "..........",
     ]);
     game.ship.energy = (BLAST_ENERGY_BASE * 2.0) as i32 - 1;
-    assert_refused(&game, blast(0, 4));
+    assert_refused(&game, blast(4, 0));
 }
 
 #[test]
@@ -67,7 +67,7 @@ fn a_kill_removes_the_enemy_and_pays_by_range() {
     let game = four_away();
     let (next, _) = blast_rolled(&game, KILL);
     let root = 4f64.sqrt();
-    assert_eq!(next.sector.enemies_yx, vec![(9, 9)]);
+    assert_eq!(next.sector.enemies_xy, vec![xy(9, 9)]);
     assert_eq!(next.ship.energy, game.ship.energy - (BLAST_ENERGY_BASE * root) as i32);
     assert_eq!(next.startick, game.startick + (BLAST_TIME_A + BLAST_TIME_B * root) as i64);
 }
@@ -77,11 +77,11 @@ fn a_miss_leaves_the_enemy_and_still_pays_energy_and_time() {
     let game = four_away();
     let (next, events) = blast_rolled(&game, MISS);
     let root = 4f64.sqrt();
-    assert_eq!(next.sector.enemies_yx, game.sector.enemies_yx);
+    assert_eq!(next.sector.enemies_xy, game.sector.enemies_xy);
     assert_eq!(next.galaxy.record(TEST_SECTOR).enemies, 2);
     assert_eq!(next.ship.energy, game.ship.energy - (BLAST_ENERGY_BASE * root) as i32);
     assert_eq!(next.startick, game.startick + (BLAST_TIME_A + BLAST_TIME_B * root) as i64);
-    assert!(events[0].starts_with("Blaston beam misses the enemy at (0, 4)"), "{events:?}");
+    assert!(events[0].starts_with("Blaston beam misses the enemy at (4, 0)"), "{events:?}");
 }
 
 #[test]
@@ -89,7 +89,7 @@ fn the_report_says_whether_the_enemy_was_destroyed() {
     let game = four_away();
     for (roll, destroyed) in [(KILL, true), (MISS, false)] {
         let mut next = game.clone();
-        let shot = blast_by(&mut next, (0, 4), roll, &mut Vec::new()).unwrap();
+        let shot = blast_by(&mut next, xy(4, 0), roll, &mut Vec::new()).unwrap();
         let shot = serde_json::to_value(&shot).unwrap();
         assert_eq!(shot["destroyed"], serde_json::json!(destroyed));
     }

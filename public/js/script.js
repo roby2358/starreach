@@ -114,7 +114,7 @@
 
     /** Sets a sector's stars the same way every time, from its coordinates. They keep to a ring
      *  around the cell, so the enemy count in the middle stays readable. */
-    function starAt(y, x, index, count) {
+    function starAt(x, y, index, count) {
         const star = element("dot");
         const angle = ((y * 37 + x * 17 + (index * 360) / count) * Math.PI) / 180;
         star.style.top = `${STAR_RING_CENTER_PERCENT + STAR_RING_RADIUS_PERCENT * Math.sin(angle)}%`;
@@ -122,15 +122,15 @@
         return star;
     }
 
-    function sectorLabel(y, x, sector) {
+    function sectorLabel(x, y, sector) {
         if (sector === null) {
-            return `Sector ${y},${x}: uncharted`;
+            return `Sector ${x},${y}: uncharted`;
         }
-        return `Sector ${y},${x}: ${sector.enemies} enemies, ${sector.starbases} starbases, ${sector.stars} stars`;
+        return `Sector ${x},${y}: ${sector.enemies} enemies, ${sector.starbases} starbases, ${sector.stars} stars`;
     }
 
-    function drawSectorContents(cell, y, x, sector) {
-        const stars = Array.from({ length: sector.stars }, (_, index) => starAt(y, x, index, sector.stars));
+    function drawSectorContents(cell, x, y, sector) {
+        const stars = Array.from({ length: sector.stars }, (_, index) => starAt(x, y, index, sector.stars));
         cell.replaceChildren(...stars);
         if (sector.starbases > 0) {
             cell.append(element("starbase"));
@@ -149,14 +149,14 @@
         node.classList.add(className);
     }
 
-    function drawSector(y, x, sector, previous) {
+    function drawSector(x, y, sector, previous) {
         const cell = drawn.sectors[y][x];
-        cell.setAttribute("aria-label", sectorLabel(y, x, sector));
+        cell.setAttribute("aria-label", sectorLabel(x, y, sector));
         cell.classList.toggle("hidden", sector === null);
         if (sector === null) {
             return;
         }
-        drawSectorContents(cell, y, x, sector);
+        drawSectorContents(cell, x, y, sector);
         if (previous === undefined) {
             return;
         }
@@ -169,22 +169,22 @@
 
     function drawGalaxy(view, previous) {
         view.galaxy.forEach((row, y) => row.forEach((sector, x) => {
-            drawSector(y, x, sector, previous === null ? undefined : previous.galaxy[y][x]);
+            drawSector(x, y, sector, previous === null ? undefined : previous.galaxy[y][x]);
         }));
-        const [y, x] = view.sector_yx;
+        const [x, y] = view.sector_xy;
         drawn.marker.hidden = false;
         drawn.marker.style.top = `${((y + 1) * 100) / (GRID_SIZE + 1)}%`;
         drawn.marker.style.left = `${((x + 1) * 100) / (GRID_SIZE + 1)}%`;
     }
 
-    function drawBoardCell(cell, y, x, occupant) {
-        cell.setAttribute("aria-label", `Cell ${y},${x}: ${occupant.name}`);
+    function drawBoardCell(cell, x, y, occupant) {
+        cell.setAttribute("aria-label", `Cell ${x},${y}: ${occupant.name}`);
         cell.replaceChildren(...(occupant.className === null ? [] : [element(occupant.className)]));
     }
 
     function drawBoard(board) {
         board.forEach((row, y) => [...row].forEach((character, x) => {
-            drawBoardCell(drawn.board[y][x], y, x, OCCUPANTS[character]);
+            drawBoardCell(drawn.board[y][x], x, y, OCCUPANTS[character]);
         }));
     }
 
@@ -313,8 +313,9 @@
         if (previous === null) {
             return;
         }
-        const [y, x] = view.sector_yx;
-        if (y !== previous.sector_yx[0] || x !== previous.sector_yx[1]) {
+        const [x, y] = view.sector_xy;
+        const [previousX, previousY] = previous.sector_xy;
+        if (x !== previousX || y !== previousY) {
             flash(byId("tank"), "warping");
         } else if (view.galaxy[y][x].enemies < previous.galaxy[y][x].enemies) {
             flash(byId("tank"), "struck");
@@ -323,7 +324,7 @@
 
     function drawView(view) {
         byId("stardate").textContent = view.stardate;
-        byId("sector").textContent = `(${view.sector_yx[0]}, ${view.sector_yx[1]})`;
+        byId("sector").textContent = `(${view.sector_xy[0]}, ${view.sector_xy[1]})`;
         drawBoard(view.board);
         animateTank(view, drawn.previous);
         drawGalaxy(view, drawn.previous);

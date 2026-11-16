@@ -10,8 +10,8 @@ fn a_starbase_tops_up_a_stranded_ship() {
         "S.........", ".B........", "..........", "..........", "..........",
         "..........", "..........", "..........", "..........", "..........",
     ]);
-    for yx in all_cells().filter(|&yx| yx != game.sector_yx) {
-        game.galaxy.record_mut(yx).starbases = 0;
+    for xy in all_cells().filter(|&xy| xy != game.sector_xy) {
+        game.galaxy.record_mut(xy).starbases = 0;
     }
     game.ship.energy = LRS_ENERGY + 100;
     let applied = run(&game, Command::LongRangeScan);

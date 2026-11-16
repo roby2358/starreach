@@ -2,7 +2,7 @@
 
 use starreach_core::constants::BLAST_SURE_RANGE;
 use starreach_core::game::{EnemySight, Ship};
-use starreach_core::geometry::{in_bounds, Yx};
+use starreach_core::geometry::{in_bounds, xy, Xy};
 use starreach_core::{apply, new_game, Command, Game, Status};
 
 use crate::stats::{average, percentile, sorted};
@@ -11,7 +11,8 @@ use crate::stats::{average, percentile, sorted};
 const BATTLE_COMMAND_CAP: u32 = 200;
 /// When the modeled games start. No modeled number depends on it.
 pub const START_UNIX_SECONDS: i64 = 0;
-const NEIGHBOURS: [Yx; 8] = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)];
+/// The 8 neighbour steps (dx, dy), clockwise from up.
+const NEIGHBOURS: [(i32, i32); 8] = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
 
 struct Battle {
     enemies: u32,
@@ -28,24 +29,24 @@ pub fn nearest_clear(enemies: &[EnemySight]) -> Option<&EnemySight> {
 /// The battle policy against the enemy it has a clear shot at: a blast inside its sure range;
 /// beyond it a torpedo while any remain, else a subwarp toward the enemy to close the range.
 pub fn engage(target: &EnemySight, torpedoes: i32) -> Command {
-    let (y, x) = target.yx;
+    let Xy { x, y } = target.xy;
     if target.range <= BLAST_SURE_RANGE {
-        return Command::Blast { y, x };
+        return Command::Blast { x, y };
     }
     match torpedoes > 0 {
-        true => Command::Torpedo { y, x },
-        false => Command::Subwarp { y, x },
+        true => Command::Torpedo { x, y },
+        false => Command::Subwarp { x, y },
     }
 }
 
 /// With no clear shot, the ship sidesteps: the first neighbouring cell the core accepts.
 fn sidestep(game: &Game) -> Option<Game> {
-    let (y, x) = game.sector.ship_yx;
+    let ship = game.sector.ship_xy;
     NEIGHBOURS
         .iter()
-        .map(|&(dy, dx)| (y + dy, x + dx))
-        .filter(|&yx| in_bounds(yx))
-        .map(|(y, x)| apply(game, &Command::Subwarp { y, x }))
+        .map(|&(dx, dy)| ship.offset(dx, dy))
+        .filter(|&xy| in_bounds(xy))
+        .map(|Xy { x, y }| apply(game, &Command::Subwarp { x, y }))
         .find(|applied| applied.result.ok)
         .map(|applied| applied.game)
 }
@@ -74,13 +75,13 @@ pub fn fight_on(mut game: Game) -> Game {
     game
 }
 
-/// A full-strength ship arrives in `sector_yx` and fights. Arrival is by `enter_sector`, so
+/// A full-strength ship arrives in `sector_xy` and fights. Arrival is by `enter_sector`, so
 /// there is no ambush.
-fn fight(seed: u32, sector_yx: Yx) -> Battle {
+fn fight(seed: u32, sector_xy: Xy) -> Battle {
     let mut arrived = new_game(seed, START_UNIX_SECONDS);
     arrived.ship = Ship::full();
-    arrived.enter_sector(sector_yx);
-    let enemies = arrived.sector.enemies_yx.len() as u32;
+    arrived.enter_sector(sector_xy);
+    let enemies = arrived.sector.enemies_xy.len() as u32;
     let (startick, energy) = (arrived.startick, arrived.ship.energy);
     let game = fight_on(arrived);
     Battle {
@@ -99,7 +100,7 @@ fn battles(n: u32) -> Vec<Battle> {
         for (y, row) in galaxy.sectors.iter().enumerate() {
             for (x, record) in row.iter().enumerate() {
                 if record.enemies > 0 {
-                    battles.push(fight(seed, (y as i32, x as i32)));
+                    battles.push(fight(seed, xy(x as i32, y as i32)));
                 }
             }
         }

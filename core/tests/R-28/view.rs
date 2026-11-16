@@ -12,13 +12,13 @@ use crate::helpers::{new_game, SEED};
 fn a_hidden_sector_is_null_and_a_visible_one_matches_its_record() {
     let game = apply(&new_game(SEED), &Command::LongRangeScan).game;
     let seen = view(&game);
-    for yx in all_cells() {
-        let record = game.galaxy.record(yx);
-        let cell = &seen.galaxy[yx.0 as usize][yx.1 as usize];
+    for xy in all_cells() {
+        let record = game.galaxy.record(xy);
+        let cell = &seen.galaxy[xy.y as usize][xy.x as usize];
         match cell {
-            None => assert!(!record.visible, "{yx:?} is visible but null"),
+            None => assert!(!record.visible, "{xy:?} is visible but null"),
             Some(sector) => {
-                assert!(record.visible, "{yx:?} is hidden but shown");
+                assert!(record.visible, "{xy:?} is hidden but shown");
                 assert_eq!((sector.enemies, sector.starbases, sector.stars), (record.enemies, record.starbases, record.stars));
             }
         }
@@ -30,7 +30,7 @@ fn the_ship_status_and_position_come_from_the_game() {
     let game = apply(&new_game(SEED), &Command::LongRangeScan).game;
     let seen = view(&game);
     assert_eq!(seen.ship, game.ship);
-    assert_eq!(seen.sector_yx, game.sector_yx);
+    assert_eq!(seen.sector_xy, game.sector_xy);
     assert_eq!(seen.status, game.status);
     assert_eq!(seen.stardate, game.state().stardate);
     assert_eq!(seen.board, game.state().map);
@@ -58,7 +58,7 @@ fn the_json_has_only_the_view_fields() {
     let seen: serde_json::Value = serde_json::from_str(&view_json(&text).unwrap()).unwrap();
     let mut keys: Vec<&String> = seen.as_object().unwrap().keys().collect();
     keys.sort();
-    assert_eq!(keys, ["board", "galaxy", "goals", "sector_yx", "ship", "stardate", "status"]);
+    assert_eq!(keys, ["board", "galaxy", "goals", "sector_xy", "ship", "stardate", "status"]);
 }
 
 #[test]

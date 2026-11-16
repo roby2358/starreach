@@ -236,7 +236,7 @@ svg { display: block; }
   // Sample state in the real GameView shape. A mockup only: nothing here connects to a game.
   const VIEW = {
     stardate: "102.0773.36.5",
-    sector_yx: [4, 6],
+    sector_xy: [6, 4],
     ship: { hull: 1430, max_hull: 2000, shields: 720, max_shields: 3000, energy: 38250, max_energy: 50000, quantorpedoes: 5, max_quantorpedoes: 7 },
     board: [".....*....", "..E.......", "......*...", "..........", "....*.....", ".......E..", "..S.......", "*.........", ".....B....", ".........*"],
     // Enemies, starbases, stars. "---" is an uncharted sector.
@@ -269,16 +269,16 @@ svg { display: block; }
 
   function map(label, drawCell) {
     const head = ['<div class="ax"></div>', ...RANGE.map((x) => `<div class="ax">${x}</div>`)];
-    const rows = RANGE.flatMap((y) => [`<div class="ax">${y}</div>`, ...RANGE.map((x) => drawCell(y, x))]);
+    const rows = RANGE.flatMap((y) => [`<div class="ax">${y}</div>`, ...RANGE.map((x) => drawCell(x, y))]);
     return `<div class="map" role="img" aria-label="${label}">${[...head, ...rows].join("")}</div>`;
   }
 
-  function boardCell(y, x) {
+  function boardCell(x, y) {
     const mark = MARKS[VIEW.board[y][x]];
     return `<div class="c">${mark === undefined ? "" : `<span class="mark ${mark}"></span>`}</div>`;
   }
 
-  function sectorCell(y, x) {
+  function sectorCell(x, y) {
     const code = VIEW.galaxy[y][x];
     if (code === "---") return '<div class="s hidden"></div>';
     const [enemies, bases, stars] = [...code].map(Number);
@@ -287,7 +287,7 @@ svg { display: block; }
       const angle = ((y * 37 + x * 17 + (i * 360) / stars) * Math.PI) / 180;
       return `<span class="dot" style="top:${(48 + 38 * Math.sin(angle)).toFixed(1)}%;left:${(48 + 38 * Math.cos(angle)).toFixed(1)}%"></span>`;
     });
-    const here = y === VIEW.sector_yx[0] && x === VIEW.sector_yx[1] ? "here" : "";
+    const here = x === VIEW.sector_xy[0] && y === VIEW.sector_xy[1] ? "here" : "";
     return `<div class="s ${here}">${dots.join("")}${bases > 0 ? '<span class="home m-base"></span>' : ""}${enemies > 0 ? `<span class="n">${enemies}</span>` : ""}</div>`;
   }
 
@@ -357,7 +357,7 @@ svg { display: block; }
 
   function page(style) {
     const found = survey();
-    const [y, x] = VIEW.sector_yx;
+    const [x, y] = VIEW.sector_xy;
     return `
       <header class="top">
         <h1>Starreach <span>Main Viewer</span></h1>

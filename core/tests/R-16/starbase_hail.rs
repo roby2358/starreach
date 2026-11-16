@@ -3,10 +3,10 @@ use crate::helpers::*;
 
 fn hails_on_arrival(enemies: u32) -> Vec<String> {
     let mut game = board(EMPTY_WITH_SHIP_AT_00);
-    let record = game.galaxy.record_mut((4, 6));
+    let record = game.galaxy.record_mut(xy(6, 4));
     record.starbases = 1;
     record.enemies = enemies;
-    let events = run(&game, warp(4, 6)).result.events;
+    let events = run(&game, warp(6, 4)).result.events;
     events.into_iter().filter(|e| e.starts_with("Starbase communication")).collect()
 }
 
@@ -23,7 +23,7 @@ fn under_attack_with_enemies() {
 #[test]
 fn no_hail_without_a_starbase() {
     let mut game = board(EMPTY_WITH_SHIP_AT_00);
-    game.galaxy.record_mut((4, 6)).starbases = 0;
-    let events = run(&game, warp(4, 6)).result.events;
+    game.galaxy.record_mut(xy(6, 4)).starbases = 0;
+    let events = run(&game, warp(6, 4)).result.events;
     assert!(events.iter().all(|e| !e.starts_with("Starbase communication")));
 }

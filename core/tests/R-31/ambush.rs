@@ -17,9 +17,9 @@ fn fires(events: &[String]) -> usize {
 
 fn hostile_arrival(seed: u32, enemies: u32) -> starreach_core::Applied {
     let mut game = board(EMPTY_WITH_SHIP_AT_00);
-    game.galaxy.record_mut((4, 6)).enemies = enemies;
+    game.galaxy.record_mut(xy(6, 4)).enemies = enemies;
     game.rng = Rng::seeded(seed);
-    run(&game, warp(4, 6))
+    run(&game, warp(6, 4))
 }
 
 #[test]
@@ -48,7 +48,7 @@ fn ambush_damage_is_the_enemy_fire_damage_for_the_distance() {
     ]);
     let shields = game.ship.shields;
     ambush(&mut game, 1.0);
-    let distance = euclid((0, 0), (3, 3));
+    let distance = euclid(xy(0, 0), xy(3, 3));
     let taken = shields - game.ship.shields;
     assert!(taken >= fire_damage(distance, ENEMY_FIRE_VARIANCE_MIN), "{taken}");
     assert!(taken <= fire_damage(distance, ENEMY_FIRE_VARIANCE_MAX), "{taken}");
@@ -90,13 +90,13 @@ fn a_fatal_ambush_ends_the_game() {
     let mut lost = 0;
     for seed in 0..200 {
         let mut game = board(EMPTY_WITH_SHIP_AT_00);
-        game.galaxy.record_mut((4, 6)).enemies = 3;
+        game.galaxy.record_mut(xy(6, 4)).enemies = 3;
         game.ship.hull = 1;
         game.ship.shields = 0;
         // No shields to recharge on the way, so the first hit lands on the hull.
         game.ship.max_shields = 0;
         game.rng = Rng::seeded(seed);
-        let applied = run(&game, warp(4, 6));
+        let applied = run(&game, warp(6, 4));
         let was_hit = applied.result.events.iter().any(|e| e.starts_with("Ship takes"));
         assert_eq!(applied.game.status == Status::Lost, was_hit, "seed {seed}");
         assert_eq!(applied.game.ship.hull == 0, was_hit);

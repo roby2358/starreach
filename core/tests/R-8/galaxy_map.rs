@@ -14,14 +14,14 @@ fn ten_rows_of_ten_entries_with_hidden_sectors_as_dots() {
         let entries: Vec<&str> = row.split(' ').collect();
         assert_eq!(entries.len(), 10);
         for (x, entry) in entries.iter().enumerate() {
-            let record = game.galaxy.record((y as i32, x as i32));
+            let record = game.galaxy.record(xy(x as i32, y as i32));
             match record.visible {
                 true => assert_eq!(*entry, format!("{}|{}|{}", record.enemies, record.starbases, record.stars)),
                 false => assert_eq!(*entry, "....."),
             }
         }
     }
-    let center = rows[GALAXY_CENTER.0 as usize].split(' ').nth(GALAXY_CENTER.1 as usize).unwrap();
+    let center = rows[GALAXY_CENTER.y as usize].split(' ').nth(GALAXY_CENTER.x as usize).unwrap();
     assert_ne!(center, ".....");
 }
 

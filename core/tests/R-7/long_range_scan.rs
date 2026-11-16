@@ -19,7 +19,7 @@ fn reveals_the_block_and_pays_energy() {
     assert_eq!(next.ship.energy, game.ship.energy - LRS_ENERGY);
     for dy in -1..=1 {
         for dx in -1..=1 {
-            assert!(next.galaxy.record((TEST_SECTOR.0 + dy, TEST_SECTOR.1 + dx)).visible);
+            assert!(next.galaxy.record(TEST_SECTOR.offset(dx, dy)).visible);
         }
     }
     let scan = report(&applied)["scan"].clone();
@@ -31,7 +31,7 @@ fn reveals_the_block_and_pays_energy() {
 #[test]
 fn sectors_off_the_galaxy_show_dots() {
     let mut game = board(EMPTY_WITH_SHIP_AT_00);
-    game.sector_yx = (0, 0);
+    game.sector_xy = xy(0, 0);
     let scan = report(&run(&game, Command::LongRangeScan))["scan"].clone();
     assert_eq!(scan[0], "..... ..... .....");
     assert!(scan[1].as_str().unwrap().starts_with("..... "));

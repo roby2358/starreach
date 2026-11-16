@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::constants::*;
 use crate::counters::Counters;
 use crate::galaxy::Galaxy;
-use crate::geometry::{euclid, Yx};
+use crate::geometry::{euclid, Xy};
 use crate::goals::{self, Goal, GoalState};
 use crate::rng::Rng;
 use crate::sector::ActiveSector;
@@ -59,7 +59,7 @@ pub struct Game {
     pub status: Status,
     pub galaxy: Galaxy,
     pub ship: Ship,
-    pub sector_yx: Yx,
+    pub sector_xy: Xy,
     pub sector: ActiveSector,
     /// The game clock, in whole starticks (D-12).
     pub startick: i64,
@@ -84,7 +84,7 @@ impl Game {
             status: Status::Playing,
             galaxy,
             ship: Ship::full(),
-            sector_yx: GALAXY_CENTER,
+            sector_xy: GALAXY_CENTER,
             sector,
             startick,
             last_event_startick: startick,
@@ -95,8 +95,8 @@ impl Game {
 
     /// Makes a sector's counts visible (Visibility). The one place a hidden sector is uncovered,
     /// so the one place a starbase is discovered.
-    pub fn reveal(&mut self, yx: Yx) {
-        let record = self.galaxy.record_mut(yx);
+    pub fn reveal(&mut self, xy: Xy) {
+        let record = self.galaxy.record_mut(xy);
         if record.visible {
             return;
         }
@@ -105,34 +105,34 @@ impl Game {
     }
 
     /// Moves the ship into `target` and builds its board from the seed.
-    pub fn enter_sector(&mut self, target: Yx) {
+    pub fn enter_sector(&mut self, target: Xy) {
         self.reveal(target);
-        self.sector_yx = target;
+        self.sector_xy = target;
         self.sector = instantiate(&self.galaxy, self.seed, target);
         self.last_event_startick = self.startick;
     }
 
     /// Destroy enemy: off the board, and the galaxy record follows.
-    pub fn destroy_enemy(&mut self, yx: Yx) {
-        self.sector.remove_enemy(yx);
-        self.galaxy.record_mut(self.sector_yx).enemies = self.sector.enemies_yx.len() as u32;
+    pub fn destroy_enemy(&mut self, xy: Xy) {
+        self.sector.remove_enemy(xy);
+        self.galaxy.record_mut(self.sector_xy).enemies = self.sector.enemies_xy.len() as u32;
         self.counters.enemies_destroyed += 1;
         if !self.sector.has_enemies() {
             self.counters.sectors_cleared += 1;
         }
     }
 
-    /// Each enemy as the ship sees it (ONTOLOGY EnemySight), in `enemies_yx` order.
+    /// Each enemy as the ship sees it (ONTOLOGY EnemySight), in `enemies_xy` order.
     fn enemy_sights(&self) -> Vec<EnemySight> {
-        let ship = self.sector.ship_yx;
+        let ship = self.sector.ship_xy;
         self.sector
-            .enemies_yx
+            .enemies_xy
             .iter()
-            .map(|&yx| EnemySight {
-                yx,
-                range: (euclid(ship, yx) * 100.0).round() / 100.0,
-                bearing: bearing(ship, yx),
-                clear_shot: self.sector.first_enemy(ship, yx).map(|(hit, _)| hit) == Some(yx),
+            .map(|&xy| EnemySight {
+                xy,
+                range: (euclid(ship, xy) * 100.0).round() / 100.0,
+                bearing: bearing(ship, xy),
+                clear_shot: self.sector.first_enemy(ship, xy).map(|(hit, _)| hit) == Some(xy),
             })
             .collect()
     }
@@ -145,8 +145,8 @@ impl Game {
     pub fn state(&self) -> GameState {
         GameState {
             status: self.status,
-            sector_yx: self.sector_yx,
-            ship_yx: self.sector.ship_yx,
+            sector_xy: self.sector_xy,
+            ship_xy: self.sector.ship_xy,
             ship_hull: self.ship.hull,
             ship_max_hull: self.ship.max_hull,
             ship_shields: self.ship.shields,
@@ -155,11 +155,11 @@ impl Game {
             ship_max_energy: self.ship.max_energy,
             ship_quantorpedoes: self.ship.quantorpedoes,
             ship_max_quantorpedoes: self.ship.max_quantorpedoes,
-            starbase_yx: self.sector.starbase_yx,
+            starbase_xy: self.sector.starbase_xy,
             enemies: self.enemy_sights(),
             star_count: self.sector.stars,
-            base_count: self.sector.starbase_yx.is_some() as u32,
-            enemy_count: self.sector.enemies_yx.len() as u32,
+            base_count: self.sector.starbase_xy.is_some() as u32,
+            enemy_count: self.sector.enemies_xy.len() as u32,
             map: self.sector.map_rows(),
             stardate: format_stardate(self.startick),
             counters: self.counters,
@@ -168,8 +168,8 @@ impl Game {
     }
 }
 
-fn instantiate(galaxy: &Galaxy, seed: u32, sector_yx: Yx) -> ActiveSector {
-    ActiveSector::instantiate(galaxy.record(sector_yx), &mut Rng::for_sector(seed, sector_yx))
+fn instantiate(galaxy: &Galaxy, seed: u32, sector_xy: Xy) -> ActiveSector {
+    ActiveSector::instantiate(galaxy.record(sector_xy), &mut Rng::for_sector(seed, sector_xy))
 }
 
 /// The clock a game starts at: the Unix time counted in starticks, moved on by
@@ -201,15 +201,15 @@ pub fn format_duration(starticks: i64) -> String {
 }
 
 /// Whole degrees clockwise from up (toward row 0), in `0..360`.
-fn bearing(from: Yx, to: Yx) -> i32 {
-    let up = (from.0 - to.0) as f64;
-    let right = (to.1 - from.1) as f64;
+fn bearing(from: Xy, to: Xy) -> i32 {
+    let up = (from.y - to.y) as f64;
+    let right = (to.x - from.x) as f64;
     (right.atan2(up).to_degrees().rem_euclid(360.0).round() as i32) % 360
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EnemySight {
-    pub yx: Yx,
+    pub xy: Xy,
     pub range: f64,
     pub bearing: i32,
     pub clear_shot: bool,
@@ -218,8 +218,8 @@ pub struct EnemySight {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GameState {
     pub status: Status,
-    pub sector_yx: Yx,
-    pub ship_yx: Yx,
+    pub sector_xy: Xy,
+    pub ship_xy: Xy,
     pub ship_hull: i32,
     pub ship_max_hull: i32,
     pub ship_shields: i32,
@@ -228,7 +228,7 @@ pub struct GameState {
     pub ship_max_energy: i32,
     pub ship_quantorpedoes: i32,
     pub ship_max_quantorpedoes: i32,
-    pub starbase_yx: Option<Yx>,
+    pub starbase_xy: Option<Xy>,
     pub enemies: Vec<EnemySight>,
     pub star_count: u32,
     pub base_count: u32,

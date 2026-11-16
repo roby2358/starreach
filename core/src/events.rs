@@ -5,7 +5,7 @@
 
 use crate::constants::*;
 use crate::game::Game;
-use crate::geometry::{euclid, exp_falloff, format_yx, Yx};
+use crate::geometry::{euclid, exp_falloff, format_xy, Xy};
 
 pub struct Event {
     pub can_occur: fn(&Game) -> bool,
@@ -44,7 +44,7 @@ pub fn stardate_events(game: &mut Game) -> Vec<String> {
 }
 
 fn starbase_present(game: &Game) -> bool {
-    game.sector.starbase_yx.is_some()
+    game.sector.starbase_xy.is_some()
 }
 
 fn enemies_present(game: &Game) -> bool {
@@ -84,11 +84,11 @@ pub fn recharge_shields(game: &mut Game, limit: i32) -> Vec<String> {
     vec![format!("Shields recharged by {points} using {cost} energy")]
 }
 
-/// Every enemy acts once, in `enemies_yx` order: advance with probability
+/// Every enemy acts once, in `enemies_xy` order: advance with probability
 /// `ENEMY_ADVANCE_FRACTION`, else fire.
 pub fn enemies_turn(game: &mut Game) -> Vec<String> {
     let mut messages = Vec::new();
-    for index in 0..game.sector.enemies_yx.len() {
+    for index in 0..game.sector.enemies_xy.len() {
         let action = match game.rng.chance(ENEMY_ADVANCE_FRACTION) {
             true => enemy_advance,
             false => enemy_fire,
@@ -102,7 +102,7 @@ pub fn enemies_turn(game: &mut Game) -> Vec<String> {
 /// Stops when the ship is destroyed.
 pub fn ambush(game: &mut Game, chance: f64) -> Vec<String> {
     let mut messages = Vec::new();
-    for index in 0..game.sector.enemies_yx.len() {
+    for index in 0..game.sector.enemies_xy.len() {
         if game.ship.hull == 0 {
             break;
         }
@@ -122,8 +122,8 @@ pub enum Approach {
     Right,
 }
 
-/// The 8 neighbour steps (dy, dx) in clockwise order, starting up.
-const OCTANTS: [Yx; 8] = [(-1, 0), (-1, 1), (0, 1), (1, 1), (1, 0), (1, -1), (0, -1), (-1, -1)];
+/// The 8 neighbour steps (dx, dy) in clockwise order, starting up.
+const OCTANTS: [(i32, i32); 8] = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
 
 /// Draws the approach: `ENEMY_OBLIQUE_CHANCE` is split evenly between left and right.
 fn choose_approach(game: &mut Game) -> Approach {
@@ -142,7 +142,7 @@ pub fn enemy_advance(game: &mut Game, index: usize) -> Vec<String> {
 
 /// Moves the enemy by `approach`, only onto empty cells; otherwise it stays and reports blocked.
 pub fn advance_by(game: &mut Game, index: usize, approach: Approach) -> Vec<String> {
-    let from = game.sector.enemies_yx[index];
+    let from = game.sector.enemies_xy[index];
     let dest = match approach {
         Approach::HeadOn => head_on_dest(game, from),
         _ => oblique_dest(game, from, approach),
@@ -156,28 +156,28 @@ pub fn advance_by(game: &mut Game, index: usize, approach: Approach) -> Vec<Stri
     }
     let dest = dest.unwrap();
     game.sector.move_occupant(from, dest);
-    game.sector.enemies_yx[index] = dest;
-    vec![format!("Enemy advanced from {} to {}", format_yx(from), format_yx(dest))]
+    game.sector.enemies_xy[index] = dest;
+    vec![format!("Enemy advanced from {} to {}", format_xy(from), format_xy(dest))]
 }
 
-fn head_on_dest(game: &Game, from: Yx) -> Option<Yx> {
-    let ray = game.sector.ray(from, game.sector.ship_yx);
+fn head_on_dest(game: &Game, from: Xy) -> Option<Xy> {
+    let ray = game.sector.ray(from, game.sector.ship_xy);
     Some(ray[ENEMY_ADVANCE_STEPS.min(ray.len() - 1)])
 }
 
 /// Each of `ENEMY_ADVANCE_STEPS` steps is the head-on step turned one octant. A step that
 /// would be farther from the ship than where it stands is taken head-on instead. None when
 /// a step is blocked.
-fn oblique_dest(game: &Game, from: Yx, approach: Approach) -> Option<Yx> {
-    let ship = game.sector.ship_yx;
+fn oblique_dest(game: &Game, from: Xy, approach: Approach) -> Option<Xy> {
+    let ship = game.sector.ship_xy;
     let mut at = from;
     for _ in 0..ENEMY_ADVANCE_STEPS {
         let head = game.sector.ray(at, ship).get(1).copied()?;
-        let (dy, dx) = (head.0 - at.0, head.1 - at.1);
-        let slot = OCTANTS.iter().position(|&o| o == (dy, dx))?;
+        let step = (head.x - at.x, head.y - at.y);
+        let slot = OCTANTS.iter().position(|&o| o == step)?;
         let turn = if approach == Approach::Left { 7 } else { 1 };
-        let (oy, ox) = OCTANTS[(slot + turn) % 8];
-        let side = (at.0 + oy, at.1 + ox);
+        let (dx, dy) = OCTANTS[(slot + turn) % 8];
+        let side = at.offset(dx, dy);
         let next = if euclid(side, ship) > euclid(at, ship) { head } else { side };
         if !game.sector.is_empty(next) {
             return None;
@@ -194,16 +194,16 @@ pub fn enemy_fire(game: &mut Game, index: usize) -> Vec<String> {
 
 /// The EnemyFire rule with its damage factor given.
 pub fn enemy_fire_by(game: &mut Game, index: usize, factor: f64) -> Vec<String> {
-    let from = game.sector.enemies_yx[index];
-    let ship_yx = game.sector.ship_yx;
-    if game.sector.ray(from, ship_yx).last() != Some(&ship_yx) {
-        return vec![format!("Enemy at {} fires raxxon beam but path is blocked", format_yx(from))];
+    let from = game.sector.enemies_xy[index];
+    let ship_xy = game.sector.ship_xy;
+    if game.sector.ray(from, ship_xy).last() != Some(&ship_xy) {
+        return vec![format!("Enemy at {} fires raxxon beam but path is blocked", format_xy(from))];
     }
-    let distance = euclid(from, ship_yx);
+    let distance = euclid(from, ship_xy);
     let damage = fire_damage(distance, factor);
     let dealt = absorb(game, damage);
     vec![
-        format!("Enemy at {} fires raxxon beam! Distance: {distance:.2}, Damage: {damage}", format_yx(from)),
+        format!("Enemy at {} fires raxxon beam! Distance: {distance:.2}, Damage: {damage}", format_xy(from)),
         format!("Ship takes {dealt} damage"),
     ]
 }
