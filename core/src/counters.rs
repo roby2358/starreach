@@ -25,6 +25,30 @@ pub struct Counters {
     pub times_stranded: u32,
 }
 
+impl Counters {
+    /// The count under a counter table key. None for a key that names no counter.
+    pub fn value(&self, key: &str) -> Option<u32> {
+        let value = match key {
+            "enemies_destroyed" => self.enemies_destroyed,
+            "sectors_cleared" => self.sectors_cleared,
+            "sectors_warped" => self.sectors_warped,
+            "docks" => self.docks,
+            "starbases_discovered" => self.starbases_discovered,
+            "blasts_hit" => self.blasts_hit,
+            "torpedoes_fired" => self.torpedoes_fired,
+            "scans" => self.scans,
+            "games_won" => self.games_won,
+            "shield_damage" => self.shield_damage,
+            "hull_damage" => self.hull_damage,
+            "blasts_missed" => self.blasts_missed,
+            "games_lost" => self.games_lost,
+            "times_stranded" => self.times_stranded,
+            _ => return None,
+        };
+        Some(value)
+    }
+}
+
 /// One row of the counter table. `key` is the counter's field name in `Counters`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 pub struct CounterRow {
@@ -58,3 +82,8 @@ pub const COUNTER_TABLE: [CounterRow; 14] = [
     CounterRow { key: "games_lost", label: "games lost", may_be_goal: false, scale: 1, goal_ceiling: 0 },
     CounterRow { key: "times_stranded", label: "times stranded", may_be_goal: false, scale: 1, goal_ceiling: 0 },
 ];
+
+/// The table's row for a key. None for a key that names no counter.
+pub fn counter_row(key: &str) -> Option<&'static CounterRow> {
+    COUNTER_TABLE.iter().find(|row| row.key == key)
+}

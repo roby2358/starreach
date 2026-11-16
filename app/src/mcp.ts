@@ -23,7 +23,7 @@ const TIME_NOTE = "report.time is how long it took, in stardates (a stardate is 
 
 /** One row per core command: the tool name is the command type. */
 const COMMAND_TOOLS = [
-  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot). A stardate is a day, written ddd.dddd.dd.d: 102.0773.36.5 is stardate 1020773.365" },
+  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot), and goals: the game's three objectives, each with its label, the count so far, the amount to reach and whether it is met. A stardate is a day, written ddd.dddd.dd.d: 102.0773.36.5 is stardate 1020773.365" },
   { type: "galaxy_map", args: {}, description: "The 10x10 galaxy map: E|B|S (enemies|starbases|stars) per visible sector, ..... when hidden" },
   { type: "galaxy_warp", args: COORDINATES, description: `Warp the ship to sector (y, x). The next sector is about a day away, far longer than a battle, and costs real energy (thousands; report.energy_cost says how much); farther sectors take and cost only a little more, so one long jump beats several hops. The ship arrives with its shields recharged to full, at 1 energy per 10 shield points on top of the warp (told in events), as far as its energy allows; the hull is not repaired. Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each). ${TIME_NOTE}` },
   { type: "subwarp", args: COORDINATES, description: `Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present. ${TIME_NOTE}` },
@@ -52,7 +52,7 @@ export function createMcpServer(deps: McpDeps): McpServer {
 
   server.registerTool(
     "new_game",
-    { description: "Start a new game; pass report.game_id to every other tool. report.viewer_url is the live viewer's link" },
+    { description: "Start a new game; pass report.game_id to every other tool. report.goals are the game's three objectives from Star Central (label, count so far, amount to reach, met). report.viewer_url is the live viewer's link" },
     async () => asToolResult(await newGame(deps)),
   );
 

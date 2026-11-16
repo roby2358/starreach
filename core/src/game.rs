@@ -6,6 +6,7 @@ use crate::constants::*;
 use crate::counters::Counters;
 use crate::galaxy::Galaxy;
 use crate::geometry::{euclid, Yx};
+use crate::goals::{self, Goal, GoalState};
 use crate::rng::Rng;
 use crate::sector::ActiveSector;
 
@@ -66,6 +67,8 @@ pub struct Game {
     pub last_event_startick: i64,
     /// What has happened in this game so far (D-42).
     pub counters: Counters,
+    /// This game's objectives, chosen from the seed at creation (D-47).
+    pub goals: Vec<Goal>,
 }
 
 impl Game {
@@ -86,6 +89,7 @@ impl Game {
             startick,
             last_event_startick: startick,
             counters: Counters::default(),
+            goals: goals::choose(seed),
         }
     }
 
@@ -154,6 +158,7 @@ impl Game {
             map: self.sector.map_rows(),
             stardate: format_stardate(self.startick),
             counters: self.counters,
+            goals: self.goals.iter().map(|goal| goal.state(&self.counters)).collect(),
         }
     }
 }
@@ -226,4 +231,6 @@ pub struct GameState {
     pub map: Vec<String>,
     pub stardate: String,
     pub counters: Counters,
+    /// The game's goals with their progress, in the Game's order.
+    pub goals: Vec<GoalState>,
 }

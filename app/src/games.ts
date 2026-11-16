@@ -16,8 +16,8 @@ export interface Games extends Achievers {
 }
 
 /** A new game under a random, unguessable game_id, stored under its view_id. The core's state query supplies the Result,
- *  so new_game has the same shape as every other tool, with the id and the viewer's link as
- *  its report. */
+ *  so new_game has the same shape as every other tool, with the id, the game's goals as its
+ *  state shows them, and the viewer's link as its report. */
 export async function newGame({ core, store, viewOrigin, unixSeconds }: Games): Promise<CommandResult> {
   const gameId = crypto.randomUUID();
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
@@ -25,12 +25,13 @@ export async function newGame({ core, store, viewOrigin, unixSeconds }: Games): 
   const view = await viewId(gameId);
   await store.put(view, game);
   const { result } = own(core.apply(game, { type: "state" }));
-  return { ...result, report: { game_id: gameId, viewer_url: viewerUrl(viewOrigin, view) } };
+  return { ...result, report: { game_id: gameId, goals: result.state!.goals, viewer_url: viewerUrl(viewOrigin, view) } };
 }
 
 /** Runs one command on a stored game, stores what the core returns, and tells its viewers. What
  *  an accepted command counted goes to the player's lifetime totals, and Star Central's message
- *  for each rung reached joins the Result's events. A stored game the core can't read is
+ *  for each rung reached joins the Result's events, after the core's own, which end with any
+ *  goal of the game the command met. A stored game the core can't read is
  *  answered like an unknown one. */
 export async function runCommand(games: Games, gameId: string, command: Command): Promise<CommandResult> {
   const { core, store, viewers } = games;

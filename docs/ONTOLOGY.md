@@ -67,6 +67,7 @@ One name per concept. These names are used in code, tools and docs.
 | **Query** | A command that only reads state | |
 | **Event** | Something the game does in response to an action, reported as a message | |
 | **Counter** | A running count of one kind of thing that has happened in a game | |
+| **Goal** | One of the `GOALS_PER_GAME` things a game asks of its captain: an amount of one counter to reach within that game | objective |
 | **Lifetime total** | A player's count on one counter over all of that player's games | |
 | **Ladder** | The rising amounts a counter's lifetime total is measured against; each is a **rung** | |
 | **Achievement** | A lifetime total reaching a rung of its counter's ladder | commendation |
@@ -97,6 +98,7 @@ receives it, returns a new one, and never keeps it.
 | `startick` | int | The game clock, in whole starticks [D] |
 | `last_event_startick` | int | The clock when stardate events last ran, or when the ship entered the sector |
 | `counters` | Counters | What has happened in this game so far [D] |
+| `goals` | Goal[`GOALS_PER_GAME`] | This game's objectives, chosen from the seed at creation [D] |
 
 The event kinds and their order are fixed by the rules, not stored.
 
@@ -146,6 +148,22 @@ Both are set by the rule of D-43 from modeled whole games; their values are in t
 | `blasts_missed` | int | blasts that missed | no | Blasts that left their target untouched (Blast) |
 | `games_lost` | int | games lost | no | 1 once the game is lost, however it was lost (Game end) |
 | `times_stranded` | int | times stranded | no | 1 once the game is lost by the stranded rule (Game end) |
+
+### Goal
+*Serves: G-1, G-2, DYNAMICS Accumulation.* [D] One objective of one game: reach an amount on one
+counter within this game. A game has `GOALS_PER_GAME` of them, each on a different counter,
+chosen at creation by the Goal selection rule. A goal is measured on the game's own count, never
+on a lifetime total, and meeting it earns Star Central's message and nothing else (D-47).
+
+| Field | Type | Notes |
+|---|---|---|
+| `counter` | counter key | A counter that may be a goal and whose `goal_ceiling` is at least its first rung. Stored as the key; a key that names no counter doesn't parse |
+| `amount` | int | A rung of the counter's ladder at or below its `goal_ceiling` |
+| `met` | bool | False at creation; set by the Goal check rule, and never cleared |
+
+A Result shows each goal as a **GoalState**: `{counter, label, count, amount, met}`, where
+`label` is the counter's label and `count` is the game's count on that counter so far. `count`
+keeps rising after the goal is met. [P]
 
 ### Galaxy
 *Serves: G-2, F-discovery.* [D]
@@ -264,8 +282,9 @@ one table. Each **kind** of message is a row: its key, the names of its placehol
 |---|---|---|
 | `lifetime_commendation` | `amount`, `label` | A positive counter's lifetime total reaches a rung |
 | `lifetime_notoriety` | `amount`, `label` | A negative counter's lifetime total reaches a rung; the wordings are wry, not congratulatory [P] |
+| `objective_met` | `amount`, `label` | A goal of the game is met; the wordings speak of this patrol's orders, not of the captain's record [D] |
 
-`label` is the counter's label and `amount` the rung. Every wording opens with `Star Central`,
+`label` is the counter's label and `amount` the rung, or the goal's amount. Every wording opens with `Star Central`,
 and names the label as a heading of the record with the amount apart from it, so it reads right
 for every label and for an amount of 1. [P]
 
@@ -307,6 +326,8 @@ call on that object, which sends the frame to each of its sockets. [D]
 | PlayerStore *has* lifetime totals | 1 → 0..n players, each with 0..1 total per counter |
 | Counter *has* Ladder | 1 : 1, by the counter's `scale` |
 | Game *has* Galaxy, Ship, ActiveSector, Counters | 1 → 1 each |
+| Game *has* Goal | 1 → `GOALS_PER_GAME` |
+| Goal *is on* Counter | each goal 1 counter; a counter 0..1 goal of a game |
 | Galaxy *has* SectorRecord | 1 → 100 |
 | Ship *is in* Sector (`sector_yx`) | exactly one sector |
 | ActiveSector *is the live form of* the SectorRecord at `sector_yx` | 1 : 1 |
@@ -330,8 +351,10 @@ call on that object, which sends the frame to each of its sockets. [D]
 - A counter never decreases. [P]
 - A lifetime total never decreases, and each rung of a ladder is announced to a player at most
   once. [D]
+- A game has `GOALS_PER_GAME` goals on different counters, none on a negative counter. A goal's
+  counter and amount never change, and `met` only goes from false to true. [D]
 - A game's commands change no game's play through a Star Central message: picking a wording
-  never draws from a game's random stream. [D]
+  never draws from a game's random stream. Choosing a game's goals doesn't either. [D]
 - A refused command returns the game unchanged. [D]
 - Games are isolated: a command on one never changes another. [D]
 - Same seed, same start time and same commands give the same state. The core reads no clock:
@@ -372,12 +395,18 @@ once, the first time its sector is seen. [D]
 *Serves: G-2, F-discovery.* [D] Two kinds of stream, both deterministic:
 - **The game stream** `rng`, seeded from `seed` at creation and carried in the Game. Galaxy
   generation, enemy choices, blast kill rolls and enemy fire damage draw from it.
-- **A sector stream** `sector_rng(seed, sector_yx)`, fresh each time a sector is built, so a
-  sector's layout depends only on the seed, the sector and its record.
+- **A side stream** `side_rng(seed, index)`, made fresh from the seed and an index each time it
+  is needed and never stored. It depends on nothing else and leaves the game stream alone. Each
+  use owns its indices: a **sector stream** `sector_rng(seed, sector_yx)` per sector, so a
+  sector's layout depends only on the seed, the sector and its record; the **goals stream**
+  `goals_rng(seed)`, which chooses a game's goals; and a **goal message stream**
+  `goal_message_rng(seed, i)` per goal, which picks the wording that announces goal `i` as met.
 
-Neither stream picks a Star Central message's wording. The core takes that pick as a number in
-[0, 1) from its caller, and the app layer draws it from the platform's own random numbers, so
-the same seed and commands play the same game whatever is announced (D-46). [D]
+The game stream never picks a Star Central message's wording, so the same seed and commands
+play the same game whatever is announced. For a lifetime message the core takes the pick as a
+number in [0, 1) from its caller, and the app layer draws it from the platform's own random
+numbers (D-46). For a met goal the core takes it from the goal message stream, so the same
+seed and commands also give the same events (D-48). [D]
 
 ---
 
@@ -394,9 +423,25 @@ rng = seeded(seed);  galaxy = generate(rng)
 startick = floor(start_unix_seconds × STARTICKS_PER_STARDATE / SECONDS_PER_STARDATE) + STARDATE_EPOCH_OFFSET × STARTICKS_PER_STARDATE
 ship = full;  sector_yx = GALAXY_CENTER;  sector = instantiate(GALAXY_CENTER)
 last_event_startick = startick;  status = playing;  counters = all 0
+goals = select_goals(seed)
 ```
 The starting stardate is the real date: the Unix time in days plus `STARDATE_EPOCH_OFFSET`. The
 caller reads the clock and passes it in. [D]
+
+### Goal selection — *Serves: G-2, DYNAMICS Accumulation* [D]
+```
+select_goals(seed):
+rng = goals_rng(seed)
+amounts(counter) = the rungs of its ladder ≤ its goal_ceiling, if it may be a goal; else none
+offered = the counters of the counter table with at least one amount
+repeat GOALS_PER_GAME times:
+    counter = a uniform pick from offered, removed from it
+    goal = {counter, amount: a uniform pick from amounts(counter), met: false}
+```
+Every offered counter is equally likely and so is each of its amounts. The draws come from the
+goals stream, so a seed's galaxy and play are the same as they would be without goals. A
+negative counter, and a positive one whose ceiling is below its first rung, is never offered
+(D-47). [D; uniform picks are P]
 
 ### Galaxy generation — *Serves: G-2, F-discovery* [D]
 ```
@@ -525,6 +570,18 @@ than `sector_yx` (infinite if there is none), by the Warp rule's `cost`. Outside
 Central, Star Central is always that fallback. `STARBASE_EMERGENCY_ENERGY` is less than any
 warp costs: it pays for moving and fighting inside the starbase's sector, to dock (D-30).
 
+### Goal check — *Serves: G-1, F-command, DYNAMICS Accumulation* [D]
+Runs after every accepted action, after Game end. A query and a refused command check nothing.
+```
+for each goal i, in the game's order:
+    if goal.met or counters[goal.counter] < goal.amount: next
+    goal.met = true
+    events += message(objective_met, amount = goal.amount, label = the counter's label,
+                      roll = the first number of goal_message_rng(seed, i))
+```
+A goal is met once and stays met. One action can meet several goals, each with its own message.
+The message follows the game's own events, the end of the game included (D-48). [D]
+
 ### EnemiesTurn — *Serves: F-danger* [D]
 ```
 can_occur: enemies are present
@@ -608,6 +665,10 @@ apply the command;  if refused: return the result
 store the returned game, publish its view frame to the viewers
 append the Lifetime totals rule's messages to the result's events;  return the result
 ```
+`new_game` answers with the core's state query on the new game, and its report carries the
+`game_id`, the goals as that state shows them, and the viewer's link. A command's events are in
+this order: the game's own, then any goal met (Goal check, from the core), then any lifetime
+message (from the app layer). [D]
 
 ### Ladder — *Serves: F-command* [D]
 In the core, beside the counter table.
@@ -633,6 +694,9 @@ Every counter accumulates, the negative ones too, over all of the player's games
 counters start at 0, so nothing is added twice, and a game left midway keeps what it already
 added. The totals go to the player who issued the command, whoever started the game. Nothing
 guards against repeating a cheap action. Reaching a rung earns the message and nothing else. [D]
+Play toward a goal is ordinary play and counts here like any other. A goal met and a rung
+reached are announced separately, each in the command where it happens, which can be the same
+command. [D]
 
 ### Star Central message — *Serves: F-command* [D]
 In the core.
@@ -641,8 +705,8 @@ message(kind, roll, values): wording = the kind's wordings[floor(roll × WORDING
                              replace each {placeholder} of the kind with its value
 lifetime kind of a counter: lifetime_commendation if it may be a goal, else lifetime_notoriety
 ```
-`roll` is supplied by the caller (Random streams). The lifetime kind is chosen at this one
-place. [P]
+`roll` is supplied by the caller: the app layer for a lifetime message, the Goal check rule for
+`objective_met` (Random streams). The lifetime kind is chosen at this one place. [P]
 
 ---
 
@@ -706,6 +770,7 @@ Referred to by name everywhere else.
 | `SHIELD_REPLENISH` | 500 | hp per firing | D-27 |
 | `SHIELD_POINTS_PER_ENERGY` | 10 | hp per energy, in a sector and on a warp [T] | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
+| `GOALS_PER_GAME` | 3 | goals a new game sets, each on a different counter [D] | D-47 |
 | `COUNTER_SCALE` | `enemies_destroyed` 10; `shield_damage` 1000; `hull_damage` 100; every other counter 1 | each counter's `scale` in the counter table: the unit of its ladder [T] | D-43 |
 | `WORDINGS_PER_KIND` | 20 | wordings in every kind of Star Central message [D] | D-46 |
 | `COUNTER_GOAL_CEILING` | `enemies_destroyed` 127; `sectors_cleared` 41; `sectors_warped` 56; `docks` 18; `starbases_discovered` 3; `blasts_hit` 57; `torpedoes_fired` 67; `scans` 33; `games_won` 0; every counter that may not be a goal 0 | each counter's `goal_ceiling` in the counter table: the most a goal may ask, 0 for not offered [T] | D-43 |
@@ -724,7 +789,7 @@ Seven functions over JSON text. The core holds no state between calls.
 
 | Function | Input | Output |
 |---|---|---|
-| `new_game` | `seed: u32`, `start_unix_seconds` | Game |
+| `new_game` | `seed: u32`, `start_unix_seconds` | Game, with its goals chosen from the seed (Goal selection) |
 | `apply` | `game: Game`, `command: Command` | `{game: Game, result: Result}` |
 | `view` | `game: Game` | GameView |
 | `counter_table` | — | The counter table: `[{key, label, may_be_goal, scale, goal_ceiling}]`, a row per Counters field |
@@ -765,7 +830,9 @@ display rule. [D]
 **GameState:** `status, sector_yx, ship_yx, ship_hull, ship_max_hull, ship_shields,
 ship_max_shields, ship_energy, ship_max_energy, ship_quantorpedoes,
 ship_max_quantorpedoes, starbase_yx, enemies: EnemySight[], star_count, base_count, enemy_count,
-map: string[10], stardate: "ddd.dddd.dd.d", counters: Counters`.
+map: string[10], stardate: "ddd.dddd.dd.d", counters: Counters, goals: GoalState[]`.
+`goals` are the game's goals in the Game's order, each `{counter, label, count, amount, met}`
+(Goal), so every Result shows where they stand. [D]
 
 ### MCP tools (app layer) [D]
 One tool per core command, each taking `game_id` plus the command's args, and returning
@@ -773,14 +840,17 @@ the core Result. Plus:
 
 | Tool / prompt | Args | Returns |
 |---|---|---|
-| `new_game` | — | Result with `report: {game_id, viewer_url}`. `viewer_url` is the viewer's link, `<origin>/viewer?view=<view_id>`; it never holds the `game_id` [D] |
+| `new_game` | — | Result with `report: {game_id, goals, viewer_url}`. `goals` are the game's goals as `state.goals` shows them. `viewer_url` is the viewer's link, `<origin>/viewer?view=<view_id>`; it never holds the `game_id` [D] |
 | `whoami` | — | `{signed_in: true, player: <sub>}` on a signed-in endpoint, `{signed_in: false}` otherwise (D-41) [P] |
 | prompt `instructions` | — | The decorum and rendering instructions for the LLM, which `initialize` also returns as the server's instructions |
 
 The instructions reach the LLM as soon as its client connects, since `initialize` returns them;
 most clients load a prompt only when the user picks it. They cast it as the ship's computer,
 working closely with the captain to make the galaxy safe, and tell it to give the captain the
-`viewer_url` and then wait for orders rather than play on its own [D]. Facts about one tool go in
+`viewer_url` and then wait for orders rather than play on its own [D]. They tell it to present
+the game's three goals when the game starts, one short line each worded as an order, before the
+offer of a map and with the viewer link still last, and to report each goal's count against its
+amount when the captain asks [D]. Facts about one tool go in
 that tool's description: `subwarp`'s states the Subwarp rule's hostile-sector cap, so a move that
 stops short isn't a surprise [D]. The instructions say how to read a stardate and a duration (a
 stardate is a day), `state`'s description gives the stardate form, and each action's description
@@ -860,6 +930,7 @@ Each event is a string in the `events` list of a Result. Only the game's caller 
 | EnemyAdvance | `Enemy advanced from (a) to (b)` · `Enemy attempted to advance but path was blocked` |
 | Game end | `The ship is destroyed` · `Every enemy in the galaxy is destroyed` · `The ship is stranded without energy to reach a starbase` |
 | Emergency energy | `Starbase transfers emergency energy: n` |
+| Goal met (Goal check, after the game's other events) | One wording of `objective_met`, such as `Star Central to captain: objective met. This patrol's orders called for enemies destroyed: 50, and you have delivered.` One message per goal |
 | Lifetime total reaches a rung (app layer, after the core's events) | One wording of `lifetime_commendation` or `lifetime_notoriety`, such as `Star Central to captain: commendation. Your lifetime tally of enemies destroyed has reached 5000.` One message per rung |
 
 ### Client contract

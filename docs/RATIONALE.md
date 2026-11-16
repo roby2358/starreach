@@ -262,7 +262,7 @@ inferences, waiting for review.
   spaced by ratio, close together for a new player and far apart for an old one, and the scale
   sets the first rung at about a tenth of a typical game (D-43), so the first commendation on a
   counter comes early in a player's first game. The ladder is in the core because the core holds
-  the scales and the labels, and the same rungs will size a game's goals. The totals are outside
+  the scales and the labels, and the same rungs size a game's goals (D-47). The totals are outside
   the core because the core is a pure function of one game and knows no player. A new game's
   counters start at 0 and only a command's own difference is added, so nothing is counted twice
   and a game left midway keeps what it already added.
@@ -308,11 +308,12 @@ inferences, waiting for review.
   placeholders, and exactly `WORDINGS_PER_KIND` wordings; a wording is a whole message with
   `{name}` placeholders. Making a message is picking a wording and filling the placeholders. The
   pick comes from a number in [0, 1) that the caller supplies; the app layer draws it from the
-  platform's random numbers. There are two kinds: `lifetime_commendation` for a positive
-  counter's lifetime total reaching a rung, and `lifetime_notoriety` for a negative counter's.
+  platform's random numbers. Two kinds announce a lifetime total: `lifetime_commendation` for a
+  positive counter's total reaching a rung, and `lifetime_notoriety` for a negative counter's.
+  A third, `objective_met`, announces a game's goal (D-48).
 - **Alternatives:** one fixed sentence built in code from the amount and the label (no variety,
   and a sentence assembled by concatenation can't be translated); the wordings in the app layer
-  (the core will announce a game's met goals from the same table, and it can't call up into the
+  (the core announces a game's met goals from the same table, and it can't call up into the
   app); the pick drawn from the game's random stream (announcing something would then change
   the enemies' next rolls, so the same seed and commands would play differently for a player
   near a rung than for one far from it, and R-20's determinism would depend on a player's
@@ -333,6 +334,102 @@ inferences, waiting for review.
   without a label starting a sentence in lower case.
 - **Evidence:** R-38 tests: 20 distinct wordings per kind, each with its placeholders, each
   filled. Whether the wordings read well in play is unmeasured (U-14 is manual).
+
+### D-47 Three goals per game, each a random rung of a different counter under its ceiling, chosen from the seed — *Decided; uniform picks, the GoalState shape and the side stream are Proposed*
+- **Choice:** A new game sets `GOALS_PER_GAME` goals. Each is an amount of one counter to reach
+  within that game, measured on the game's own count. The counters are different, picked
+  uniformly from those that may be goals and whose `goal_ceiling` holds at least one rung of
+  their ladder; the amount is picked uniformly from the rungs at or below the ceiling. The core
+  chooses them at `new_game` from the seed, through a side stream of their own, and keeps them
+  in the Game as `{counter, amount, met}`. Every Result shows them in `state.goals` with the
+  counter's label and the count so far, and `new_game`'s report lists them. Meeting a goal earns
+  Star Central's message (D-48) and nothing else. Play toward a goal is ordinary play, so it
+  counts toward the lifetime total as well (D-44).
+- **Alternatives:** goals as lifetime amounts (not reachable in one game, and that is what the
+  ladder already is); always the highest rung under the ceiling (the same amount every time a
+  counter comes up, and the hardest one: a quarter of modeled games fall short of the ceiling
+  itself); an amount anywhere up to the ceiling, not a rung (odd numbers such as 37, and a
+  second scale of amounts beside the ladder's); two goals allowed on one counter (the smaller
+  is met on the way to the larger); goals chosen by the app layer (they would need a second
+  source of randomness and a place to keep them outside the Game, and a seed would no longer
+  give a whole game); drawing the choice from the game stream (every seed's enemy rolls would
+  shift, so every seeded test and every Modeled figure would move, for a choice that has
+  nothing to do with play); keeping the count inside the goal (it is the game's counter; a
+  copy could only disagree); a reward for meeting a goal (the designer wants none for now);
+  storing the counter as a bare key (a goal on a key that names no counter would sit unmet
+  for ever, silently).
+- **Why:** A game's only stated aim was to clear the galaxy, which roughly half the modeled games
+  never do. Three small aims give each game something to build toward and something to finish
+  that is short of winning, and they point at ordinary play, so they need no new rule of their own:
+  a counter, a ladder and a ceiling already exist (D-42, D-43). Sizing a goal by the game's own
+  count makes it the same for a new player and an old one. Different counters make the three
+  aims pull in different directions. Rungs keep the amounts round and few. The ceiling keeps
+  the largest amount within what three modeled games in four reach, and a random rung under it
+  makes most goals smaller than that: the designer asked for goals that are not too hard, and
+  to try a random rung and see how it plays. Choosing from the seed keeps the core a pure
+  function and makes a game reproducible from its seed, goals included; the side stream means
+  the galaxy and the play of a seed are exactly what they would be without goals (R-41).
+- **Proposed details:** the picks are uniform, over counters and over a counter's amounts. A
+  Result shows a goal as `{counter, label, count, amount, met}`, so a client can present and
+  track it without the counter table; `count` goes on rising after the goal is met. The goals
+  keep the order they were picked in. A goal's counter travels as its key and is read back
+  through the counter table, so a stored goal on an unknown counter doesn't parse.
+- **Stored games:** a game stored without `goals` doesn't parse and is not found (the Core
+  API's rule for stored games). No migration.
+- **Evidence:** R-41 and R-42 tests. Modeled by: `just cc-model-games 1000` (a scripted
+  captain, unverified in play). The captain doesn't know its goals and plays as it always does,
+  so these are the shares that ordinary play meets. The per-game counter figures are D-43's and
+  are unchanged by the goals.
+
+  | Goal on | A goal in, of games | Met | Met, by amount |
+  |---|---|---|---|
+  | `enemies_destroyed` | 38.3% | 90.3% | 10: 96%, 20: 97%, 50: 92%, 100: 78% |
+  | `sectors_cleared` | 38.8% | 98.2% | 1: 100%, 2: 100%, 5: 99%, 10: 98%, 20: 94% |
+  | `sectors_warped` | 36.3% | 94.8% | 1: 100%, 2: 100%, 5: 100%, 10: 97%, 20: 97%, 50: 77% |
+  | `docks` | 37.1% | 96.5% | 1: 100%, 2: 97%, 5: 96%, 10: 93% |
+  | `starbases_discovered` | 36.1% | 95.3% | 1: 99%, 2: 91% |
+  | `blasts_hit` | 37.7% | 94.2% | 1: 100%, 2: 100%, 5: 100%, 10: 95%, 20: 91%, 50: 80% |
+  | `torpedoes_fired` | 37.8% | 96.0% | 1: 100%, 2: 100%, 5: 98%, 10: 97%, 20: 97%, 50: 83% |
+  | `scans` | 37.9% | 98.7% | 1: 100%, 2: 100%, 5: 99%, 10: 99%, 20: 96% |
+
+  Each of the eight offered counters is a goal in three games of eight by the rule (37.5%), and
+  the sample is near it. Games that met none, one, two and all three of their goals: 0.5%, 2.5%,
+  7.0% and 90.0%. By arithmetic on the table, 41% of goals ask for 1 or 2, which ordinary play
+  meets within a few commands; whether that reads as too easy is for play to say (X-6 is
+  unmeasured).
+
+### D-48 The core announces a met goal with its own kind of message, worded from a side stream of the seed — *Decided; the stream and the wording form are Proposed*
+- **Choice:** After every accepted action, after the Game end rule, the core checks the goals. A
+  goal not yet met whose counter has reached its amount becomes met, for good, and one
+  `objective_met` message joins the command's events after the game's own. The kind has its own
+  `WORDINGS_PER_KIND` wordings, which speak of this patrol's orders. The wording is picked by
+  the first number of a side stream made from the seed and the goal's place among the game's
+  goals. A lifetime message for the same command comes after it, from the app layer (D-44).
+- **Alternatives:** the pick supplied by the caller, as for a lifetime message (`apply` would
+  take a number on every command, and its result would depend on something that is neither the
+  game nor the command); the pick drawn from the game stream (meeting a goal would move the
+  enemies' next rolls, so play would depend on which goals a game has, and the modeled figures
+  with it); the wording fixed by the goal's place alone (every game's first goal announced in
+  the same words); the roll stored in the Goal (state that follows from the seed); the app
+  layer announcing a goal by comparing `state.goals` before and after (the wordings and the
+  rule would sit on two sides of the boundary, and another client of the core would repeat
+  it); reusing `lifetime_commendation` (a goal and a lifetime rung on one counter can arrive
+  in one command, and the designer wants them told apart); checking the goals on queries too
+  (a query changes nothing, D-29).
+- **Why:** A goal belongs to one game, so everything about it can come from that game: the
+  check from its counters, the wording from its seed. That keeps `apply` a pure function of
+  the game and the command, makes the same seed and commands give the same events as well as
+  the same state, and leaves the game stream alone, so a game plays the same whatever its
+  goals are and whenever they are met (R-42). A lifetime total belongs to no game, which is
+  why its pick stays with the caller (D-46). A kind of its own lets the two messages differ in
+  voice: one is about today's orders, the other about a career.
+- **Proposed details:** the side stream is the one sectors use, keyed by the seed and an
+  index: sectors take 1 to 100, the goals stream the next index, and the goals' message
+  streams the ones after it. The wordings take the label as a heading with the amount apart
+  from it, as the lifetime kinds do, since a goal's amount can be 1. A goal met by the action
+  that ends the game is still announced, after the ending.
+- **Evidence:** R-42 tests, and R-38 for the kind's 20 wordings. Whether the wordings read
+  well in play is unmeasured (U-15 is manual).
 
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function

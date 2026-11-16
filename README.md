@@ -83,6 +83,10 @@ The game clock counts whole starticks, 400 to a stardate, and a stardate is a da
 
 Games stored before a change to the game's fields are not migrated: they answer "Game not found".
 
+## Goals
+
+Every game sets three goals, each an amount of a different counter to reach within that game, such as 50 enemies destroyed, 5 docks at a starbase or 10 long range scans (D-47). They are chosen from the game's seed, never on a negative counter such as damage taken, and sized as a random rung (1, 2, 5, 10, 20, 50…) at or below what most modeled games reach. `new_game` reports them in `report.goals`, the crew presents them when the game starts, and every result's `state.goals` shows each goal's count so far, its amount and whether it is met. When a command meets one, a message from Star Central arrives in that command's events (D-48). There is no other reward. Play toward a goal also counts toward the lifetime totals below, and the two are announced separately.
+
 ## Achievements
 
 The core counts what happens in a game (enemies destroyed, docks, shield damage taken and so on), and every count is added to the lifetime totals of the player who issued the command, across all their games (D-44). Each counter has a ladder of rungs, its scale × 1, 2, 5, 10, 20, 50…; when a total reaches a rung, a message from Star Central arrives in that command's events and the crew relays it. The message is one of 20 wordings, picked at random outside the game's own random stream (D-46). The negative counters have achievements too, with drier wordings. There is no tool that lists achievements.

@@ -1,8 +1,9 @@
 //! Whole games played by the scripted captain: per game, the counts the core keeps, how long the
 //! game ran and how it ended; and the counter table's `scale` and `goal_ceiling` that the rule
-//! of D-43 gives from them.
+//! of D-43 gives from them; and the goals the games set (D-47): how often each counter is one, how
+//! often the captain meets it, and how many of its goals a game meets.
 
-use starreach_core::constants::STARTICKS_PER_STARDATE;
+use starreach_core::constants::{GOALS_PER_GAME, STARTICKS_PER_STARDATE};
 use starreach_core::{counter_table, new_game, CounterRow, Game, Status};
 
 use crate::battle::START_UNIX_SECONDS;
@@ -137,8 +138,49 @@ fn print_counter_row(row: &CounterRow, sample: &Sample) {
     );
 }
 
+fn percent(part: usize, whole: usize) -> f64 {
+    100.0 * part as f64 / whole.max(1) as f64
+}
+
+/// For each counter that was some game's goal: the share of games it was a goal in, and of those
+/// the share the captain met, overall and at each amount.
+fn print_goal_rows(played: &[Played]) {
+    println!("{:22} {:>8} {:>6}   met at each amount", "goal on", "of games", "met");
+    for row in counter_table() {
+        let goals: Vec<_> = played.iter().flat_map(|p| &p.game.goals).filter(|goal| goal.counter.key == row.key).collect();
+        if goals.is_empty() {
+            continue;
+        }
+        let amounts: std::collections::BTreeSet<u32> = goals.iter().map(|goal| goal.amount).collect();
+        let by_amount: Vec<String> = amounts
+            .iter()
+            .map(|&amount| {
+                let asked: Vec<_> = goals.iter().filter(|goal| goal.amount == amount).collect();
+                format!("{amount}: {:.0}%", percent(asked.iter().filter(|goal| goal.met).count(), asked.len()))
+            })
+            .collect();
+        println!(
+            "{:22} {:7.1}% {:5.1}%   {}",
+            row.key,
+            percent(goals.len(), played.len()),
+            percent(goals.iter().filter(|goal| goal.met).count(), goals.len()),
+            by_amount.join(", ")
+        );
+    }
+}
+
+/// The share of games that met none, one, two and all of their goals.
+fn print_goals_met(played: &[Played]) {
+    let met = |p: &Played| p.game.goals.iter().filter(|goal| goal.met).count();
+    let shares: Vec<String> = (0..=GOALS_PER_GAME)
+        .map(|count| format!("{count}: {:.1}%", percent(played.iter().filter(|p| met(p) == count).count(), played.len())))
+        .collect();
+    println!("goals met per game, of {GOALS_PER_GAME}: {}", shares.join(", "));
+}
+
 /// N seeded games: how they ended, how long they ran, and each counter per game, with the
-/// `scale` and `goal_ceiling` the rule gives beside the ones the core's table holds.
+/// `scale` and `goal_ceiling` the rule gives beside the ones the core's table holds; then the
+/// games' goals.
 pub fn print_games(n: u32) {
     let played: Vec<Played> = (0..n).map(play).collect();
     let start = new_game(0, START_UNIX_SECONDS).startick;
@@ -153,4 +195,6 @@ pub fn print_games(n: u32) {
         let values = counters.iter().map(|c| c[row.key].as_f64().expect("the table's keys are counters"));
         print_counter_row(row, &Sample::of(values));
     }
+    print_goal_rows(&played);
+    print_goals_met(&played);
 }

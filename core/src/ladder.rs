@@ -28,6 +28,11 @@ pub fn rungs_crossed(scale: u32, before: u64, after: u64) -> Vec<u64> {
     rungs(scale).skip_while(|&rung| rung <= before).take_while(|&rung| rung <= after).collect()
 }
 
+/// The rungs at or below `ceiling`, in rising order: the amounts a goal under that ceiling may ask.
+pub fn rungs_up_to(scale: u32, ceiling: u64) -> Vec<u64> {
+    rungs_crossed(scale, 0, ceiling)
+}
+
 /// The last rung at or below `total` and the first above it. A ladder is practically endless:
 /// past its last u64 rung, `next` stays on that rung.
 pub fn standing(scale: u32, total: u64) -> Standing {

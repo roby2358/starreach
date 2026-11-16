@@ -44,6 +44,17 @@ export interface CounterRow {
   goal_ceiling: number;
 }
 
+/** One of a game's goals as a Result's `state.goals` and new_game's `report.goals` show it: the
+ *  counter's key and label, this game's count on it so far, the amount to reach, and whether it
+ *  has been met (ONTOLOGY Goal). */
+export interface GoalState {
+  counter: string;
+  label: string;
+  count: number;
+  amount: number;
+  met: boolean;
+}
+
 /** Where a lifetime total stands on its counter's ladder: the last rung it reached (null below
  *  the first) and the next one. */
 export interface LadderStanding {

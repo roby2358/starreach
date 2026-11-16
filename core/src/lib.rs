@@ -1,10 +1,11 @@
 //! Starreach core: the game rules as a pure function (ONTOLOGY "Core API", D-21).
 //!
 //! `new_game(seed, start_unix_seconds)` builds a Game: the caller reads the clock, the core
-//! never does. `apply(game, command)` returns the next Game and a Result. `view(game)` returns
-//! what a read-only display may see. `counter_table()` lists the counters a game keeps;
-//! `rungs_crossed`, `ladder_standing` and `commendation` are the ladder of a counter's lifetime
-//! total and Star Central's message for a rung. The core keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for
+//! never does, and the game's goals come from the seed. `apply(game, command)` returns the next
+//! Game and a Result. `view(game)` returns what a read-only display may see. `counter_table()`
+//! lists the counters a game keeps; `rungs_crossed`, `ladder_standing` and `commendation` are
+//! the ladder of a counter's lifetime total and Star Central's message for a rung. The core
+//! keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for
 //! the WASM boundary.
 
 pub mod actions;
@@ -14,6 +15,7 @@ pub mod events;
 pub mod galaxy;
 pub mod game;
 pub mod geometry;
+pub mod goals;
 pub mod ladder;
 pub mod messages;
 pub mod rng;
@@ -25,6 +27,7 @@ mod wasm;
 use serde::{Deserialize, Serialize};
 
 use actions::{Refusal, Report};
+use counters::counter_row;
 pub use counters::{CounterRow, Counters, COUNTER_TABLE};
 pub use game::{Game, GameState, Status};
 use geometry::{in_bounds, Yx};
@@ -71,10 +74,6 @@ pub fn counter_table() -> &'static [CounterRow] {
     &COUNTER_TABLE
 }
 
-fn counter_row(key: &str) -> Option<&'static CounterRow> {
-    COUNTER_TABLE.iter().find(|row| row.key == key)
-}
-
 /// The rungs of the counter's ladder that a lifetime total reached in going from `before` to
 /// `after`, in rising order (D-44). None for a key that names no counter.
 pub fn rungs_crossed(key: &str, before: u64, after: u64) -> Option<Vec<u64>> {
@@ -117,7 +116,8 @@ fn run(game: &mut Game, command: &Command, events: &mut Vec<String>) -> Result<O
     }
 }
 
-/// The checks every action shares: the game is still on, then the rule, then the game end.
+/// The checks every action shares: the game is still on, then the rule, then the game end and
+/// the goal check.
 fn action(
     game: &mut Game,
     events: &mut Vec<String>,
@@ -128,6 +128,7 @@ fn action(
     }
     let report = rule(game, events)?;
     actions::game_end(game, events);
+    goals::check(game, events);
     Ok(Some(report))
 }
 

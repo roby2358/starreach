@@ -247,6 +247,17 @@ Still open, for the designer:
 - Whether the amount (1000) is right for sustained fighting: it pays for one range-1 blast or ten torpedo shots' energy per action.
 - Whether the stranded test (the game is lost when energy is below the warp cost to the nearest other visible starbase and no starbase is in the sector) is still the right loss rule, when it can now end a game with up to 12530 energy left.
 ----
+Score:   45
+ID: goalfloor-3b77
+Created: 2026-11-16T02:08:08Z
+Updated: 2026-11-16T02:08:08Z
+
+Per-game goal amounts of 1 or 2 are met almost at once; consider a floor or a weighting.
+
+A game's three goals are each a uniformly random rung (scale × 1, 2, 5, 10, 20, 50…) of a counter's ladder at or below its goal_ceiling. The designer decided on a random rung, to try it and see how it plays. By arithmetic on the counter table, about 41% of goals ask for 1 or 2 (for example "1 long range scan", "1 sector warped to", "2 blasts that hit"), which ordinary play meets in the first few commands, so the objective-met message can arrive before the captain has done anything on purpose. In 1000 modeled games (`just cc-model-games 1000`, a scripted captain that doesn't know its goals) 90% of games met all three goals and 0.5% met none; goals at the largest rungs (50 or 100) were met in 77% to 83% of the games that had them.
+
+To settle with the designer after some real play: whether small goals are welcome as an easy first signal from Star Central, or whether amounts should have a floor per counter (such as a share of the ceiling), be weighted toward larger rungs, or be spread so that a game gets one small, one middling and one large goal. Also whether the scripted captain's meet rates are the right yardstick, since it never plays toward a goal.
+----
 Score:   75
 ID: goals-9atp
 Created: 2026-11-14T15:48:48Z

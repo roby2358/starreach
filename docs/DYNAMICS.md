@@ -24,6 +24,9 @@ it out and reports, and the galaxy gets more dangerous the farther you go from h
 Supporting: **Landmarks as Anchors / Home Base.** Star Central and the rare starbases are
 where you come back to resupply.
 
+Supporting: **Accumulation.** Each game sets three small objectives, and ordinary play adds up
+toward them.
+
 ## Key mechanics (one per driver)
 
 | Driver | Key mechanic | Status |
@@ -47,6 +50,7 @@ where you come back to resupply.
 | Every action must be paid for | Running dry far from home is a real danger | Loss Aversion, Escalating Commitment |
 | Hull 0 or being stranded away from a starbase loses; clearing the galaxy wins; a starbase rescues a stranded ship | Stakes, a reason to push outward, and starbases as refuges | Loss Aversion, Escalating Commitment, Landmarks |
 | Starbase hail on arrival | A reason to clear a sector ("needs assistance") | Guardianship (weak) |
+| Three goals per game from Star Central, each an amount of one counter (`GOALS_PER_GAME`), with a message when one is met [D] | Something to build toward and finish in a game that may never be won; a nudge toward a part of play this game (dock, scan, torpedo) | Accumulation and Windfall; Readable Consequences (Star Central says when) |
 | Stardate display, naval decorum | Flavor | Readable Consequences (voice) |
 
 ## Gut check
@@ -59,6 +63,8 @@ where you come back to resupply.
 - *Coming back to a sector, the stars are where you left them, but enemies are back at
   their posts.* Mostly intuitive; the reset of enemy positions may surprise.
 - *Docking repairs the hull.* Intuitive.
+- *Star Central sets objectives at the start and signals when one is met.* Intuitive. An
+  objective as small as one dock is met almost at once, which may read as no objective at all.
 
 ## Strategies
 
@@ -68,6 +74,9 @@ range with cover.
 and torpedoes (ammo), and plan a return to a starbase.
 **Late:** Deep sectors with many enemies. Spend torpedoes on targets out of blast range,
 and retreat to resupply.
+
+**Throughout:** the three goals tilt these choices: a goal on torpedoes fired or docks makes
+the scarce option worth taking sooner.
 
 ### Recurring tensions
 - Blast now at close range (cheap, but you're inside their damage falloff) vs. reposition first (a turn spent and time given to the enemy).
@@ -85,11 +94,13 @@ and retreat to resupply.
 | Warp out and back to re-roll a bad board | Sector layouts regenerate from the seed (D-26) | Prevented |
 | Ignore the hull | Hull 0 loses the game (D-23) | Prevented |
 | Dock-camp at Star Central | Docking needs a cleared sector; camping wins nothing, because winning means clearing the galaxy (D-23) | Prevented |
+| Farm a goal with a cheap action, such as scanning in place | None wanted: a met goal earns a message and nothing else (D-47), and each scan still costs `LRS_ENERGY` | Accepted |
 | Scan everything | `LRS_ENERGY` per scan; the scan is small next to `SHIP_MAX_ENERGY` | Weak |
 
 ## Strategy ↔ mechanic cross-check
 
-- **Mechanics no strategy uses:** none known. Shield recharge (D-27) and hull repair
+- **Mechanics no strategy uses:** none known. The goals (D-47) are used throughout: they add
+  no rule of play, only an aim. Shield recharge (D-27) and hull repair
   (D-7) feed "retreat to resupply"; per-enemy advance (D-10) lets small groups close in.
 - **Strategies that rely on missing rules:** none known. Running dry far from a starbase
   loses the game (D-30), so "plan a return to a starbase" is enforced.

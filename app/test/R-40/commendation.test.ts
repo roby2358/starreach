@@ -22,6 +22,8 @@ async function scan(deps: McpDeps, gameId: string): Promise<CommandResult> {
   return runCommand(deps, gameId, { type: "long_range_scan" });
 }
 
+/** The game's seed is random, so its own goals may be announced too (R-42): the tests pick out
+ *  the lifetime messages by the wording the roll of 0 gives. */
 function count(events: string[], message: string): number {
   return events.filter((event) => event === message).length;
 }
@@ -33,7 +35,7 @@ test("the commendation appears in the events exactly once when a rung is crossed
   const first = await scan(deps, gameId);
 
   assert.equal(count(first.events, commended("long range scans", 1)), 1);
-  assert.equal(first.events.filter((event) => event.includes("long range scans")).length, 1);
+  assert.equal(first.events.filter((event) => event.includes("lifetime tally of long range scans")).length, 1);
 });
 
 test("a command that crosses no rung carries no commendation, and a rung is announced once in a lifetime", async () => {
@@ -46,7 +48,7 @@ test("a command that crosses no rung carries no commendation, and a rung is anno
   const otherGame = (await newGame(deps)).report!.game_id as string;
   events.push((await scan(deps, otherGame)).events);
 
-  const announced = events.map((list) => list.filter((event) => event.includes("long range scans")));
+  const announced = events.map((list) => list.filter((event) => event.includes("lifetime tally of long range scans")));
 
   assert.deepEqual(announced, [
     [commended("long range scans", 1)],

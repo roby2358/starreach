@@ -81,3 +81,6 @@ pub const SHIELD_REPLENISH: i32 = 500;
 /// Shield points one unit of energy buys, in a sector and on a warp (D-27).
 pub const SHIELD_POINTS_PER_ENERGY: i32 = 10;
 pub const STARBASE_EMERGENCY_ENERGY: i32 = 1000;
+
+/// The goals a new game sets its captain, each on a different counter (D-47).
+pub const GOALS_PER_GAME: usize = 3;

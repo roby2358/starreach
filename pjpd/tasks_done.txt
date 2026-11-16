@@ -344,6 +344,33 @@ Q-7 (docs/RATIONALE.md): Docking restores shields, energy and quantorpedoes but 
 ----
 Priority:   55
 Status: Done
+ID: gamegoals-c2pt
+Created: 2026-11-16T00:40:27Z
+Updated: 2026-11-16T02:08:08Z
+
+Three goals per game: each new game gives the captain three explicit objectives, and Star Central says so when one is met.
+
+Decided [D]:
+- Each game has 3 goals. Each is on a different counter, chosen at random from the counters that may be goals (positive things the player needs to do: enemies destroyed, sectors cleared, docks, starbases discovered and the like). Negative counters (damage taken, games lost, times stranded) are never goals.
+- A goal is an amount achievable within that one game, and should not be too hard. It is measured on this game's own counts.
+- Progress toward a goal is ordinary play, so it also counts toward the player's lifetime achievement on that counter; the two are announced separately (first "you've met your objective of 100 enemies neutralized", and at some later time a commendation for a lifetime total).
+- Meeting a goal arrives as a message from Star Central in the command's events. No reward beyond the message for now. The message is a kind in the Star Central messages structure: 20 wordings with named placeholders, one picked at random each time. Write the 20 wordings for a met objective.
+- A goal's amount is picked as a random rung of the counter's ladder at or below a per-game ceiling; try it and see how it plays.
+
+This needs the core to count what happens in a game, and it needs the objective sizes: a per-game `goal_ceiling` on each goal-allowed row of the core's counter table, set from simulating whole games as the amount a typical game reaches comfortably.
+
+Settled design:
+- Goals live in the Game and are chosen by the core at new_game from the game's seed, so they are deterministic and need no player data: `goals: [{counter, amount, met}]`.
+- The ceiling is a [T] constant per counter set from the simulation; rungs are scale × 1, 2, 5, 10…. Counters whose ceiling allows no rung are not offered as goals.
+- After each accepted action the core checks the goals: a goal whose counter has reached its amount and is not yet met becomes met and adds one Star Central message to the events. A goal is met once.
+- new_game's report lists the three goals; GameState carries them with their progress (counter value and amount, met or not), so every Result shows where they stand.
+- public/instructions.txt: the crew presents the three goals when the game starts, and reports progress when asked.
+- Stored games from before this change have no goals and won't parse. No migration [D]: old games are wiped.
+
+Tests: a new game has 3 goals on 3 different goal-allowed counters, the same for the same seed; amounts are rungs at or below the ceiling; reaching the amount marks the goal met and emits the message exactly once; a goal doesn't unmeet; no negative counter is ever chosen (over many seeds). Update ONTOLOGY (the Goal entity, game creation, the goal check rule, the ceilings in the numbers table, GameState, the new_game report), CRITERIA (R-rows, and an X-row that can fail: for example fails if in most of 5 sessions the captain meets none of the three goals), DYNAMICS if the game has one (the driver the goals serve), RATIONALE (why per-game amounts, the selection rule, the ceilings with their Modeled Evidence), README and the log. Run `just cc-test-all`. Don't deploy.
+----
+Priority:   55
+Status: Done
 ID: justops-fu2a
 Created: 2026-11-14T17:14:44Z
 Updated: 2026-11-14T17:51:31Z

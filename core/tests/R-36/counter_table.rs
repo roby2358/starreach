@@ -21,6 +21,18 @@ fn the_table_has_a_row_for_every_counter_field_and_no_other() {
     assert_eq!(keys, fields);
 }
 
+/// Each field holds a different number, so a key that read another field would show.
+#[test]
+fn a_key_reads_its_own_field_of_the_counters() {
+    let numbered: serde_json::Map<String, serde_json::Value> =
+        counter_table().iter().enumerate().map(|(index, row)| (row.key.to_string(), (index + 1).into())).collect();
+    let counters: Counters = serde_json::from_value(numbered.into()).unwrap();
+    for (index, row) in counter_table().iter().enumerate() {
+        assert_eq!(counters.value(row.key), Some(index as u32 + 1), "{}", row.key);
+    }
+    assert_eq!(counters.value("no_such_counter"), None);
+}
+
 #[test]
 fn positive_counters_may_be_goals_and_negative_ones_may_not() {
     assert_eq!(keys_where(true), POSITIVE);

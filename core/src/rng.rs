@@ -9,6 +9,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use crate::geometry::Yx;
 
 const GOLDEN_GAMMA: u64 = 0x9E37_79B9_7F4A_7C15;
+/// The first side-stream index past the sectors' (a galaxy has 100).
+const GOALS_STREAM_INDEX: u64 = 101;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rng {
@@ -21,11 +23,27 @@ impl Rng {
         Rng { state: seed as u64 }
     }
 
-    /// A sector stream: depends only on the seed and the sector.
-    pub fn for_sector(seed: u32, sector_yx: Yx) -> Rng {
-        let index = (sector_yx.0 * 10 + sector_yx.1 + 1) as u64;
+    /// A side stream: depends only on the seed and `index`, and never touches the game stream.
+    /// Each use owns its indices: sectors 1..=100, the goals `GOALS_STREAM_INDEX`, and a goal's
+    /// message the indices after that.
+    fn side(seed: u32, index: u64) -> Rng {
         let mut mixer = Rng { state: ((seed as u64) << 32) ^ index.wrapping_mul(GOLDEN_GAMMA) };
         Rng { state: mixer.next_u64() }
+    }
+
+    /// A sector stream: depends only on the seed and the sector.
+    pub fn for_sector(seed: u32, sector_yx: Yx) -> Rng {
+        Rng::side(seed, (sector_yx.0 * 10 + sector_yx.1 + 1) as u64)
+    }
+
+    /// The goals stream: chooses a game's goals, from the seed alone (D-47).
+    pub fn for_goals(seed: u32) -> Rng {
+        Rng::side(seed, GOALS_STREAM_INDEX)
+    }
+
+    /// The stream that picks the wording announcing the game's goal `goal_index` as met (D-48).
+    pub fn for_goal_message(seed: u32, goal_index: usize) -> Rng {
+        Rng::side(seed, GOALS_STREAM_INDEX + 1 + goal_index as u64)
     }
 
     pub fn next_u64(&mut self) -> u64 {

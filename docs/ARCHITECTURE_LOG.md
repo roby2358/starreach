@@ -3,6 +3,30 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — Three goals per game, and Star Central says when one is met
+A game had no aim but clearing the galaxy. Now `new_game` sets `GOALS_PER_GAME` goals from the
+seed, each a random rung of a different offered counter at or below its `goal_ceiling`, and
+after every accepted action the core marks a goal met when its counter reaches the amount and
+adds an `objective_met` message to the events. Added: D-47 (the goals and how they are chosen),
+D-48 (the announcement); R-41, R-42; U-15 (manual) and X-6; the Goal entity, the Goal selection
+and Goal check rules, `GOALS_PER_GAME`, and a DYNAMICS entry. U-4's opening now includes the
+goals. D-44 and D-46 said the core "will" size and announce goals; they now say it does, and
+D-46 names the third kind.
+
+The core gained `goals.rs`; the Game a `goals` field; GameState `goals`, each
+`{counter, label, count, amount, met}`; `messages.rs` a third kind with 20 wordings; `Counters`
+a read by key; `ladder.rs` the rungs under a ceiling. `Rng::for_sector` became one use of a
+side stream keyed by the seed and an index, with the same values as before; the goals and each
+goal's wording take further indices, so the galaxy, the sector layouts and the game stream of
+a seed are unchanged, and `just cc-model-games 1000` gives the same counter figures as before.
+The wording of a met goal comes from the seed, where a lifetime message's comes from the
+caller: "neither stream picks a wording" in ONTOLOGY's Random streams became "the game stream
+never does". The app layer's `new_game` report gained `goals`, and the tool descriptions and
+the instructions tell the LLM to present the goals at the start and report progress when
+asked. `cc-model-games` also prints how often each counter is a goal and how often the
+scripted captain meets it. Games stored before this have no goals and no longer parse: they
+answer "Game not found". No migration.
+
 ### 2026-11-16 — Lifetime totals per player, a ladder per counter, and commendations from Star Central
 A game's counters ended with the game. Now what each accepted command counts is added to the
 lifetime totals of the player who issued it, and when a total reaches a rung of its counter's

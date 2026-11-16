@@ -106,3 +106,9 @@ mod r_37_ladder;
 
 #[path = "R-38/star_central_messages.rs"]
 mod r_38_star_central_messages;
+
+#[path = "R-41/goals_at_creation.rs"]
+mod r_41_goals_at_creation;
+
+#[path = "R-42/goal_check.rs"]
+mod r_42_goal_check;

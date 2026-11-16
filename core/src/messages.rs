@@ -3,7 +3,7 @@
 //! Each kind of message is a row of `MESSAGE_TABLE`: a key, the placeholders its wordings carry
 //! as `{name}`, and exactly `WORDINGS_PER_KIND` wordings. A wording is a whole message; code
 //! only picks one and fills its placeholders, and never builds a sentence. The pick is made from
-//! a number the caller supplies, so no message draws from a game's random stream.
+//! a number the caller of `compose` supplies, so no message draws from a game's random stream.
 
 use crate::counters::CounterRow;
 
@@ -14,6 +14,9 @@ pub const LIFETIME_COMMENDATION: &str = "lifetime_commendation";
 /// A lifetime total of a negative counter reached a rung.
 pub const LIFETIME_NOTORIETY: &str = "lifetime_notoriety";
 
+/// A goal of the game was met (D-48).
+pub const OBJECTIVE_MET: &str = "objective_met";
+
 pub struct MessageKind {
     pub key: &'static str,
     /// The names every wording of this kind carries, each written `{name}` in the wording.
@@ -21,15 +24,16 @@ pub struct MessageKind {
     pub wordings: [&'static str; WORDINGS_PER_KIND],
 }
 
-/// `{label}` is a counter's label and `{amount}` the rung its total reached. A label is plural
-/// and lower case, so every wording names the label as a heading of the record and gives the
-/// amount apart from it: it reads right for an amount of 1 and never starts a sentence.
-const LIFETIME_PLACEHOLDERS: [&str; 2] = ["amount", "label"];
+/// `{label}` is a counter's label and `{amount}` the amount reached on it: a rung of its lifetime
+/// total, or a goal's amount. A label is plural and lower case, so every wording names the label
+/// as a heading of the record and gives the amount apart from it: it reads right for an amount
+/// of 1 and never starts a sentence.
+const COUNTER_PLACEHOLDERS: [&str; 2] = ["amount", "label"];
 
-pub const MESSAGE_TABLE: [MessageKind; 2] = [
+pub const MESSAGE_TABLE: [MessageKind; 3] = [
     MessageKind {
         key: LIFETIME_COMMENDATION,
-        placeholders: &LIFETIME_PLACEHOLDERS,
+        placeholders: &COUNTER_PLACEHOLDERS,
         wordings: [
             "Star Central to captain: commendation. Your lifetime tally of {label} has reached {amount}.",
             "Star Central: entered in the fleet record this stardate, {label}: {amount}. Well done, captain.",
@@ -55,7 +59,7 @@ pub const MESSAGE_TABLE: [MessageKind; 2] = [
     },
     MessageKind {
         key: LIFETIME_NOTORIETY,
-        placeholders: &LIFETIME_PLACEHOLDERS,
+        placeholders: &COUNTER_PLACEHOLDERS,
         wordings: [
             "Star Central to captain: this is not a commendation. Your lifetime tally of {label} has reached {amount}.",
             "Star Central: the fleet record, regrettably, is thorough. Entered this stardate, {label}: {amount}.",
@@ -77,6 +81,32 @@ pub const MESSAGE_TABLE: [MessageKind; 2] = [
             "Star Central: the wardroom betting pool has paid out. Your tally of {label} has reached {amount}.",
             "Star Central: still in command, captain, and that counts for something. On the ledger, {label}: {amount}.",
             "Star Central: Fleet Command reminds you that the ship is on loan. Your record of {label} has reached {amount}.",
+        ],
+    },
+    MessageKind {
+        key: OBJECTIVE_MET,
+        placeholders: &COUNTER_PLACEHOLDERS,
+        wordings: [
+            "Star Central to captain: objective met. This patrol's orders called for {label}: {amount}, and you have delivered.",
+            "Star Central: strike one objective from your orders. Under {label}, the required {amount} is confirmed.",
+            "Star Central: signal received and understood. Patrol objective achieved, {label}: {amount}. Well done.",
+            "Star Central: the operations board shows a green light beside {label}. Target of {amount} reached on this patrol.",
+            "Star Central: Bravo Zulu. We asked this patrol for {label} to the number of {amount}, and you have answered.",
+            "Star Central: objective complete, captain. The target for {label} was {amount}, and your log shows it met.",
+            "Star Central: Fleet Command set you a mark of {amount} under {label} for this patrol. Mark made. Carry on.",
+            "Star Central: the duty officer has ticked a box with some satisfaction. Patrol objective, {label}: {amount}, is done.",
+            "Star Central: your orders listed {label}: {amount}. Consider that line of them discharged, with our thanks.",
+            "Star Central: the Raxxon will not care to hear it, but this patrol's objective of {amount} under {label} is met.",
+            "Star Central to all hands: your captain has met a patrol objective. On the board, {label}: {amount}. An extra ration tonight.",
+            "Star Central: one objective down, captain. Your orders read {label}: {amount}, and the clerks have stamped that line complete.",
+            "Star Central: the Admiral's staff wagered you would not reach {amount} under {label} on this patrol. The staff is buying.",
+            "Star Central: mission tally checked against your orders. Required for {label}: {amount}. Achieved, and noted.",
+            "Star Central: that is how a patrol is run, captain. Objective for {label} reached at {amount}.",
+            "Star Central: the plotting room has moved your marker forward. Patrol target of {amount} for {label} is met.",
+            "Star Central: orders are easier written than carried out, and you carried these out. Objective met, {label}: {amount}.",
+            "Star Central: your yeoman may enter it in the log. This patrol's objective, {label}: {amount}, achieved this stardate.",
+            "Star Central: a clean piece of work. Fleet Command asked this patrol for {amount} under {label} and has received it.",
+            "Star Central: objective achieved, captain. With {label} at the ordered {amount}, the flag sends its compliments.",
         ],
     },
 ];
@@ -111,9 +141,18 @@ pub fn lifetime_kind(row: &CounterRow) -> &'static str {
     }
 }
 
+/// A message of a kind that takes a counter's label and an amount.
+fn counter_message(kind: &str, row: &CounterRow, amount: u64, roll: f64) -> String {
+    let amount = amount.to_string();
+    compose(kind, roll, &[("amount", &amount), ("label", row.label)]).expect("the kind takes an amount and a label")
+}
+
 /// Star Central's message for the counter's lifetime total reaching the rung `amount`.
 pub fn lifetime_message(row: &CounterRow, amount: u64, roll: f64) -> String {
-    let values = [("amount", amount.to_string()), ("label", row.label.to_string())];
-    let values: Vec<(&str, &str)> = values.iter().map(|(name, value)| (*name, value.as_str())).collect();
-    compose(lifetime_kind(row), roll, &values).expect("the lifetime kinds take an amount and a label")
+    counter_message(lifetime_kind(row), row, amount, roll)
+}
+
+/// Star Central's message for a game's goal of `amount` on the counter being met.
+pub fn objective_message(row: &CounterRow, amount: u64, roll: f64) -> String {
+    counter_message(OBJECTIVE_MET, row, amount, roll)
 }
