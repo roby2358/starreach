@@ -9,15 +9,18 @@ Keep the game clock in whole starticks and show it as a stardate with three deci
 Decided [D]:
 - The clock is counted internally in starticks, whole numbers. 400 starticks make one stardate, so a stardate is a day and a startick is 3.6 minutes.
 - In-sector times stay the numbers they are today, now read as starticks: a subwarp step 1, a torpedo 1, a blast 1 to 3, a long range scan 3, docking 5, and the interval at which enemies act and shields recharge 3. Nothing about how a battle plays changes. A typical battle is about 5 starticks (18 minutes).
-- The stardate is shown to three decimal places in the form `dddd.dd.d`: the whole stardates, then the first two decimals, then the third, for example 4721.36.5 for stardate 4721.365. This replaces today's `99-9999-99` form of an 8-digit whole number.
+- The stardate is shown to three decimal places in the form `ddd.dddd.dd.d`: seven whole digits split three and four, then the first two decimals, then the third, for example 102.0773.36.5 for stardate 1020773.365. This replaces today's `99-9999-99` form of an 8-digit whole number.
+- A game starts at a stardate taken from the real date: the Unix time in seconds, plus or minus a fixed offset, divided by 86400 (a stardate is a day), with the offset chosen so the result is a low seven-digit number with its fraction.
+- Durations (the `time` an action reports) are given in stardates, written to three decimals in the same style, `dddd.dd.d` without padding the whole part (a warp of 1.04 stardates reads 1.04.0; a torpedo's single startick reads 0.00.2).
+- No migration. Nobody has a production game going: stored games from before this change are wiped.
 
 Do:
 - core: replace the f64 `stardate` and `last_event_stardate` on Game with whole startick counts (name them for what they are, e.g. `startick`, `last_event_startick`), and make every time constant and every `time` a whole number of starticks. Add STARTICKS_PER_STARDATE = 400. Blast time is already truncated to a whole number. Warp time is today a fraction (distance × WARP_TIME_PER_DISTANCE); until the warp time rule is replaced, round it to a whole startick.
-- The displayed stardate is derived in one place from the startick count: whole stardates = ticks / 400, decimals from the remainder, truncated to three places, formatted `dddd.dd.d`. One startick is 0.0025 stardates, so every startick changes the display.
-- The starting stardate: today a game starts at a whole stardate drawn from STARDATE_START (1,000,000 to 2,000,000), which is seven digits, not `dddd`. Proposed [P]: draw a four-digit starting stardate (for example 1000 to 8999) so the form holds for a whole game; confirm the range with the designer.
-- What the `time` field in action reports carries: proposed [P] whole starticks, with the tool descriptions and public/instructions.txt saying that 400 starticks are one stardate, so the crew can report durations sensibly. Confirm with the designer.
+- The displayed stardate and a displayed duration are derived in one place from a startick count: whole stardates = ticks / 400, decimals from the remainder, truncated to three places. One startick is 0.0025 stardates, so every startick changes the display.
+- The starting stardate: today it is a whole number drawn from STARDATE_START by the game's seeded rng. Replace that with the real date as decided. The core stays a pure function, so the start time is an input to it: the adapter reads the clock and passes it to new_game beside the seed (proposed [P]: Unix seconds in, converted to starticks in the core with a STARDATE_EPOCH_OFFSET constant, for example an offset of 1,000,000 stardates so a game started in late 2026 begins near stardate 1,020,770). Same seed, same start time and same commands still give the same game; tests pin the start time.
+- Action reports carry `time` as the formatted stardate duration. Say in the tool descriptions and public/instructions.txt how to read a stardate and a duration (a stardate is a day), so the crew reports them sensibly.
 - GameState.stardate (the string), the GameView the viewer page receives, and the viewer page's stardate display (public/) all show the new form. Check the page's layout with the new string and update the committed screenshot script if it asserts on it.
-- Stored games from before this change hold the old f64 fields and won't parse. No migration: say so to the user, who decides whether deployed games are wiped.
+- Stored games from before this change hold the old f64 fields and won't parse; that is accepted. Make sure a game that doesn't parse answers as an unknown game and doesn't crash the server.
 
 Tests: the stardate format (whole, boundary and remainder cases, truncation not rounding); every action advances the clock by a whole number of starticks; the event interval still fires on the same actions as before (the existing stardate-event tests, in starticks). Update ONTOLOGY (Game fields, the stardate display rule, the numbers table with units in starticks), CRITERIA, RATIONALE (why whole ticks: no floating-point drift in the interval check; why 400; the display form), the tool descriptions, README, and a log entry. Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
@@ -41,7 +44,7 @@ Balance to check before settling the numbers: today warp energy is 100 per secto
 
 This needs the clock in whole starticks first.
 
-A draft exists, uncommitted in the working tree, built before these decisions. It keeps linear time and sets WARP_TIME_PER_DISTANCE to 2. Adopt what still fits and replace the rest:
+An interim version is already committed, built before these decisions. It keeps linear time and sets WARP_TIME_PER_DISTANCE to 2. Adopt what still fits and replace the rest:
 - core/src/actions.rs: keep `warp_time(from, to)` with the new formula, using the distance in sectors (`euclid`) and rounding to the nearest startick; `warp_cost` becomes warp_time × WARP_ENERGY_PER_TICK, so every caller (the warp rule and the stranded check) follows. Remove `warp_distance` if nothing else needs it, and decide what the warp report's `distance` field carries (proposed: drop it, since `time` and `energy_cost` say what the captain needs).
 - core/src/constants.rs: replace WARP_TIME_PER_DISTANCE, WARP_DISTANCE_SCALE and WARP_ENERGY_PER_DISTANCE with WARP_TIME_K = 600 and WARP_ENERGY_PER_TICK = 10.
 - core/tests/R-4/warp.rs: the clock rises by the formula and energy drops by time × WARP_ENERGY_PER_TICK; the shortest warp outlasts a long battle (keep the draft's benchmark constant, in starticks); a longer warp takes longer and costs more, checked over every distance on the map since rounding must not break it. Update the stranded rule's tests for the new cost.
@@ -92,7 +95,7 @@ The core counts what happens in a game. Each Game carries a set of counters that
 
 Why: today a game records nothing about what happened. Kills and damage exist only as text in a command's events, so nothing can total them. The counts must come from the core so they are authoritative.
 
-One table of counters in the core, one row each: key, display label, and whether it may be a goal [D]. Positive counters may be goals; negative ones are for achievements only.
+One table of counters in the core, one row each: key, display label, and whether it may be a goal. The list below is decided [D]. Positive counters may be goals; negative ones are for achievements only.
 - Positive: enemies_destroyed (an enemy is removed by a blast or torpedo); sectors_cleared (the last enemy in the ship's sector is destroyed); sectors_warped (a warp completes); docks (a dock is accepted); starbases_discovered (a sector with a starbase becomes visible for the first time, by warp or long range scan; the starting sector's doesn't count); blasts_hit (a blast destroys its target); torpedoes_fired; scans (a long range scan is accepted); games_won.
 - Negative: shield_damage (points taken from shields by enemy fire); hull_damage (points taken from the hull); blasts_missed; games_lost; times_stranded (the game ends by the stranded rule).
 
@@ -101,7 +104,7 @@ Do:
 - GameState gains `counters`, so every Result shows the game's counts, and a caller can take the difference between two Results.
 - The counter table is the single source for keys, labels and the may-be-a-goal flag; expose it through the core API so the app, the viewer and the docs don't repeat the list.
 - Refused commands change nothing, as for all state. The counters are deterministic: same seed and commands give the same counts.
-- Stored games from before this change have no counters and won't parse. No migration: tell the user, who decides whether deployed games are wiped.
+- Stored games from before this change have no counters and won't parse. No migration [D]: old games are wiped.
 
 Tests (one rule each): each counter rises by the right amount on its event and not otherwise (a missed blast raises blasts_missed and not blasts_hit; damage absorbed by shields counts as shield damage and the rest as hull damage; a starbase seen twice counts once); a new game starts at zero; a refused command leaves counters unchanged. Update ONTOLOGY (the Counters entity with its field table, the counter table, GameState, each rule's pseudocode where it counts), CRITERIA (an R-row), RATIONALE (why the core counts; the list and the goal flag) and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
@@ -117,6 +120,8 @@ Decided [D]:
 - A player has a long list of achievements. Each is a lifetime total on one counter reaching a rung of that counter's ladder. Ladders follow 1, 2, 5, 10, 20, 50, 100… and are practically endless; each counter has its own scale, for example enemies destroyed in 10s (10, 20, 50, 100…), docks in 1s, shield damage in 1000s, hull damage in 100s. One template (counter, scale, rung) makes the whole list; no achievement is a special case.
 - Every counter always accumulates, across all of the player's games. Negative counters (damage taken, games lost, times stranded) have achievements too; they are the funny ones. Farming is fine: no guards against repeating a cheap action.
 - Reaching a rung arrives as a message from Star Central in the command's events, which the crew relays, for example "Star Central: commendation, 5000 enemies neutralized". No reward beyond the message for now.
+- Messages from Star Central come from a messages structure: each kind of message (a commendation for a lifetime total is one kind) has a list of 20 wordings with named placeholders (the amount, the counter's label), and one wording is picked at random each time, for variety. Build the structure so that it could later become a localization scheme (kinds keyed by name, wordings as data, no sentence built by concatenation in code), but only the variation is needed now. Write the 20 wordings; be creative and stay in the game's naval voice.
+- There is no MCP tool for achievements. A player sees their achievements only on the viewer.
 - Totals are kept per player as counter name to total. Locally there is no permanent storage: an in-memory store behind the same interface supports a playthrough. Deployed, a key-value shape.
 - Totals go to the signed-in player who issued the command. This does not need games to have owners.
 
@@ -127,10 +132,11 @@ Proposed [P], confirm with the designer while building:
 - A `PlayerStore` interface in the app: read a player's totals, and add a set of increments and return the totals before and after. An in-memory implementation for the Node adapter and tests. On Cloudflare, one Durable Object per player (keyed by the player id), so increments are applied one at a time and none is lost; this needs a new Durable Object class and its migration entry in the wrangler config.
 - In the app's command path: after an accepted command, the increments are the difference between the game's counters before and after; add them to the player's totals; for each rung crossed append one Star Central message to the Result's events. One command can cross several rungs on several counters; each gets its own message.
 - With no sign-in (the local Node adapter), totals belong to a single local player for the life of the process.
-- An MCP tool, `achievements`, that returns the caller's totals, the rungs reached and the next rung on each counter, so the crew can answer "how am I doing?". Add a line to public/instructions.txt on when to use it and on relaying Star Central's messages in character.
+- Where the messages structure lives: one place that both the core (which will announce met goals) and the app layer (which announces lifetime rungs) can use, proposed the core, with the pick made from a random number the caller supplies so tests can pin it.
+- Add a line to public/instructions.txt on relaying Star Central's messages in character, and on pointing the captain to the viewer for achievements.
 - A new game's counters start at zero, so nothing is added twice; a game abandoned midway keeps what it already contributed.
 
-Tests: the ladder (rungs for a scale, several rungs crossed at once, none crossed); totals accumulate across two games of one player and not across players; the commendation appears in the events exactly once when a rung is crossed; a refused command adds nothing; the Cloudflare player object keeps totals between requests (in adapters/cloudflare/test). Update ONTOLOGY (Player totals, the ladder rule, the scales in the numbers table as [T], the MCP tools table, the events), CRITERIA (R-rows), RATIONALE (the template, the storage choice and why not an eventually consistent key-value store, the scales with their Modeled Evidence), README and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
+Tests: the ladder (rungs for a scale, several rungs crossed at once, none crossed); every message kind has exactly 20 wordings and each fills its placeholders; totals accumulate across two games of one player and not across players; the commendation appears in the events exactly once when a rung is crossed; a refused command adds nothing; the Cloudflare player object keeps totals between requests (in adapters/cloudflare/test). Update ONTOLOGY (Player totals, the ladder rule, the scales in the numbers table as [T], the MCP tools table, the events), CRITERIA (R-rows), RATIONALE (the template, the storage choice and why not an eventually consistent key-value store, the scales with their Modeled Evidence), README and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
 Priority:   70
 Status: ToDo
@@ -168,17 +174,18 @@ Decided [D]:
 - Each game has 3 goals. Each is on a different counter, chosen at random from the counters that may be goals (positive things the player needs to do: enemies destroyed, sectors cleared, docks, starbases discovered and the like). Negative counters (damage taken, games lost, times stranded) are never goals.
 - A goal is an amount achievable within that one game, and should not be too hard. It is measured on this game's own counts.
 - Progress toward a goal is ordinary play, so it also counts toward the player's lifetime achievement on that counter; the two are announced separately (first "you've met your objective of 100 enemies neutralized", and at some later time a commendation for a lifetime total).
-- Meeting a goal arrives as a message from Star Central in the command's events. No reward beyond the message for now.
+- Meeting a goal arrives as a message from Star Central in the command's events. No reward beyond the message for now. The message is a kind in the Star Central messages structure: 20 wordings with named placeholders, one picked at random each time. Write the 20 wordings for a met objective.
+- A goal's amount is picked as a random rung of the counter's ladder at or below a per-game ceiling; try it and see how it plays.
 
 This needs the core to count what happens in a game, and it needs the objective sizes, which come from simulating whole games: for each counter, the amounts a typical game reaches comfortably.
 
 Proposed [P], confirm with the designer while building:
 - Goals live in the Game and are chosen by the core at new_game from the game's seed, so they are deterministic and need no player data: `goals: [{counter, amount, met}]`.
-- A goal's amount is a rung of that counter's ladder (scale × 1, 2, 5, 10…), drawn at random from the rungs at or below that counter's per-game ceiling, a [T] constant per counter set from the simulation. Counters whose ceiling allows no rung are not offered as goals.
+- The ceiling is a [T] constant per counter set from the simulation; rungs are scale × 1, 2, 5, 10…. Counters whose ceiling allows no rung are not offered as goals.
 - After each accepted action the core checks the goals: a goal whose counter has reached its amount and is not yet met becomes met and adds one Star Central message to the events. A goal is met once.
 - new_game's report lists the three goals; GameState carries them with their progress (counter value and amount, met or not), so every Result shows where they stand.
 - public/instructions.txt: the crew presents the three goals when the game starts, and reports progress when asked.
-- Stored games from before this change have no goals and won't parse. No migration: tell the user, who decides whether deployed games are wiped.
+- Stored games from before this change have no goals and won't parse. No migration [D]: old games are wiped.
 
 Tests: a new game has 3 goals on 3 different goal-allowed counters, the same for the same seed; amounts are rungs at or below the ceiling; reaching the amount marks the goal met and emits the message exactly once; a goal doesn't unmeet; no negative counter is ever chosen (over many seeds). Update ONTOLOGY (the Goal entity, game creation, the goal check rule, the ceilings in the numbers table, GameState, the new_game report), CRITERIA (R-rows, and an X-row that can fail: for example fails if in most of 5 sessions the captain meets none of the three goals), DYNAMICS if the game has one (the driver the goals serve), RATIONALE (why per-game amounts, the selection rule, the ceilings with their Modeled Evidence), README and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
@@ -197,7 +204,7 @@ This needs goals in the game (three per game, with progress and met or not) and 
 Do:
 - Goals: the GameView the page receives carries the game's three goals with progress (counter label, current count, amount, met). The page shows them in a small panel, each with its progress, and marks a goal met when it happens.
 - Achievements: for each counter, the player's lifetime total, the last rung reached and the next rung. These come from the player's totals, not from the game, so the frame sent to viewers needs them added by the app layer. A frame is sent after each command (the commanding player is known then) and also when a viewer first connects, when no command is in hand: the game must therefore remember which player started it, stored beside the game when new_game runs. With no sign-in (local play) that is the single local player.
-- Keep the panel compact: the sector board, galaxy map and ship status stay the page's subject. Proposed [P]: goals always visible; achievements in a collapsible list ordered by how close the next rung is, with negative counters shown as well. Confirm the layout with the designer, using the committed screenshot script to show it.
+- Layout [D]: be creative. A button that opens a scrollable panel is fine. The sector board, galaxy map and ship status stay the page's subject. Proposed [P]: the three goals always visible in a small strip; a button opens the scrollable achievements panel, ordered by how close the next rung is, with negative counters shown as well. Show the designer the result with the committed screenshot script.
 - When a goal is met or a rung reached, the page may flash that row; no sound, no modal.
 - The page never shows the player's id.
 - Plain HTML, CSS and JS with no build step, as the page is today. Use the existing CSS custom properties for colour.
