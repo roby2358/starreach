@@ -11,6 +11,12 @@ CF_PIDFILE := CF_RUN / "pids/cf.pid"
 CF_LOG := CF_RUN / "logs/cf.log"
 # Where cc-setup puts what a rebuilt container lacks
 CONTAINER_TOOLS := env("HOME") / ".local/share/starreach-tools"
+# The names and URLs `add` and `add-local` register with Claude Code, and the scope they use
+MCP_NAME := "starreach"
+MCP_URL := "https://starreach.yuwakisa.com/mcp"
+MCP_LOCAL_NAME := "starreach-local"
+MCP_LOCAL_URL := "http://" + HTTP_HOST + ":" + HTTP_PORT + "/mcp"
+MCP_SCOPE := "local"
 
 # Install the toolchain pieces the Rust core, the TypeScript layers and the page test need
 setup:
@@ -34,6 +40,22 @@ serve: cc-build-wasm
 # Serve MCP over stdio, with everything `serve` offers on the HTTP port too
 stdio: cc-build-wasm
     node adapters/node/src/main.ts stdio --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
+
+# Add the deployed Starreach to Claude Code as the MCP server `starreach`
+add:
+    claude mcp add --transport http --scope {{MCP_SCOPE}} {{MCP_NAME}} {{MCP_URL}}
+
+# Remove the `starreach` MCP server from Claude Code
+remove:
+    claude mcp remove --scope {{MCP_SCOPE}} {{MCP_NAME}}
+
+# Add a locally running Starreach (`just serve`) to Claude Code as `starreach-local`
+add-local:
+    claude mcp add --transport http --scope {{MCP_SCOPE}} {{MCP_LOCAL_NAME}} {{MCP_LOCAL_URL}}
+
+# Remove the `starreach-local` MCP server from Claude Code
+remove-local:
+    claude mcp remove --scope {{MCP_SCOPE}} {{MCP_LOCAL_NAME}}
 
 # The home page, the viewer page and sockets, MCP at /mcp and /health on http://localhost:8787, games in local
 # Durable Objects under adapters/cloudflare/.wrangler/. In a container: just cf-dev --ip 0.0.0.0
