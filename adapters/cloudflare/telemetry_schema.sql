@@ -1,6 +1,7 @@
 -- Telemetry on Cloudflare (D-53): the tables of the D1 database bound as TELEMETRY. They hold
 -- ONTOLOGY's telemetry records: a row of `games` per game record and a row of `events` per event
 -- record. The fields that are asked about most are columns; `rest` holds the others as JSON.
+-- Each value is stored once: what has a column is not also in `rest`.
 -- No column holds a game_id, a view_id or a player id.
 --
 -- `just cf-d1-local` and `just cf-d1-production` apply this file, and the Worker's tests apply
@@ -49,7 +50,7 @@ CREATE TABLE IF NOT EXISTS events (
   distance REAL,                           -- detail.distance: a subwarp's cells, a warp's sectors
   range REAL,                              -- detail.range: a blast's or a torpedo's
   hit INTEGER,                             -- detail.hit as 1 or 0
-  rest TEXT NOT NULL,                      -- JSON {"args": …, "detail": …}, the detail whole
+  rest TEXT NOT NULL,                      -- JSON {"args": …, "detail": …}: the detail's other parts
   PRIMARY KEY (game_key, seq)
 );
 

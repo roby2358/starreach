@@ -62,22 +62,30 @@ test("the clock, the damage taken and the sectors revealed and cleared are colum
 });
 
 test("distance, range and hit are columns where the tool tells them, and null where it doesn't", () => {
-  expect(rows[STEP.subwarp]).toMatchObject({ distance: rest(rows[STEP.subwarp]).detail.distance, range: null, hit: null });
-  expect(rows[STEP.warp]).toMatchObject({ distance: rest(rows[STEP.warp]).detail.distance, range: null, hit: null });
-  expect(rows[STEP.blastMiss]).toMatchObject({ distance: null, range: rest(rows[STEP.blastMiss]).detail.range, hit: 0 });
-  expect(rows[STEP.blastKill]).toMatchObject({ distance: null, range: rest(rows[STEP.blastKill]).detail.range, hit: 1 });
-  expect(rows[STEP.torpedo]).toMatchObject({ distance: null, range: rest(rows[STEP.torpedo]).detail.range, hit: 1 });
+  const told = expect.any(Number);
+
+  expect(rows[STEP.subwarp]).toMatchObject({ distance: told, range: null, hit: null });
+  expect(rows[STEP.warp]).toMatchObject({ distance: told, range: null, hit: null });
+  expect(rows[STEP.blastMiss]).toMatchObject({ distance: null, range: told, hit: 0 });
+  expect(rows[STEP.blastKill]).toMatchObject({ distance: null, range: told, hit: 1 });
+  expect(rows[STEP.torpedo]).toMatchObject({ distance: null, range: told, hit: 1 });
   expect(rows[STEP.dock]).toMatchObject({ distance: null, range: null, hit: null });
   expect(rows[STEP.refusedBlast]).toMatchObject({ distance: null, range: null, hit: null });
   expect(rows[STEP.warp].distance).toBeGreaterThan(0);
   expect(rows[STEP.blastKill].range).toBeGreaterThan(0);
 });
 
-test("the rest column holds the arguments without the game_id, and the tool's whole detail", () => {
+test("the rest column holds the arguments without the game_id, and the detail's parts that have no column", () => {
   expect(rows.map((row) => rest(row).args)).toEqual(SCRIPT.map(({ type: _type, ...args }) => args));
-  expect(Object.keys(rest(rows[STEP.blastKill]).detail).sort()).toEqual(["damage", "energy_cost", "hit", "range"]);
-  expect(Object.keys(rest(rows[STEP.warp]).detail).sort()).toEqual(["distance", "energy_cost", "shield_recharge"]);
+  expect(Object.keys(rest(rows[STEP.blastKill]).detail).sort()).toEqual(["damage", "energy_cost"]);
+  expect(Object.keys(rest(rows[STEP.warp]).detail).sort()).toEqual(["energy_cost", "shield_recharge"]);
   expect(rest(rows[STEP.dock]).detail).toEqual({});
+});
+
+test("no row's rest repeats distance, range or hit", () => {
+  const repeated = rows.flatMap((row) => Object.keys(rest(row).detail)).filter((part) => ["distance", "range", "hit"].includes(part));
+
+  expect(repeated).toEqual([]);
 });
 
 test("a game stored without new_game has event rows and no games row", async () => {

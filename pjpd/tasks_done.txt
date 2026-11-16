@@ -275,6 +275,26 @@ Q-7 (docs/RATIONALE.md): Docking restores shields, energy and quantorpedoes but 
 ----
 Priority:   55
 Status: Done
+ID: restdedupe-5avn
+Created: 2026-11-16T21:12:16Z
+Updated: 2026-11-16T21:16:49Z
+
+In the D1 telemetry database, an event's value is stored once: in its column, not also in the `rest` JSON.
+
+Goal: today the Cloudflare telemetry sink writes an event's `distance`, `range` and `hit` to their own columns of the `events` table and again inside `rest` (JSON `{args, detail}`, where `detail` is kept whole). The duplication is not needed. Each value should be stored in one place.
+
+Design (settled):
+- When the Cloudflare sink (`adapters/cloudflare/src/telemetry.ts`) writes an event, the `detail` it puts in `rest` leaves out every property that has its own column (`distance`, `range`, `hit`). The remaining detail properties (for example energy cost, shield recharge, damage) stay in `rest`, as do `args`.
+- Apply the same rule to the `games` table: nothing stored in a column is repeated in its `rest`. Fix it there too if any such repeat exists.
+- The table layout in `adapters/cloudflare/telemetry_schema.sql` does not change, so no change is needed to the existing production database.
+- The app layer's event record is unchanged: `detail` stays whole in memory and in the local server's dump. Only the D1 storage changes.
+- The telemetry report's D1 reader (`tools/telemetry_report/`) rebuilds the whole `detail` from the columns plus `rest`, so the report gives the same figures from D1 as from a local dump. A column's value wins over a same-named property in `rest`, so rows written before this change still read correctly.
+- Docs in the same change: ONTOLOGY's telemetry database section says each value has one home; the CRITERIA rows covering the D1 store and the report are updated with their tests; RATIONALE's decision on the column layout drops the statement that `rest` keeps the whole detail; a dated ARCHITECTURE_LOG entry.
+
+Done when: a test shows that an event written through the Cloudflare sink has no `distance`, `range` or `hit` inside `rest`; a test shows the report's D1 reader returns the same event records as were written (and reads a row that still has the repeats); and `just cc-test-all` passes. Don't deploy, and run nothing against the production Cloudflare account.
+----
+Priority:   55
+Status: Done
 ID: resultshape-m7nd
 Created: 2026-11-04T23:53:52Z
 Updated: 2026-11-05T01:44:39Z

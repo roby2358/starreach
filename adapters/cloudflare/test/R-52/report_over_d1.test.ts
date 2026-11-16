@@ -59,6 +59,24 @@ test("the report's queries read back the records the sink wrote, and the report 
   expect(report(play, heading)).toContain("3 games, 19 tool calls; rules version: 1");
 });
 
+test("a row written with the whole detail in rest reads back as the same record", async () => {
+  const shot = events.find((event) => event.tool === "blast")!;
+  const earlier: EventRecord = { ...shot, game_key: `${RUN}-earlier`, seq: 0 };
+  const rest = JSON.stringify({ args: earlier.args, detail: earlier.detail });
+  await env.TELEMETRY
+    .prepare("INSERT INTO events (game_key, seq, unix_seconds, tool, accepted, refusal, startick, ticks, energy, shields, hull, torpedoes, damage_taken, sectors_revealed, sectors_cleared, distance, range, hit, rest) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, NULL, ?16, ?17, ?18)")
+    .bind(
+      earlier.game_key, earlier.seq, earlier.unix_seconds, earlier.tool, earlier.accepted, earlier.refusal, earlier.startick, earlier.ticks,
+      earlier.energy, earlier.shields, earlier.hull, earlier.torpedoes, earlier.damage_taken, earlier.sectors_revealed, earlier.sectors_cleared,
+      earlier.detail.range, earlier.detail.hit, rest,
+    )
+    .run();
+
+  const read = playFromRows([], await rows(eventsQuery(DAY_1 + LATER))).events.filter((event) => event.game_key === earlier.game_key);
+
+  expect(read).toEqual([earlier]);
+});
+
 test("the queries leave out what came before the period's start", async () => {
   const afterEverything = DAY_1 + 2 * LATER;
 

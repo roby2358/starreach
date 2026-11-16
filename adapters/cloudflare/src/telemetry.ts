@@ -3,7 +3,7 @@
 // the request's waitUntil, so the player's reply never waits on the database, and a write that
 // fails is logged and dropped.
 
-import type { CommandEvent, GameEnd, GameStart, Telemetry } from "@starreach/app";
+import type { CommandEvent, EventDetail, GameEnd, GameStart, Telemetry } from "@starreach/app";
 
 const INSERT_GAME = `
   INSERT INTO games (game_key, started_unix_seconds, seed, rules_version, player_hash, client_name, client_version, client_user_agent)
@@ -18,9 +18,18 @@ const INSERT_EVENT = `
     damage_taken, sectors_revealed, sectors_cleared, distance, range, hit, rest)
   VALUES (?1, (SELECT COUNT(*) FROM events WHERE game_key = ?1), ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)`;
 
+/** The parts of an event's detail that have their own columns, in the order INSERT_EVENT binds
+ *  them. Each is stored there and nowhere else: `rest` holds the detail without them. */
+const DETAIL_COLUMNS = ["distance", "range", "hit"];
+
 /** A part of an event's detail that has its own column, or null where the tool tells none. */
-function detailColumn(event: CommandEvent, part: string): number | boolean | null {
-  return Object.hasOwn(event.detail, part) ? event.detail[part] : null;
+function detailColumn(detail: EventDetail, part: string): number | boolean | null {
+  return Object.hasOwn(detail, part) ? detail[part] : null;
+}
+
+/** The detail's parts that have no column of their own. */
+function detailWithoutColumns(detail: EventDetail): EventDetail {
+  return Object.fromEntries(Object.entries(detail).filter(([part]) => !DETAIL_COLUMNS.includes(part)));
 }
 
 /** Keeps work going after the reply is sent: a request's `ctx.waitUntil`. */
@@ -57,13 +66,13 @@ export class D1Telemetry implements Telemetry {
 
   async commandRun(event: CommandEvent): Promise<void> {
     this.write(async () => {
-      const rest = JSON.stringify({ args: event.args, detail: event.detail });
+      const rest = JSON.stringify({ args: event.args, detail: detailWithoutColumns(event.detail) });
       await this.db
         .prepare(INSERT_EVENT)
         .bind(
           event.game_key, event.unix_seconds, event.tool, event.accepted, event.refusal, event.startick, event.ticks,
           event.energy, event.shields, event.hull, event.torpedoes, event.damage_taken, event.sectors_revealed, event.sectors_cleared,
-          detailColumn(event, "distance"), detailColumn(event, "range"), detailColumn(event, "hit"), rest,
+          ...DETAIL_COLUMNS.map((part) => detailColumn(event.detail, part)), rest,
         )
         .run();
     });

@@ -1100,8 +1100,8 @@ and is as open as the adapter's `/mcp`. [P] `just telemetry` prints it for the l
 questions in SQL.* [D] One D1 database, `starreach-telemetry`, bound to the Worker as
 `TELEMETRY`, holds every telemetry record of the games played there (D-53). It has two tables,
 one row per record. The fields asked about most are columns and the others are JSON in `rest`
-[D; which column holds what, the names and the types are P]. No column holds a `game_id`, a
-`view_id` or a player id.
+[D; which column holds what, the names and the types are P]. Each value has one home: what a
+column holds is not also in `rest`. [D] No column holds a `game_id`, a `view_id` or a player id.
 
 **`games`**: a row per game record, keyed by `game_key`. `new_game` writes it with the columns
 from `outcome` on NULL, and the command that ends the game fills those.
@@ -1127,7 +1127,7 @@ from `outcome` on NULL, and the command that ends the game fills those.
 | `refusal` | TEXT or NULL | The record's `refusal` |
 | `distance`, `range` | REAL or NULL | `detail.distance` and `detail.range`, NULL where the tool tells none |
 | `hit` | INTEGER or NULL | `detail.hit` as 1 or 0, NULL where the tool tells none |
-| `rest` | TEXT | JSON `{args, detail}`: the record's `args`, and its `detail` whole, the parts that have columns included [P] |
+| `rest` | TEXT | JSON `{args, detail}`: the record's `args`, and its `detail` without `distance`, `range` and `hit` [D] |
 
 An event row needs no `games` row: there is no foreign key, so a game's events are kept even
 where its game row is missing. [P] Indexes: `games` by `started_unix_seconds` and by
@@ -1138,6 +1138,8 @@ game's events to its row, in `seq` order. [D; which indexes P]
 gameStarted(start):   INSERT the games row, end columns NULL
 gameEnded(key, end):  UPDATE the games row of key; no such row is a failed write
 commandRun(event):    INSERT the events row, seq = COUNT of the game's rows
+                      distance, range, hit = the detail's parts of those names
+                      rest = {args, detail without those parts}
 each write:           started at once and handed to the request's waitUntil; the sink's
                       operation returns without waiting for the database
                       a write that fails is logged and dropped
@@ -1187,7 +1189,10 @@ source → records:   local:  each line of the dump is a game record or an event
                     D1:     SELECT * FROM games  WHERE started_unix_seconds >= since
                             SELECT * FROM events WHERE unix_seconds >= since
                             each row → its record: columns by name, `end` from outcome, ended_by
-                            and rest, `args` and `detail` from rest
+                            and rest, `args` from rest
+                            detail = rest's detail, then each of distance, range, hit whose
+                            column is not NULL (hit as true or false); the column wins over a
+                            part of the same name in rest
 report(records, since):
     games  = records' games started at or after since
     events = the events of those games; an event whose game has no record is left out, and counted in the heading

@@ -621,10 +621,16 @@ is said to be that.
     database numbers a game's events in the order it gets them, with no read before the write
     and no counter kept anywhere. Writes are sent in the order of the calls; nothing makes the
     database receive them in that order, though one captain's calls come one after another. [P]
-  - **`rest` holds the event's `args` and its whole `detail`**, the parts that also have columns
-    included, and for a game its end's counters and goals. A record can then be read back from
-    a row without knowing which parts were lifted into columns. The client's three parts are
-    columns, since games per client is a question the records exist to answer. [P]
+  - **Each value is stored once.** An event's `rest` holds its `args` and the parts of its
+    `detail` that have no column; `distance`, `range` and `hit` are in their columns only. A
+    game's `rest` holds its end's counters and goals, and nothing a column holds. Storing a
+    value twice is not needed, and two copies can disagree. A reader puts the detail back
+    together from the columns and `rest`, and a column wins over a part of the same name in
+    `rest`, so a row that has both still reads as its record. [D] The sink and the report's
+    reader each name the three columns, since the report's code doesn't import the Worker's;
+    the test that reads back in workerd what the sink wrote holds the two lists together. [P]
+    The client's three parts are columns, since games per client is a question the records
+    exist to answer. [P]
   - **No foreign key from `events` to `games`**: a write that is dropped must not take others
     with it, and a game's events are worth keeping without its game row. Ending a game that has
     no row is logged as a failed write, as the in-memory sink refuses it. [P]

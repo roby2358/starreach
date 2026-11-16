@@ -3,7 +3,7 @@
 // --json` prints them. Either way the report gets the same game records and event records.
 // Nothing here runs a process or opens a socket: the caller hands in the text it fetched.
 
-import type { EventRecord, GameEnd, GameRecord } from "../../app/src/telemetry.ts";
+import type { EventDetail, EventRecord, GameEnd, GameRecord } from "../../app/src/telemetry.ts";
 
 import type { Play } from "./figures.ts";
 
@@ -63,7 +63,23 @@ export function gameFromRow(row: Row): GameRecord {
   };
 }
 
-/** The event record an `events` row holds: `args` and the whole `detail` are in its `rest`. */
+/** The parts of an event's detail that the `events` table holds in columns of their own
+ *  (telemetry_schema.sql), each with how its column's value reads as the detail's. */
+const DETAIL_COLUMNS: Record<string, (stored: unknown) => number | boolean> = {
+  distance: (stored) => stored as number,
+  range: (stored) => stored as number,
+  hit: (stored) => stored === 1,
+};
+
+/** The detail parts a row's columns hold: a NULL column is a part the tool didn't tell. */
+function detailFromColumns(row: Row): EventDetail {
+  const told = Object.entries(DETAIL_COLUMNS).filter(([part]) => row[part] !== null);
+  return Object.fromEntries(told.map(([part, read]) => [part, read(row[part])]));
+}
+
+/** The event record an `events` row holds. `args` are in its `rest`; its `detail` is the parts
+ *  in `rest` and the parts in columns together, and a column wins over a part of the same name
+ *  in `rest`, which a row written while `rest` held the whole detail has. */
 export function eventFromRow(row: Row): EventRecord {
   const rest = JSON.parse(row.rest as string);
   return {
@@ -82,7 +98,7 @@ export function eventFromRow(row: Row): EventRecord {
     damage_taken: row.damage_taken as number,
     sectors_revealed: row.sectors_revealed as number,
     sectors_cleared: row.sectors_cleared as number,
-    detail: rest.detail,
+    detail: { ...rest.detail, ...detailFromColumns(row) },
     seq: row.seq as number,
   };
 }

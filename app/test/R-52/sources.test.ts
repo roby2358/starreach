@@ -23,11 +23,20 @@ function gameRow(game: typeof GAME_A): Row {
   };
 }
 
-/** An event record as its row: `accepted` and `hit` as 1 or 0, a missing detail part NULL. */
+const DETAIL_COLUMNS = ["distance", "range", "hit"];
+
+/** An event record as the row the Cloudflare sink writes for it: `accepted` and `hit` as 1 or 0,
+ *  a missing detail part NULL, and in `rest` the arguments and the detail's parts with no column. */
 function eventRow(event: (typeof EVENTS)[number]): Row {
   const { args, detail, accepted, ...columns } = event;
   const part = (name: string) => (Object.hasOwn(detail, name) ? Number(detail[name]) : null);
-  return { ...columns, accepted: accepted ? 1 : 0, distance: part("distance"), range: part("range"), hit: part("hit"), rest: JSON.stringify({ args, detail }) };
+  const others = Object.fromEntries(Object.entries(detail).filter(([name]) => !DETAIL_COLUMNS.includes(name)));
+  return { ...columns, accepted: accepted ? 1 : 0, distance: part("distance"), range: part("range"), hit: part("hit"), rest: JSON.stringify({ args, detail: others }) };
+}
+
+/** The same row with the record's whole detail in `rest`, as rows written earlier have it. */
+function eventRowWithRepeats(event: (typeof EVENTS)[number]): Row {
+  return { ...eventRow(event), rest: JSON.stringify({ args: event.args, detail: event.detail }) };
 }
 
 /** What `wrangler d1 execute --json` prints for one statement, as seen from wrangler 4.90.0 with --local. */
@@ -61,6 +70,23 @@ test("a games row becomes its game record, ended or open", () => {
 
 test("an events row becomes its event record, accepted or refused", () => {
   assert.deepEqual(EVENTS_A.map((event) => eventFromRow(eventRow(event))), EVENTS_A);
+});
+
+test("an events row's detail is its columns and its rest together", () => {
+  const blast = EVENTS_A.find((event) => event.tool === "blast")!;
+  const row = eventRow(blast);
+
+  assert.deepEqual(Object.keys(JSON.parse(row.rest as string).detail).filter((part) => DETAIL_COLUMNS.includes(part)), []);
+  assert.deepEqual(eventFromRow(row).detail, blast.detail);
+  assert.equal(typeof eventFromRow(row).detail.hit, "boolean");
+});
+
+test("an events row whose rest repeats its columns becomes the same record, and the column wins", () => {
+  const blast = EVENTS_A.find((event) => event.tool === "blast")!;
+  const disagreeing = { ...eventRowWithRepeats(blast), range: 9.5, hit: 0 };
+
+  assert.deepEqual(EVENTS_A.map((event) => eventFromRow(eventRowWithRepeats(event))), EVENTS_A);
+  assert.deepEqual(eventFromRow(disagreeing).detail, { ...blast.detail, range: 9.5, hit: false });
 });
 
 test("the queries read every column from the period's start on, in a fixed order", () => {

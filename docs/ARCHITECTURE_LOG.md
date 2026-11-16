@@ -3,6 +3,23 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — In the D1 telemetry database, an event's value is stored once
+The Cloudflare sink wrote an event's `distance`, `range` and `hit` to their columns of `events`
+and again inside `rest`, which held the detail whole so that a record could be read back from
+`rest` alone. The repeat was not needed. `D1Telemetry` now leaves those three parts out of the
+detail it puts in `rest`; the other parts (energy cost, shield recharge, damage) and `args` stay
+there. The `games` table had no repeat and is unchanged. The report's D1 reader
+(`tools/telemetry_report/records.ts`) now builds an event's detail from `rest` and the three
+columns, a column winning over a part of the same name in `rest`, so rows written before this
+change read as before; `hit` is read back from 1 or 0 as true or false. The table layout is
+unchanged (only comments in the schema file), so the production database needs no change, and
+the app layer's event record and the local dump still hold the detail whole. The designer
+settled all of that. Claude's proposal: the sink and the reader each list the three columns,
+held together by the workerd test that reads back what the sink wrote. R-50 and R-52 are
+reworded and their tests extended; D-53's note on `rest` is replaced. Nothing was deployed and
+nothing was read from or changed on the Cloudflare account, so the Worker in production keeps
+writing the repeats until the next deploy.
+
 ### 2026-11-16 — The home page asks for comments and feedback on Bluesky
 The home page gave a visitor no place to send comments. It gains one line in the "Connect your
 computer" panel, after the paragraph about signing in with a Bluesky account and before the one
