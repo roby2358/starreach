@@ -18,38 +18,35 @@ pub type Refusal = String;
 #[serde(untagged)]
 pub enum Report {
     GalaxyMap { map: Vec<String> },
-    Warp { sector_yx: Yx, distance: i32, energy_cost: i32, time: String },
+    Warp { sector_yx: Yx, energy_cost: i32, time: String },
     Subwarp { ship_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: String },
     Dock { time: String },
     Scan { scan: Vec<String>, energy_cost: i32, time: String },
     Shot { hit_yx: Yx, path: Vec<Yx>, destroyed: bool, energy_cost: i32, time: String },
 }
 
-pub fn warp_distance(from: Yx, to: Yx) -> i32 {
-    (euclid(from, to) * WARP_DISTANCE_SCALE) as i32
-}
-
-pub fn warp_cost(from: Yx, to: Yx) -> i32 {
-    warp_distance(from, to) * WARP_ENERGY_PER_DISTANCE
-}
-
-/// Warp time in starticks, rounded to the nearest whole one.
+/// Warp time in starticks: logarithmic in the distance in sectors, rounded to the nearest
+/// whole startick (D-5).
 pub fn warp_time(from: Yx, to: Yx) -> i64 {
-    (warp_distance(from, to) as f64 * WARP_TIME_PER_DISTANCE).round() as i64
+    (WARP_TIME_K * (euclid(from, to) + 1.0).ln()).round() as i64
+}
+
+/// Warp energy: a flat price per startick of the journey (D-5).
+pub fn warp_cost(from: Yx, to: Yx) -> i32 {
+    warp_time(from, to) as i32 * WARP_ENERGY_PER_TICK
 }
 
 pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
     if target == game.sector_yx {
         return Err("The ship is already in that sector".to_string());
     }
-    let distance = warp_distance(game.sector_yx, target);
     let energy_cost = warp_cost(game.sector_yx, target);
     afford(game, energy_cost, "warp")?;
     if game.sector.has_enemies() {
         events.extend(enemies_turn(game));
     }
     if game.ship.hull == 0 {
-        return Ok(Report::Warp { sector_yx: game.sector_yx, distance: 0, energy_cost: 0, time: format_duration(0) });
+        return Ok(Report::Warp { sector_yx: game.sector_yx, energy_cost: 0, time: format_duration(0) });
     }
     let time = warp_time(game.sector_yx, target);
     game.ship.energy -= energy_cost;
@@ -57,7 +54,7 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
     game.enter_sector(target);
     events.extend(ambush(game, ENEMY_AMBUSH_CHANCE));
     events.extend(warp_events(game));
-    Ok(Report::Warp { sector_yx: target, distance, energy_cost, time: format_duration(time) })
+    Ok(Report::Warp { sector_yx: target, energy_cost, time: format_duration(time) })
 }
 
 pub fn subwarp(game: &mut Game, dest: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {

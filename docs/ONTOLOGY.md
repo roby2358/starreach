@@ -334,14 +334,17 @@ visit, and its enemies stand where the first of the original enemies stood.
 ### Warp — *Serves: G-2, F-discovery* [D]
 ```
 illegal if target == sector_yx
-distance = int(euclid(sector_yx, target) × WARP_DISTANCE_SCALE);  cost = distance × WARP_ENERGY_PER_DISTANCE
+time = round(WARP_TIME_K × ln(euclid(sector_yx, target) + 1));  cost = time × WARP_ENERGY_PER_TICK
 illegal if energy < cost
 if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
-mark target visible;  energy -= cost;  startick += round(distance × WARP_TIME_PER_DISTANCE)
+mark target visible;  energy -= cost;  startick += time
 sector_yx = target;  sector = instantiate(target);  last_event_startick = startick
 ambush: for each enemy in order, while hull > 0: with probability ENEMY_AMBUSH_CHANCE it fires once (the EnemiesTurn fire rule) [D]
 run warp events
 ```
+`euclid` is the distance in sectors and `time` is in whole starticks. Time and energy are
+logarithmic in distance: the next sector is about a stardate away, and a farther one takes
+and costs only a little more (D-5).
 
 ### Subwarp — *Serves: G-2, F-danger* [D]
 ```
@@ -412,8 +415,9 @@ else if stranded and a starbase is present: energy = max(energy, STARBASE_EMERGE
 else if stranded: status = lost
 ```
 *Stranded* [P]: energy is below the warp cost to the nearest visible starbase sector other
-than `sector_yx` (infinite if there is none). Outside Star Central, Star Central is always
-that fallback, and `STARBASE_EMERGENCY_ENERGY` covers the longest warp to it.
+than `sector_yx` (infinite if there is none), by the Warp rule's `cost`. Outside Star
+Central, Star Central is always that fallback. `STARBASE_EMERGENCY_ENERGY` is less than any
+warp costs: it pays for moving and fighting inside the starbase's sector, to dock (D-30).
 
 ### EnemiesTurn — *Serves: F-danger* [D]
 ```
@@ -510,9 +514,8 @@ Referred to by name everywhere else.
 | `STARBASE_EXTRA_MAX` | 5 | starbases | D-38 |
 | `STARBASE_MIN_SPACING` | 3 | sectors, Euclidean | D-38 |
 | `STARBASE_PLACE_TRIES` | 100 | random draws per starbase | D-38 |
-| `WARP_DISTANCE_SCALE` | 10 | distance per sector | D-5 |
-| `WARP_ENERGY_PER_DISTANCE` | 10 | energy | D-5 |
-| `WARP_TIME_PER_DISTANCE` | 2 | starticks per unit of distance, rounded to a whole startick | D-5 |
+| `WARP_TIME_K` | 600 | starticks per unit of ln(distance in sectors + 1), rounded to a whole startick | D-5 |
+| `WARP_ENERGY_PER_TICK` | 10 | energy per startick of a warp | D-5 |
 | `SUBWARP_MAX_STEPS` | 10 | cells | D-6 |
 | `SUBWARP_MAX_STEPS_HOSTILE` | 3 | cells | D-6 |
 | `SUBWARP_ENERGY_PER_STEP` | 2 | energy | D-6 |
@@ -586,7 +589,7 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 |---|---|---|---|---|
 | `state` | — | query | — | null |
 | `galaxy_map` | — | query | — | `{map: string[10]}` |
-| `galaxy_warp` | `y, x` | action | Warp | `{sector_yx, distance, energy_cost, time}` |
+| `galaxy_warp` | `y, x` | action | Warp | `{sector_yx, energy_cost, time}` |
 | `subwarp` | `y, x` | action | Subwarp | `{ship_yx, path, energy_cost, time}` |
 | `dock` | — | action | Dock | `{time}` |
 | `long_range_scan` | — | action | Long-range scan | `{scan: string[3], energy_cost, time}` |

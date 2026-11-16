@@ -243,25 +243,50 @@ inferences, waiting for review.
 
 ## Actions
 
-### D-5 Warp cost and time grow linearly with distance; the shortest warp outlasts a battle — *Decided; `WARP_TIME_PER_DISTANCE` proposed, tuned by `just cc-model-balance`*
-- **Alternatives:** a flat warp cost; a fixed time per jump whatever the distance; a fixed base
-  time plus time per distance; warp time small enough to ignore.
-- **Why:** Long jumps cost more energy and more time. A warp to the next sector takes longer
-  than a whole battle in a sector [D], so the galaxy feels big, fighting is brief next to
-  getting there, and distance can decide anything with a time limit, such as whether the ship
-  reaches a starbase in time. Time per distance alone does this with one number [P]: a base time
-  would add a second number and only flatten the difference between near and far. The time of
-  a warp starts no stardate events: the event clock restarts on arrival, so enemies in the new
-  sector don't get turns for the journey, and shields don't recharge during it [P].
-- **Evidence:** Modeled by: `just cc-model-balance 2000` (a scripted captain, unverified in
-  play) — a fresh ship that shoots the nearest enemy it has a clear shot at (a blast within
-  `BLAST_SURE_RANGE`, else a torpedo while any remain) clears a sector in a median of 5
-  starticks and within 10 in 9 of 10 battles; a sector of 7 enemies takes a median of 10 and
-  within 16 in 9 of 10. Sectors of 8 or 9 enemies, under 1 in 100 battles, take a median of 12
-  to 13 and within 20 to 25 in 9 of 10, so the shortest warp doesn't outlast the slowest
-  of those. Warp time in starticks: next sector 20, diagonal 28, 5 sectors 100, corner to
-  corner 254. The slowest battles (up to 200) are the script stepping aside repeatedly for a
-  clear shot, not a measure of play.
+### D-5 Warp time grows with the logarithm of distance, the next sector is about a day away, and warp energy is a flat price per startick — *Decided; `WARP_TIME_K` and `WARP_ENERGY_PER_TICK` tunable*
+- **Alternatives:** time linear in distance; time as the square root of distance, as for
+  constant acceleration; a logarithm plus a fixed constant; a flat time per jump whatever the
+  distance; energy linear in distance.
+- **Why:** The ship accelerates exponentially to the midpoint of the journey and decelerates
+  exponentially from it, which makes time logarithmic in distance [D]. The `+ 1` inside the
+  logarithm stands for crossing the current sector at subwarp before the drive engages, so it
+  does the work a separate fixed constant would, with one number. Sectors are therefore far
+  apart, not touching, though the game doesn't say so. A whole battle is over long before a
+  warp to the next sector ends [D], so the galaxy feels big and fighting is brief next to
+  getting there. Energy is a flat price per startick of the journey, so it follows time and is
+  logarithmic in distance too [D]: one long jump beats several hops in both time and energy,
+  which linear time or linear energy would not give, and a flat time per jump would make
+  distance mean nothing. Warps are dear against the tank (`SHIP_MAX_ENERGY`): energy is the
+  tight resource and starbases matter [D]. The time of a warp starts no stardate events: the
+  event clock restarts on arrival, so enemies in the new sector don't get turns for the
+  journey [P].
+- **Evidence:** Modeled by: `just cc-model-balance 2000` (formula and a scripted captain,
+  unverified in play).
+  - Warp time and energy: next sector 416 starticks (1.04 stardates), 4160 energy; diagonal
+    529 (1.32), 5290; 5 sectors 1075 (2.69), 10750; corner to corner 1572 (3.93), 15720. Five
+    hops in a line are 2080 starticks and 20800 energy against 1075 and 10750 for the one
+    jump. A full tank is 12 next-sector warps or 3 corner-to-corner warps with nothing else
+    spent.
+  - Battles: a fresh ship that takes the nearest enemy it has a clear shot at (a blast within
+    `BLAST_SURE_RANGE`; beyond it a torpedo while any remain, else a subwarp closer) clears a
+    sector in a median of 5 starticks and within 10 in 9 of 10 battles, for a median of 1881
+    energy and within 5912 in 9 of 10. A sector of 7 enemies takes a median of 10 starticks
+    and within 16 in 9 of 10; sectors of 8 or 9 enemies, under 1 in 100 battles, within 19 to
+    21. The next sector is some 80 typical battles away. The slowest battles (up to 200
+    starticks) are the script stepping aside repeatedly for a clear shot, not a measure of
+    play.
+  - Energy to a starbase, from every sector without one: to the nearest starbase a mean of
+    6832, median 7050, within 9660 from 9 of 10 sectors, at most 12530 (25% of a full tank);
+    to Star Central alone, the one a new captain knows, a mean of 9230 and the same most.
+  - One tank: a new game's ship that goes from each enemy sector to the nearest next, clearing
+    each, and never docks or scans (the script reads the galaxy's records to pick sectors)
+    clears a median of 5 enemy sectors (4 to 6 in 8 of 10 games, at most 8). A captain who
+    presses on while the next warp is affordable ends stranded in 68.7% of games and destroyed
+    in 29.1%. One who warps on only while the ship would arrive holding the 9-in-10 battle
+    energy and the warp from there to the nearest starbase it knows clears the same median of
+    5, turns for home in 74.5% of games, is destroyed in 18.2% and is still stranded in 6.4%,
+    when a battle costs more than the reserve. Neither repairs its hull, so the destroyed
+    share overstates a captain who docks.
 
 ### D-6 Subwarp is shortened while enemies are present — *Decided*
 - **Alternatives:** a fixed movement range; movement costed by energy alone.
@@ -453,11 +478,11 @@ inferences, waiting for review.
   transfer lets the ship move to dock or fight for an enemy-held base, so a starbase
   sector is always a refuge (Landmarks as Anchors). The test checks only the warp to the
   nearest *visible* other starbase sector, so it uses what the player knows.
-- **Evidence:** Arithmetic: the longest warp to Star Central is from (9,9), distance
-  `int(√50 × WARP_DISTANCE_SCALE)` = 70, costing 700, so `STARBASE_EMERGENCY_ENERGY` (1000)
-  always clears the stranded test when Star Central is the fallback. In Star Central itself,
-  with no other starbase visible, the floor reapplies after each action; Star Central never
-  has enemies, so docking is always available there anyway.
+- **Evidence:** Arithmetic: the cheapest warp costs 4160 (D-5) and
+  `STARBASE_EMERGENCY_ENERGY` is 1000, so the transfer never pays for a warp; it pays for
+  subwarp steps, torpedoes and a blast at range 1. A ship in a starbase's sector with less
+  than the warp to the next visible starbase is raised to that floor after every action
+  until it docks. Star Central never has enemies, so docking is always available there.
 
 ### D-24 An action you can't afford is refused — *Decided*
 - **Alternatives:** overdraft that damages the hull; clamping energy at 0 so the last shot

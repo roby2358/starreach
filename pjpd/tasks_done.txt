@@ -68,6 +68,38 @@ Q-2 (docs/RATIONALE.md): Enemies almost never act. Game._stardate_events fires o
 ----
 Priority:   85
 Status: Done
+ID: warptime-4vnh
+Created: 2026-11-15T23:37:16Z
+Updated: 2026-11-16T01:20:44Z
+
+Warp time grows with the logarithm of distance, the next sector is about a day away, and warp energy is a flat price per startick of the journey.
+
+Decided [D]:
+- warp time in starticks = round(WARP_TIME_K × ln(d + 1)), where d is the Euclidean distance in sectors and WARP_TIME_K = 600 [T]. (400 starticks are one stardate, a day.)
+- warp energy = warp time × WARP_ENERGY_PER_TICK, with WARP_ENERGY_PER_TICK = 10 [T]. Energy follows time, so it is logarithmic in distance too.
+- The reasoning: the ship accelerates exponentially to the midpoint and decelerates exponentially from it, which makes time logarithmic in distance; the `+ 1` stands for crossing the current sector at subwarp before the drive engages. Sectors are therefore far apart, not touching, but the game doesn't say so.
+- The goal: a whole battle is over long before a warp to the next sector ends, so the galaxy feels big.
+
+What the rule gives (time, energy): next sector 416 starticks (1.04 stardates), 4160 energy; diagonal 529 (1.32), 5290; 5 sectors 1075 (2.69), 10750; corner to corner 1572 (3.93), 15720. A typical battle is about 5 starticks and the largest sectors take about 19 in 9 of 10 battles, so the next sector is some 80 typical battles away. One long jump beats several hops in both time and energy (five hops in a line: 2080 starticks, 20800 energy; one 5-sector jump: 1075, 10750).
+
+Balance to check before settling the numbers: today warp energy is 100 per sector, linear, so a 50000 tank is 500 one-sector warps. Under the new price a full tank is 12 one-sector warps, or three crossings of the galaxy, before any blast or scan. Energy becomes the tight resource and starbases matter far more. Extend the balance harness to answer: from each sector, the energy to reach the nearest starbase; how many enemy sectors a ship can visit and clear on one tank; and how often the stranded rule (energy below the warp cost to the nearest other visible starbase sector, with no starbase in the sector) would end a game. Report the figures to the user when the task is done. The scarcity is intended [D]: don't change WARP_ENERGY_PER_TICK, SHIP_MAX_ENERGY or the starbase count here.
+
+This needs the clock in whole starticks first.
+
+An interim version is already committed, built before these decisions. It keeps linear time and sets WARP_TIME_PER_DISTANCE to 2. Adopt what still fits and replace the rest:
+- core/src/actions.rs: keep `warp_time(from, to)` with the new formula, using the distance in sectors (`euclid`) and rounding to the nearest startick; `warp_cost` becomes warp_time × WARP_ENERGY_PER_TICK, so every caller (the warp rule and the stranded check) follows. Remove `warp_distance` and the warp report's `distance` field: `time` and `energy_cost` say what the captain needs.
+- core/src/constants.rs: replace WARP_TIME_PER_DISTANCE, WARP_DISTANCE_SCALE and WARP_ENERGY_PER_DISTANCE with WARP_TIME_K = 600 and WARP_ENERGY_PER_TICK = 10.
+- core/tests/R-4/warp.rs: the clock rises by the formula and energy drops by time × WARP_ENERGY_PER_TICK; the shortest warp outlasts a long battle (keep the draft's benchmark constant, in starticks); a longer warp takes longer and costs more, checked over every distance on the map since rounding must not break it. Update the stranded rule's tests for the new cost.
+- core/examples/model_balance.rs and the justfile comment: keep the battle measurement and the warp line, printing starticks, stardates and energy, plus the balance figures above.
+- app/src/mcp.ts: the galaxy_warp description should tell the crew that the next sector is about a day away and costs real energy, and that farther sectors take and cost only a little more.
+- docs: ONTOLOGY Warp rule pseudocode, the stranded rule and the numbers table; CRITERIA's warp row; RATIONALE D-5 rewritten for the current choice, with the alternatives considered (time linear in distance, square root of distance as for constant acceleration, a logarithm plus a fixed constant, a flat time per jump; energy linear in distance) and the Modeled Evidence from `just cc-model-balance 2000`; an ARCHITECTURE_LOG entry recording what the constants were and what replaced them.
+
+What happens to shields during a warp is separate work: don't claim a transit rule in the docs that the code lacks.
+
+Run `just cc-test-all`. Don't deploy.
+----
+Priority:   85
+Status: Done
 ID: sectorview-7u36
 Created: 2026-11-07T02:23:22Z
 Updated: 2026-11-14T15:44:47Z

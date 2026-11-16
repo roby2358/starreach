@@ -22,11 +22,11 @@ pub const STARBASE_MIN_SPACING: f64 = 3.0;
 /// Random sectors drawn per starbase before placement gives up
 pub const STARBASE_PLACE_TRIES: u32 = 100;
 
-pub const WARP_DISTANCE_SCALE: f64 = 10.0;
-pub const WARP_ENERGY_PER_DISTANCE: i32 = 10;
-/// Starticks per unit of warp distance. Sized so that a warp to the next sector outlasts a
-/// battle (D-5).
-pub const WARP_TIME_PER_DISTANCE: f64 = 2.0;
+/// Warp time is `WARP_TIME_K × ln(distance in sectors + 1)` starticks, so the next sector is
+/// about a stardate away (D-5).
+pub const WARP_TIME_K: f64 = 600.0;
+/// Energy per startick of a warp.
+pub const WARP_ENERGY_PER_TICK: i32 = 10;
 
 pub const SUBWARP_MAX_STEPS: usize = 10;
 pub const SUBWARP_MAX_STEPS_HOSTILE: usize = 3;

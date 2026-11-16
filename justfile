@@ -201,6 +201,6 @@ cc-typecheck: cc-build-wasm
     npx tsc -p tsconfig.json
     npx tsc -p adapters/cloudflare/tsconfig.json
 
-# Model generation, combat, battle-length and warp-time numbers cited as Evidence in docs/RATIONALE.md
+# Model generation, combat, battle, warp and energy-reach numbers (energy to a starbase, sectors cleared on one tank, how a tank ends) cited as Evidence in docs/RATIONALE.md
 cc-model-balance galaxies:
     cargo run --quiet --release --manifest-path core/Cargo.toml --example model_balance -- {{galaxies}}

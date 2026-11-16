@@ -3,6 +3,29 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — Warp time is logarithmic in distance and warp energy is a price per startick
+Warp time was `round(distance × WARP_TIME_PER_DISTANCE)` with `distance = int(euclid ×
+WARP_DISTANCE_SCALE)`, and warp energy was `distance × WARP_ENERGY_PER_DISTANCE`: both linear,
+with `WARP_DISTANCE_SCALE` = 10, `WARP_TIME_PER_DISTANCE` = 2 and `WARP_ENERGY_PER_DISTANCE` =
+10. The next sector was 20 starticks and 100 energy away, corner to corner 254 starticks and
+1270 energy, and a full tank was 500 next-sector warps. Those three constants are gone. Time
+is now `round(WARP_TIME_K × ln(euclid + 1))` starticks with `WARP_TIME_K` = 600, and energy is
+time × `WARP_ENERGY_PER_TICK` = 10: the next sector is 416 starticks (1.04 stardates) and 4160
+energy, corner to corner 1572 and 15720, and a full tank is 12 next-sector warps. The scarcity
+is the designer's intent. The stranded test follows, since it uses the warp cost: a ship away
+from a starbase now loses with thousands of energy left, and `STARBASE_EMERGENCY_ENERGY`
+(1000, unchanged) no longer pays for any warp, where it used to cover the longest one to Star
+Central. `warp_distance` and the warp report's `distance` field are removed; `time` and
+`energy_cost` remain.
+
+The balance harness prints each warp's starticks, stardates and energy, each battle's energy,
+the warp energy from every sector to the nearest starbase, and how far one tank takes a
+scripted captain and how it ends. Its battle script, out of torpedoes, used to blast from any
+range; it now closes to `BLAST_SURE_RANGE` first, which moved the 9-in-10 clearing time of 8-
+and 9-enemy sectors from 20 and 25 starticks to 19 and 21. D-5 rewritten; D-30's evidence
+restated; R-4 gained "a longer warp costs more" and checks both orderings over every distance
+on the map; R-23's stranded cases sit one energy either side of the warp cost.
+
 ### 2026-11-16 — The clock counts whole starticks; the stardate is a day with three decimals
 The Game's `stardate` and `last_event_stardate` (floats, in stardates) became `startick` and
 `last_event_startick` (whole numbers). `STARTICKS_PER_STARDATE` = 400 is new. The in-sector
