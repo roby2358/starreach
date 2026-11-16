@@ -58,11 +58,11 @@
       },
       "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
       // The production telemetry database. It does not exist until `just cf-d1-production`
-      // creates it; that prints its database_id, which replaces PUT-THE-DATABASE-ID-HERE below.
+      // creates it; that prints its database_id, which is the id below.
       // Run again, the recipe then applies telemetry_schema.sql to it. A deploy is refused
       // until the id is filled in.
       "d1_databases": [
-        { "binding": "TELEMETRY", "database_name": "starreach-telemetry", "database_id": "PUT-THE-DATABASE-ID-HERE" }
+        { "binding": "TELEMETRY", "database_name": "starreach-telemetry", "database_id": "a6123c0a-73b5-45d8-804c-665b1ace1a90" }
       ],
       "vars": {
         "AUTH_ISSUER": "https://auth.yuwakisa.com",
