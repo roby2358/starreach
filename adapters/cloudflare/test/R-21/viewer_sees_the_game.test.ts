@@ -2,8 +2,10 @@
 // The sockets are the Durable Object's, reached through the Worker's /live/<view_id> upgrade.
 
 import { GAME_NOT_FOUND_CLOSE } from "@starreach/app";
+import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 
+import { DurableObjectStore } from "../../src/store.ts";
 import { callTool, connectViewer, createGame, upgrade } from "../helpers/worker.ts";
 
 test("a viewer gets the current view on connecting", async () => {
@@ -48,6 +50,21 @@ test("a viewer sees only its own game", async () => {
 
 test("an unknown game closes the socket with the not-found code", async () => {
   const response = await upgrade("0".repeat(64));
+  expect(response.status).toBe(101);
+  const socket = response.webSocket!;
+  const closed = new Promise<number>((resolve) => socket.addEventListener("close", (event) => resolve(event.code)));
+  socket.accept();
+  expect(await closed).toBe(GAME_NOT_FOUND_CLOSE);
+});
+
+test("a stored game the core can't read is not found, for the player and for a viewer", async () => {
+  const { gameId, view } = await createGame();
+  await new DurableObjectStore(env.GAMES).put(view, JSON.stringify({ seed: 7, stardate: 1234567.0, last_event_stardate: 1234567.0 }));
+
+  const state = await callTool("state", { game_id: gameId });
+  expect(state).toEqual({ ok: false, error: "Game not found", events: [], report: null, state: null });
+
+  const response = await upgrade(view);
   expect(response.status).toBe(101);
   const socket = response.webSocket!;
   const closed = new Promise<number>((resolve) => socket.addEventListener("close", (event) => resolve(event.code)));

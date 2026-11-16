@@ -20,7 +20,7 @@ fn docking_restores_everything_and_takes_time() {
     assert_eq!(next.ship.shields, next.ship.max_shields);
     assert_eq!(next.ship.energy, next.ship.max_energy);
     assert_eq!(next.ship.quantorpedoes, next.ship.max_quantorpedoes);
-    assert_eq!(next.stardate, game.stardate + DOCK_TIME);
+    assert_eq!(next.startick, game.startick + DOCK_TIME);
 }
 
 #[test]

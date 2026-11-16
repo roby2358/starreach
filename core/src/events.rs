@@ -35,11 +35,11 @@ pub fn warp_events(game: &mut Game) -> Vec<String> {
 
 /// Runs when enough time has built up since the last run (or since arrival).
 pub fn stardate_events(game: &mut Game) -> Vec<String> {
-    if game.stardate - game.last_event_stardate < EVENT_INTERVAL {
+    if game.startick - game.last_event_startick < EVENT_INTERVAL {
         return Vec::new();
     }
     let messages = run_all(&STARDATE_EVENTS, game);
-    game.last_event_stardate = game.stardate;
+    game.last_event_startick = game.startick;
     messages
 }
 

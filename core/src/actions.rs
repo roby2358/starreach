@@ -7,21 +7,22 @@ use serde::Serialize;
 
 use crate::constants::*;
 use crate::events::{ambush, enemies_turn, stardate_events, warp_events};
-use crate::game::{Game, Status};
+use crate::game::{format_duration, Game, Status};
 use crate::geometry::{adjacent, euclid, exp_falloff, format_yx, Yx};
 
 pub type Refusal = String;
 
-/// The command's own data, returned in `Result.report`.
+/// The command's own data, returned in `Result.report`. `time` is the action's length as a
+/// stardate duration (`format_duration`).
 #[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum Report {
     GalaxyMap { map: Vec<String> },
-    Warp { sector_yx: Yx, distance: i32, energy_cost: i32, time: f64 },
-    Subwarp { ship_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: f64 },
-    Dock { time: f64 },
-    Scan { scan: Vec<String>, energy_cost: i32, time: f64 },
-    Shot { hit_yx: Yx, path: Vec<Yx>, destroyed: bool, energy_cost: i32, time: f64 },
+    Warp { sector_yx: Yx, distance: i32, energy_cost: i32, time: String },
+    Subwarp { ship_yx: Yx, path: Vec<Yx>, energy_cost: i32, time: String },
+    Dock { time: String },
+    Scan { scan: Vec<String>, energy_cost: i32, time: String },
+    Shot { hit_yx: Yx, path: Vec<Yx>, destroyed: bool, energy_cost: i32, time: String },
 }
 
 pub fn warp_distance(from: Yx, to: Yx) -> i32 {
@@ -32,8 +33,9 @@ pub fn warp_cost(from: Yx, to: Yx) -> i32 {
     warp_distance(from, to) * WARP_ENERGY_PER_DISTANCE
 }
 
-pub fn warp_time(from: Yx, to: Yx) -> f64 {
-    warp_distance(from, to) as f64 * WARP_TIME_PER_DISTANCE
+/// Warp time in starticks, rounded to the nearest whole one.
+pub fn warp_time(from: Yx, to: Yx) -> i64 {
+    (warp_distance(from, to) as f64 * WARP_TIME_PER_DISTANCE).round() as i64
 }
 
 pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
@@ -47,15 +49,15 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
         events.extend(enemies_turn(game));
     }
     if game.ship.hull == 0 {
-        return Ok(Report::Warp { sector_yx: game.sector_yx, distance: 0, energy_cost: 0, time: 0.0 });
+        return Ok(Report::Warp { sector_yx: game.sector_yx, distance: 0, energy_cost: 0, time: format_duration(0) });
     }
     let time = warp_time(game.sector_yx, target);
     game.ship.energy -= energy_cost;
-    game.stardate += time;
+    game.startick += time;
     game.enter_sector(target);
     events.extend(ambush(game, ENEMY_AMBUSH_CHANCE));
     events.extend(warp_events(game));
-    Ok(Report::Warp { sector_yx: target, distance, energy_cost, time })
+    Ok(Report::Warp { sector_yx: target, distance, energy_cost, time: format_duration(time) })
 }
 
 pub fn subwarp(game: &mut Game, dest: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
@@ -73,13 +75,12 @@ pub fn subwarp(game: &mut Game, dest: Yx, events: &mut Vec<String>) -> Result<Re
     afford(game, energy_cost, "subwarp")?;
     let path = ray[..=steps].to_vec();
     let ship_yx = path[steps];
-    let time = steps as f64 * SUBWARP_TIME_PER_STEP;
+    let time = steps as i64 * SUBWARP_TIME_PER_STEP;
     game.sector.move_occupant(game.sector.ship_yx, ship_yx);
     game.sector.ship_yx = ship_yx;
     game.ship.energy -= energy_cost;
-    game.stardate += time;
-    events.extend(stardate_events(game));
-    Ok(Report::Subwarp { ship_yx, path, energy_cost, time })
+    pass_time(game, time, events);
+    Ok(Report::Subwarp { ship_yx, path, energy_cost, time: format_duration(time) })
 }
 
 pub fn dock(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal> {
@@ -93,18 +94,16 @@ pub fn dock(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal
         return Err("Starbase is not adjacent to the ship".to_string());
     }
     game.ship.resupply();
-    game.stardate += DOCK_TIME;
-    events.extend(stardate_events(game));
-    Ok(Report::Dock { time: DOCK_TIME })
+    pass_time(game, DOCK_TIME, events);
+    Ok(Report::Dock { time: format_duration(DOCK_TIME) })
 }
 
 pub fn long_range_scan(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal> {
     afford(game, LRS_ENERGY, "a long-range scan")?;
     game.ship.energy -= LRS_ENERGY;
     let scan = game.galaxy.scan(game.sector_yx);
-    game.stardate += LRS_TIME;
-    events.extend(stardate_events(game));
-    Ok(Report::Scan { scan, energy_cost: LRS_ENERGY, time: LRS_TIME })
+    pass_time(game, LRS_TIME, events);
+    Ok(Report::Scan { scan, energy_cost: LRS_ENERGY, time: format_duration(LRS_TIME) })
 }
 
 pub fn blast(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
@@ -128,7 +127,7 @@ pub fn blast_by(game: &mut Game, target: Yx, roll: f64, events: &mut Vec<String>
         events.push(format!("Blaston beam misses the enemy at {}! Distance: {range:.2}", format_yx(hit_yx)));
     }
     fire(game, hit_yx, destroyed, energy_cost, time, events);
-    Ok(Report::Shot { hit_yx, path, destroyed, energy_cost, time })
+    Ok(Report::Shot { hit_yx, path, destroyed, energy_cost, time: format_duration(time) })
 }
 
 /// The chance a blast destroys the enemy it hits: `BLAST_KILL_CHANCE_NEAR` up to
@@ -145,9 +144,9 @@ pub fn blast_energy(range: f64) -> i32 {
     (BLAST_ENERGY_BASE * range.sqrt()) as i32
 }
 
-/// Blast time at a range, in whole stardates.
-pub fn blast_time(range: f64) -> f64 {
-    (BLAST_TIME_A + BLAST_TIME_B * range.sqrt()).trunc()
+/// Blast time at a range, in starticks, truncated to a whole one.
+pub fn blast_time(range: f64) -> i64 {
+    (BLAST_TIME_A + BLAST_TIME_B * range.sqrt()) as i64
 }
 
 pub fn torpedo(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Report, Refusal> {
@@ -158,7 +157,7 @@ pub fn torpedo(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<
     let (hit_yx, path) = first_enemy(game, target, "torpedo")?;
     game.ship.quantorpedoes -= 1;
     fire(game, hit_yx, true, TORPEDO_ENERGY, TORPEDO_TIME, events);
-    Ok(Report::Shot { hit_yx, path, destroyed: true, energy_cost: TORPEDO_ENERGY, time: TORPEDO_TIME })
+    Ok(Report::Shot { hit_yx, path, destroyed: true, energy_cost: TORPEDO_ENERGY, time: format_duration(TORPEDO_TIME) })
 }
 
 fn afford(game: &Game, cost: i32, what: &str) -> Result<(), Refusal> {
@@ -175,12 +174,17 @@ fn first_enemy(game: &Game, target: Yx, weapon: &str) -> Result<(Yx, Vec<Yx>), R
 }
 
 /// The shared tail of blast and torpedo.
-fn fire(game: &mut Game, hit_yx: Yx, destroyed: bool, energy_cost: i32, time: f64, events: &mut Vec<String>) {
+fn fire(game: &mut Game, hit_yx: Yx, destroyed: bool, energy_cost: i32, time: i64, events: &mut Vec<String>) {
     if destroyed {
         game.destroy_enemy(hit_yx);
     }
     game.ship.energy -= energy_cost;
-    game.stardate += time;
+    pass_time(game, time, events);
+}
+
+/// Moves the clock on by `time` starticks and runs the stardate events that fall due.
+fn pass_time(game: &mut Game, time: i64, events: &mut Vec<String>) {
+    game.startick += time;
     events.extend(stardate_events(game));
 }
 

@@ -3,7 +3,7 @@ use crate::helpers::*;
 use starreach_core::geometry::{all_cells, Yx};
 use starreach_core::rng::Rng;
 use starreach_core::sector::{ENEMY, SHIP};
-use starreach_core::{apply, new_game, Command, Game, Status};
+use starreach_core::{apply, Command, Game, Status};
 
 fn random_command(game: &Game, rng: &mut Rng) -> Command {
     let cell = (rng.int_in((0, 9)), rng.int_in((0, 9)));
@@ -38,7 +38,7 @@ fn check(before: &Game, after: &Game) {
     assert!((0..=ship.max_shields).contains(&ship.shields));
     assert!((0..=ship.max_energy).contains(&ship.energy));
     assert!((0..=ship.max_quantorpedoes).contains(&ship.quantorpedoes));
-    assert!(after.stardate >= before.stardate);
+    assert!(after.startick >= before.startick);
     for yx in all_cells() {
         assert!(!before.galaxy.record(yx).visible || after.galaxy.record(yx).visible);
     }

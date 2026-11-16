@@ -1,6 +1,6 @@
 //! R-20: the same seed and the same commands give the same final state.
 use crate::helpers::*;
-use starreach_core::{apply, new_game, Command, Game};
+use starreach_core::{apply, Command, Game};
 
 fn play(seed: u32) -> Game {
     let commands = [
@@ -8,6 +8,16 @@ fn play(seed: u32) -> Game {
         torpedo(9, 9), warp(2, 7), subwarp(9, 9), Command::State,
     ];
     commands.iter().fold(new_game(seed), |game, c| apply(&game, c).game)
+}
+
+#[test]
+fn the_start_time_sets_the_clock_and_nothing_else() {
+    let early = starreach_core::new_game(SEED, START_UNIX_SECONDS);
+    let mut late = starreach_core::new_game(SEED, START_UNIX_SECONDS + 86_400);
+    assert_eq!(late.startick, early.startick + starreach_core::constants::STARTICKS_PER_STARDATE);
+    late.startick = early.startick;
+    late.last_event_startick = early.last_event_startick;
+    assert_eq!(late, early);
 }
 
 #[test]

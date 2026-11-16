@@ -72,6 +72,7 @@ test("U-2: the ship's status follows the game, and nothing goes back up the sock
   await page.waitForSelector("body[data-link=live]");
   const energy = page.locator("[data-gauge=energy] .gauge-value");
   assert.match((await energy.textContent())!, /^(\d+) \/ \1$/);
+  assert.equal(await page.locator("#stardate").textContent(), "102.0773.00.0");
 
   const { state } = await runCommand(running.deps, id, { type: "long_range_scan" });
   await page.waitForFunction(
@@ -79,6 +80,8 @@ test("U-2: the ship's status follows the game, and nothing goes back up the sock
     `${state!.ship_energy} / ${state!.ship_max_energy}`,
   );
   assert.equal(await page.locator("[data-gauge=hull] .gauge-value").textContent(), `${state!.ship_hull} / ${state!.ship_max_hull}`);
+  assert.equal(await page.locator("#stardate").textContent(), state!.stardate);
+  assert.notEqual(state!.stardate, "102.0773.00.0");
   assert.deepEqual(sent, []);
   await page.close();
 });

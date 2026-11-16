@@ -1,6 +1,7 @@
 //! R-7: long-range scan.
 use crate::helpers::*;
 use starreach_core::constants::*;
+use starreach_core::game::format_duration;
 use starreach_core::Command;
 
 #[test]
@@ -40,8 +41,8 @@ fn sectors_off_the_galaxy_show_dots() {
 fn takes_lrs_time_and_reports_it() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
     let applied = run(&game, Command::LongRangeScan);
-    assert_eq!(applied.game.stardate, game.stardate + LRS_TIME);
-    assert_eq!(report(&applied)["time"], LRS_TIME);
+    assert_eq!(applied.game.startick, game.startick + LRS_TIME);
+    assert_eq!(report(&applied)["time"], format_duration(LRS_TIME));
 }
 
 #[test]
@@ -60,6 +61,6 @@ fn a_cleared_sector_advances_the_stardate_with_no_enemy_events() {
     let mut game = board(EMPTY_WITH_SHIP_AT_00);
     game.ship.shields = SHIP_MAX_SHIELDS;
     let applied = run(&game, Command::LongRangeScan);
-    assert_eq!(applied.game.stardate, game.stardate + LRS_TIME);
+    assert_eq!(applied.game.startick, game.startick + LRS_TIME);
     assert!(applied.result.events.is_empty());
 }

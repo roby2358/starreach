@@ -1,7 +1,7 @@
 //! R-1: galaxy generation.
 use starreach_core::constants::*;
 use starreach_core::geometry::{all_cells, euclid};
-use starreach_core::new_game;
+use crate::helpers::new_game;
 
 #[test]
 fn center_is_known_and_others_are_hidden_within_ranges() {

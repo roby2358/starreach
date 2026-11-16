@@ -10,22 +10,25 @@ export interface Games {
   viewers: Viewers;
   /** Where browsers reach this server, such as http://localhost:8572. */
   viewOrigin: string;
+  /** The real clock, in Unix seconds. A new game's stardate starts from it. */
+  unixSeconds: () => number;
 }
 
 /** A new game under a random, unguessable game_id, stored under its view_id. The core's state query supplies the Result,
  *  so new_game has the same shape as every other tool, with the id and the viewer's link as
  *  its report. */
-export async function newGame({ core, store, viewOrigin }: Games): Promise<CommandResult> {
+export async function newGame({ core, store, viewOrigin, unixSeconds }: Games): Promise<CommandResult> {
   const gameId = crypto.randomUUID();
   const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-  const game = core.newGame(seed);
+  const game = core.newGame(seed, unixSeconds());
   const view = await viewId(gameId);
   await store.put(view, game);
-  const { result } = core.apply(game, { type: "state" });
+  const { result } = own(core.apply(game, { type: "state" }));
   return { ...result, report: { game_id: gameId, viewer_url: viewerUrl(viewOrigin, view) } };
 }
 
-/** Runs one command on a stored game, stores what the core returns, and tells its viewers. */
+/** Runs one command on a stored game, stores what the core returns, and tells its viewers. A
+ *  stored game the core can't read is answered like an unknown one. */
 export async function runCommand({ core, store, viewers }: Games, gameId: string, command: Command): Promise<CommandResult> {
   const view = await viewId(gameId);
   const game = await store.get(view);
@@ -33,11 +36,22 @@ export async function runCommand({ core, store, viewers }: Games, gameId: string
     return gameNotFound();
   }
   const applied = core.apply(game, command);
+  if (applied === undefined) {
+    return gameNotFound();
+  }
   if (applied.result.ok) {
     await store.put(view, applied.game);
-    await viewers.publish(view, viewFrame(core, applied.game));
+    await viewers.publish(view, viewFrame(own(core.view(applied.game))));
   }
   return applied.result;
+}
+
+/** What the core answered about a game it has just made, which it always reads. */
+function own<T>(answer: T | undefined): T {
+  if (answer === undefined) {
+    throw new Error("The core can't read a game it just made");
+  }
+  return answer;
 }
 
 function gameNotFound(): CommandResult {

@@ -4,9 +4,18 @@
 use starreach_core::game::Game;
 use starreach_core::geometry::{all_cells, Yx};
 use starreach_core::sector::{ENEMY, SHIP, STAR, STARBASE};
-use starreach_core::{apply, new_game, Applied, Command};
+use starreach_core::{apply, Applied, Command};
 
 pub const SEED: u32 = 7;
+
+/// The real time every test game starts at: midnight on Unix day 20773, so the clock starts
+/// on a whole stardate.
+pub const START_UNIX_SECONDS: i64 = 20_773 * 86_400;
+
+/// A fresh game from `seed`, started at the pinned time.
+pub fn new_game(seed: u32) -> Game {
+    starreach_core::new_game(seed, START_UNIX_SECONDS)
+}
 
 /// The sector hand-built boards stand in: next to Star Central, so its starbase stays in
 /// reach and the ship is never stranded by accident.
@@ -40,7 +49,7 @@ pub fn set_board(game: &mut Game, rows: [&str; 10]) {
     record.enemies = game.sector.enemies_yx.len() as u32;
     record.starbases = game.sector.starbase_yx.is_some() as u32;
     record.stars = game.sector.stars;
-    game.last_event_stardate = game.stardate;
+    game.last_event_startick = game.startick;
 }
 
 pub fn cells_of(game: &Game, occupant: char) -> Vec<Yx> {

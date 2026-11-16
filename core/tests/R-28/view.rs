@@ -1,9 +1,9 @@
 //! R-28: the view carries what the player has uncovered and nothing else.
 
 use starreach_core::geometry::all_cells;
-use starreach_core::{apply, new_game, view, view_json, Command};
+use starreach_core::{apply, view, view_json, Command};
 
-use crate::helpers::SEED;
+use crate::helpers::{new_game, SEED};
 
 #[test]
 fn a_hidden_sector_is_null_and_a_visible_one_matches_its_record() {

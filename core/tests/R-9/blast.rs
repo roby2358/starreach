@@ -69,7 +69,7 @@ fn a_kill_removes_the_enemy_and_pays_by_range() {
     let root = 4f64.sqrt();
     assert_eq!(next.sector.enemies_yx, vec![(9, 9)]);
     assert_eq!(next.ship.energy, game.ship.energy - (BLAST_ENERGY_BASE * root) as i32);
-    assert_eq!(next.stardate, game.stardate + (BLAST_TIME_A + BLAST_TIME_B * root).trunc());
+    assert_eq!(next.startick, game.startick + (BLAST_TIME_A + BLAST_TIME_B * root) as i64);
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn a_miss_leaves_the_enemy_and_still_pays_energy_and_time() {
     assert_eq!(next.sector.enemies_yx, game.sector.enemies_yx);
     assert_eq!(next.galaxy.record(TEST_SECTOR).enemies, 2);
     assert_eq!(next.ship.energy, game.ship.energy - (BLAST_ENERGY_BASE * root) as i32);
-    assert_eq!(next.stardate, game.stardate + (BLAST_TIME_A + BLAST_TIME_B * root).trunc());
+    assert_eq!(next.startick, game.startick + (BLAST_TIME_A + BLAST_TIME_B * root) as i64);
     assert!(events[0].starts_with("Blaston beam misses the enemy at (0, 4)"), "{events:?}");
 }
 

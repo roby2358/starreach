@@ -32,7 +32,7 @@ pub struct GameView {
 pub fn view(game: &Game) -> GameView {
     GameView {
         status: game.status,
-        stardate: format_stardate(game.stardate),
+        stardate: format_stardate(game.startick),
         sector_yx: game.sector_yx,
         ship: game.ship.clone(),
         board: game.sector.map_rows(),

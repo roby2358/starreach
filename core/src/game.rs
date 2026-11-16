@@ -59,15 +59,18 @@ pub struct Game {
     pub ship: Ship,
     pub sector_yx: Yx,
     pub sector: ActiveSector,
-    pub stardate: f64,
-    pub last_event_stardate: f64,
+    /// The game clock, in whole starticks (D-12).
+    pub startick: i64,
+    /// The clock when stardate events last ran, or when the ship entered the sector.
+    pub last_event_startick: i64,
 }
 
 impl Game {
-    pub fn new(seed: u32) -> Game {
+    /// A game from its seed, with the clock started at the real time `start_unix_seconds`.
+    pub fn new(seed: u32, start_unix_seconds: i64) -> Game {
         let mut rng = Rng::seeded(seed);
         let galaxy = Galaxy::generate(&mut rng);
-        let stardate = rng.int_in(STARDATE_START) as f64;
+        let startick = start_startick(start_unix_seconds);
         let sector = instantiate(&galaxy, seed, GALAXY_CENTER);
         Game {
             seed,
@@ -77,8 +80,8 @@ impl Game {
             ship: Ship::full(),
             sector_yx: GALAXY_CENTER,
             sector,
-            stardate,
-            last_event_stardate: stardate,
+            startick,
+            last_event_startick: startick,
         }
     }
 
@@ -87,7 +90,7 @@ impl Game {
         self.galaxy.record_mut(target).visible = true;
         self.sector_yx = target;
         self.sector = instantiate(&self.galaxy, self.seed, target);
-        self.last_event_stardate = self.stardate;
+        self.last_event_startick = self.startick;
     }
 
     /// Destroy enemy: off the board, and the galaxy record follows.
@@ -130,7 +133,7 @@ impl Game {
             base_count: self.sector.starbase_yx.is_some() as u32,
             enemy_count: self.sector.enemies_yx.len() as u32,
             map: self.sector.map_rows(),
-            stardate: format_stardate(self.stardate),
+            stardate: format_stardate(self.startick),
         }
     }
 }
@@ -139,10 +142,32 @@ fn instantiate(galaxy: &Galaxy, seed: u32, sector_yx: Yx) -> ActiveSector {
     ActiveSector::instantiate(galaxy.record(sector_yx), &mut Rng::for_sector(seed, sector_yx))
 }
 
-/// `int(stardate)`, zero-padded to 8 digits, first 8 kept, shown as `99-9999-99`.
-pub fn format_stardate(stardate: f64) -> String {
-    let digits = format!("{:08}", stardate as i64);
-    format!("{}-{}-{}", &digits[0..2], &digits[2..6], &digits[6..8])
+/// The clock a game starts at: the Unix time counted in starticks, moved on by
+/// `STARDATE_EPOCH_OFFSET` stardates (D-12).
+pub fn start_startick(unix_seconds: i64) -> i64 {
+    (unix_seconds * STARTICKS_PER_STARDATE).div_euclid(SECONDS_PER_STARDATE)
+        + STARDATE_EPOCH_OFFSET * STARTICKS_PER_STARDATE
+}
+
+/// A startick count as stardates to three decimals, truncated: the whole stardates, the first
+/// two decimals and the third. The one place a clock value or a duration becomes digits.
+fn stardate_parts(starticks: i64) -> (i64, i64, i64) {
+    let whole = starticks / STARTICKS_PER_STARDATE;
+    let thousandths = starticks % STARTICKS_PER_STARDATE * 1000 / STARTICKS_PER_STARDATE;
+    (whole, thousandths / 10, thousandths % 10)
+}
+
+/// The clock as a stardate, `ddd.dddd.dd.d`: the whole stardates zero-padded to seven digits
+/// with the last four set apart, then the decimals (D-12).
+pub fn format_stardate(startick: i64) -> String {
+    let (whole, hundredths, third) = stardate_parts(startick);
+    format!("{:03}.{:04}.{hundredths:02}.{third}", whole / 10_000, whole % 10_000)
+}
+
+/// A length of time in stardates, `d.dd.d`: as a stardate, with the whole part unpadded (D-12).
+pub fn format_duration(starticks: i64) -> String {
+    let (whole, hundredths, third) = stardate_parts(starticks);
+    format!("{whole}.{hundredths:02}.{third}")
 }
 
 /// Whole degrees clockwise from up (toward row 0), in `0..360`.

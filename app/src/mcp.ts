@@ -20,16 +20,19 @@ const COORDINATES = {
   x: z.number().int().describe("Column, 0..9"),
 };
 
+/** How to read an action's `report.time`, said on every tool that takes time. */
+const TIME_NOTE = "report.time is how long it took, in stardates (a stardate is a day) written d.dd.d: 0.00.2 is 0.002 stardates, about 4 minutes";
+
 /** One row per core command: the tool name is the command type. */
 const COMMAND_TOOLS = [
-  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot)" },
+  { type: "state", args: {}, description: "The current game state: ship, sector map, stardate, enemies (range, bearing, clear shot). A stardate is a day, written ddd.dddd.dd.d: 102.0773.36.5 is stardate 1020773.365" },
   { type: "galaxy_map", args: {}, description: "The 10x10 galaxy map: E|B|S (enemies|starbases|stars) per visible sector, ..... when hidden" },
-  { type: "galaxy_warp", args: COORDINATES, description: "Warp the ship to sector (y, x). Even the next sector is a long journey, longer than a battle, and time grows with distance. Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each)" },
-  { type: "subwarp", args: COORDINATES, description: "Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present" },
-  { type: "dock", args: {}, description: "Dock with an adjacent starbase in a cleared sector: restores hull, shields, energy and quantorpedoes" },
-  { type: "long_range_scan", args: {}, description: "Reveal E|B|S for the 3x3 block of sectors around the ship. Takes a turn (LRS_TIME stardates), so enemies present act after it" },
-  { type: "blast", args: COORDINATES, description: "Fire a blaston beam toward cell (y, x); it hits the first enemy on the line, up to range 9. It kills 90% of the time up to range 4, falling to 10% at 9; a miss still costs its energy and time (report.destroyed)" },
-  { type: "torpedo", args: COORDINATES, description: "Fire a quantorpedo toward cell (y, x); it hits the first enemy on the line, at any range" },
+  { type: "galaxy_warp", args: COORDINATES, description: `Warp the ship to sector (y, x). Even the next sector is a long journey, longer than a battle, and time grows with distance. Enemies in the current sector get a turn first; enemies in the new sector may fire on arrival (30% each). ${TIME_NOTE}` },
+  { type: "subwarp", args: COORDINATES, description: `Move the ship within the sector toward cell (y, x), stopping before obstacles; at most 3 cells while enemies are present. ${TIME_NOTE}` },
+  { type: "dock", args: {}, description: `Dock with an adjacent starbase in a cleared sector: restores hull, shields, energy and quantorpedoes. ${TIME_NOTE}` },
+  { type: "long_range_scan", args: {}, description: `Reveal E|B|S for the 3x3 block of sectors around the ship. Takes a full turn of time, so enemies present act after it. ${TIME_NOTE}` },
+  { type: "blast", args: COORDINATES, description: `Fire a blaston beam toward cell (y, x); it hits the first enemy on the line, up to range 9. It kills 90% of the time up to range 4, falling to 10% at 9; a miss still costs its energy and time (report.destroyed). ${TIME_NOTE}` },
+  { type: "torpedo", args: COORDINATES, description: `Fire a quantorpedo toward cell (y, x); it hits the first enemy on the line, at any range. ${TIME_NOTE}` },
 ] as const;
 
 function whoami(player: string | null) {

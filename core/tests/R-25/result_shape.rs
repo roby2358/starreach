@@ -36,7 +36,7 @@ fn coordinates_outside_the_board_are_refused() {
 
 #[test]
 fn a_command_that_does_not_parse_is_refused_through_json() {
-    let game = new_game_json(5);
+    let game = new_game_json(5, START_UNIX_SECONDS);
     for command in [r#"{"type":"self_destruct"}"#, r#"{"type":"subwarp","y":1}"#, "not json"] {
         let applied: serde_json::Value = serde_json::from_str(&apply_json(&game, command).unwrap()).unwrap();
         assert_eq!(applied["result"]["ok"], false);
@@ -45,8 +45,21 @@ fn a_command_that_does_not_parse_is_refused_through_json() {
 }
 
 #[test]
+fn a_stored_game_without_the_startick_clock_is_not_a_game() {
+    let mut stored: serde_json::Value = serde_json::from_str(&new_game_json(5, START_UNIX_SECONDS)).unwrap();
+    let fields = stored.as_object_mut().unwrap();
+    fields.remove("startick");
+    fields.remove("last_event_startick");
+    fields.insert("stardate".to_string(), 1_234_567.0.into());
+    fields.insert("last_event_stardate".to_string(), 1_234_567.0.into());
+    let text = stored.to_string();
+    assert!(apply_json(&text, r#"{"type":"state"}"#).is_err());
+    assert!(starreach_core::view_json(&text).is_err());
+}
+
+#[test]
 fn a_game_survives_the_json_round_trip() {
-    let game = new_game_json(u32::MAX);
+    let game = new_game_json(u32::MAX, START_UNIX_SECONDS);
     let applied: serde_json::Value =
         serde_json::from_str(&apply_json(&game, r#"{"type":"long_range_scan"}"#).unwrap()).unwrap();
     assert_eq!(applied["result"]["ok"], true);

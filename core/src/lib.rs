@@ -1,8 +1,8 @@
 //! Starreach core: the game rules as a pure function (ONTOLOGY "Core API", D-21).
 //!
-//! `new_game(seed)` builds a Game. `apply(game, command)` returns the next Game and a
-//! Result. `view(game)` returns what a read-only display may see. The core keeps nothing
-//! between calls. The `*_json` functions are the same calls over JSON text, for the WASM
+//! `new_game(seed, start_unix_seconds)` builds a Game: the caller reads the clock, the core
+//! never does. `apply(game, command)` returns the next Game and a Result. `view(game)` returns
+//! what a read-only display may see. The core keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for the WASM
 //! boundary.
 
 pub mod actions;
@@ -54,8 +54,8 @@ pub struct Applied {
     pub result: Outcome,
 }
 
-pub fn new_game(seed: u32) -> Game {
-    Game::new(seed)
+pub fn new_game(seed: u32, start_unix_seconds: i64) -> Game {
+    Game::new(seed, start_unix_seconds)
 }
 
 /// Runs one command. A refused command returns the game unchanged.
@@ -113,8 +113,8 @@ fn refused(game: &Game, error: Refusal) -> Applied {
 }
 
 /// `new_game` over JSON: returns the Game as JSON text.
-pub fn new_game_json(seed: u32) -> String {
-    serde_json::to_string(&new_game(seed)).expect("a Game always serializes")
+pub fn new_game_json(seed: u32, start_unix_seconds: i64) -> String {
+    serde_json::to_string(&new_game(seed, start_unix_seconds)).expect("a Game always serializes")
 }
 
 /// `apply` over JSON: returns `{game, result}` as JSON text. A command that doesn't parse

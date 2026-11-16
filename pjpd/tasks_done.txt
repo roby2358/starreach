@@ -1,5 +1,31 @@
 Priority:   90
 Status: Done
+ID: starticks-kp76
+Created: 2026-11-15T23:59:54Z
+Updated: 2026-11-16T01:14:45Z
+
+Keep the game clock in whole starticks and show it as a stardate with three decimals, written `dddd.dd.d`.
+
+Decided [D]:
+- The clock is counted internally in starticks, whole numbers. 400 starticks make one stardate, so a stardate is a day and a startick is 3.6 minutes.
+- In-sector times stay the numbers they are today, now read as starticks: a subwarp step 1, a torpedo 1, a blast 1 to 3, a long range scan 3, docking 5, and the interval at which enemies act and shields recharge 3. Nothing about how a battle plays changes. A typical battle is about 5 starticks (18 minutes).
+- The stardate is shown to three decimal places in the form `ddd.dddd.dd.d`: seven whole digits split three and four, then the first two decimals, then the third, for example 102.0773.36.5 for stardate 1020773.365. This replaces today's `99-9999-99` form of an 8-digit whole number.
+- A game starts at a stardate taken from the real date: the Unix time in seconds, plus or minus a fixed offset, divided by 86400 (a stardate is a day), with the offset chosen so the result is a low seven-digit number with its fraction.
+- Durations (the `time` an action reports) are given in stardates, written to three decimals in the same style, `dddd.dd.d` without padding the whole part (a warp of 1.04 stardates reads 1.04.0; a torpedo's single startick reads 0.00.2).
+- No migration. Nobody has a production game going: stored games from before this change are wiped.
+
+Do:
+- core: replace the f64 `stardate` and `last_event_stardate` on Game with whole startick counts (name them for what they are, e.g. `startick`, `last_event_startick`), and make every time constant and every `time` a whole number of starticks. Add STARTICKS_PER_STARDATE = 400. Blast time is already truncated to a whole number. Warp time is today a fraction (distance × WARP_TIME_PER_DISTANCE); until the warp time rule is replaced, round it to a whole startick.
+- The displayed stardate and a displayed duration are derived in one place from a startick count: whole stardates = ticks / 400, decimals from the remainder, truncated to three places. One startick is 0.0025 stardates, so every startick changes the display.
+- The starting stardate: today it is a whole number drawn from STARDATE_START by the game's seeded rng. Replace that with the real date as decided. The core stays a pure function, so the start time is an input to it: the adapter reads the clock and passes it to new_game beside the seed (Unix seconds in, converted to starticks in the core with a STARDATE_EPOCH_OFFSET constant of 1,000,000 stardates [D], so a game started in late 2026 begins near stardate 1,020,770, shown as 102.0770). Same seed, same start time and same commands still give the same game; tests pin the start time.
+- Action reports carry `time` as the formatted stardate duration. Say in the tool descriptions and public/instructions.txt how to read a stardate and a duration (a stardate is a day), so the crew reports them sensibly.
+- GameState.stardate (the string), the GameView the viewer page receives, and the viewer page's stardate display (public/) all show the new form. Check the page's layout with the new string and update the committed screenshot script if it asserts on it.
+- Stored games from before this change hold the old f64 fields and won't parse; that is accepted. Make sure a game that doesn't parse answers as an unknown game and doesn't crash the server.
+
+Tests: the stardate format (whole, boundary and remainder cases, truncation not rounding); every action advances the clock by a whole number of starticks; the event interval still fires on the same actions as before (the existing stardate-event tests, in starticks). Update ONTOLOGY (Game fields, the stardate display rule, the numbers table with units in starticks), CRITERIA, RATIONALE (why whole ticks: no floating-point drift in the interval check; why 400; the display form), the tool descriptions, README, and a log entry. Run `just cc-test-all`. Don't deploy.
+----
+Priority:   90
+Status: Done
 ID: starbases-rezr
 Created: 2026-11-15T01:30:19Z
 Updated: 2026-11-15T03:04:38Z

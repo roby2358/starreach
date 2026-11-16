@@ -31,6 +31,7 @@ function loadDeps(viewOrigin: string): NodeDeps {
     store: new MemoryStore(),
     viewers: new SocketViewers(),
     viewOrigin,
+    unixSeconds: () => Math.floor(Date.now() / 1000),
     instructions: readFileSync(INSTRUCTIONS_PATH, "utf8").trim(),
     player: null,
   };

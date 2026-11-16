@@ -60,7 +60,8 @@ One name per concept. These names are used in code, tools and docs.
 | **Blast** | The ship's energy weapon | blaston beam |
 | **Torpedo** | The ship's limited-ammo weapon | quantorpedo |
 | **Enemy fire** | An enemy's weapon | raxxon beam |
-| **Stardate** | Game time | |
+| **Stardate** | Game time as the player reads it. A stardate is a day, shown to three decimals | |
+| **Startick** | The unit the game clock counts in: a whole number, `STARTICKS_PER_STARDATE` to a stardate, so 3.6 minutes | tick |
 | **Command** | A request to the core: an action or a query | order |
 | **Action** | A command that changes state | |
 | **Query** | A command that only reads state | |
@@ -87,8 +88,8 @@ receives it, returns a new one, and never keeps it.
 | `ship` | Ship | |
 | `sector_yx` | Coordinate | The sector the ship is in |
 | `sector` | ActiveSector | The live board of `sector_yx` |
-| `stardate` | float | Current game time |
-| `last_event_stardate` | float | Stardate when stardate events last ran, or when the ship entered the sector |
+| `startick` | int | The game clock, in whole starticks [D] |
+| `last_event_startick` | int | The clock when stardate events last ran, or when the ship entered the sector |
 
 The event kinds and their order are fixed by the rules, not stored.
 
@@ -241,13 +242,14 @@ call on that object, which sends the frame to each of its sockets. [D]
   never stored in the galaxy. [D]
 - The `GALAXY_CENTER` record starts as `(visible, 0, 1, START_SECTOR_STARS)`. [D]
 - `visible` only goes from false to true. [D]
-- `stardate` never decreases. [D]
+- `startick` never decreases, and every time is a whole number of starticks. [D]
 - `0 ≤ shields ≤ max_shields`, `0 ≤ hull ≤ max_hull`, `0 ≤ energy ≤ max_energy`,
   `0 ≤ quantorpedoes ≤ max_quantorpedoes`. [D]
 - `status` leaves `playing` at most once, and never returns. [D]
 - A refused command returns the game unchanged. [D]
 - Games are isolated: a command on one never changes another. [D]
-- Same seed and same commands give the same state. [D]
+- Same seed, same start time and same commands give the same state. The core reads no clock:
+  the start time is an input. [D]
 - A viewer never changes a game: nothing it sends reaches the store or the core. [D]
 - A GameView never shows a hidden sector, the seed or the RNG. [D]
 
@@ -276,7 +278,7 @@ when a long-range scan covers it.
 ### Random streams
 *Serves: G-2, F-discovery.* [D] Two kinds of stream, both deterministic:
 - **The game stream** `rng`, seeded from `seed` at creation and carried in the Game. Galaxy
-  generation, `STARDATE_START`, enemy choices, blast kill rolls and enemy fire damage draw from it.
+  generation, enemy choices, blast kill rolls and enemy fire damage draw from it.
 - **A sector stream** `sector_rng(seed, sector_yx)`, fresh each time a sector is built, so a
   sector's layout depends only on the seed, the sector and its record.
 
@@ -290,10 +292,14 @@ in `0..9`; then its own legality. A failed check refuses the action: `ok = false
 
 ### Game creation — *Serves: G-2* [D]
 ```
-rng = seeded(seed);  galaxy = generate(rng);  stardate = uniform(rng, STARDATE_START)
+new_game(seed, start_unix_seconds):
+rng = seeded(seed);  galaxy = generate(rng)
+startick = floor(start_unix_seconds × STARTICKS_PER_STARDATE / SECONDS_PER_STARDATE) + STARDATE_EPOCH_OFFSET × STARTICKS_PER_STARDATE
 ship = full;  sector_yx = GALAXY_CENTER;  sector = instantiate(GALAXY_CENTER)
-last_event_stardate = stardate;  status = playing
+last_event_startick = startick;  status = playing
 ```
+The starting stardate is the real date: the Unix time in days plus `STARDATE_EPOCH_OFFSET`. The
+caller reads the clock and passes it in. [D]
 
 ### Galaxy generation — *Serves: G-2, F-discovery* [D]
 ```
@@ -331,8 +337,8 @@ illegal if target == sector_yx
 distance = int(euclid(sector_yx, target) × WARP_DISTANCE_SCALE);  cost = distance × WARP_ENERGY_PER_DISTANCE
 illegal if energy < cost
 if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
-mark target visible;  energy -= cost;  stardate += distance × WARP_TIME_PER_DISTANCE
-sector_yx = target;  sector = instantiate(target);  last_event_stardate = stardate
+mark target visible;  energy -= cost;  startick += round(distance × WARP_TIME_PER_DISTANCE)
+sector_yx = target;  sector = instantiate(target);  last_event_startick = startick
 ambush: for each enemy in order, while hull > 0: with probability ENEMY_AMBUSH_CHANCE it fires once (the EnemiesTurn fire rule) [D]
 run warp events
 ```
@@ -343,13 +349,13 @@ limit = SUBWARP_MAX_STEPS_HOSTILE if enemies are present else SUBWARP_MAX_STEPS
 r = ray(ship_yx, dest), dropping a final obstacle;  steps = min(len(r) − 1, limit)
 illegal if steps == 0;  illegal if energy < steps × SUBWARP_ENERGY_PER_STEP
 ship_yx = r[steps];  energy -= steps × SUBWARP_ENERGY_PER_STEP
-stardate += steps × SUBWARP_TIME_PER_STEP;  run stardate events
+startick += steps × SUBWARP_TIME_PER_STEP;  run stardate events
 ```
 
 ### Dock — *Serves: G-4* [D]
 ```
 illegal if enemies are present, or no starbase, or starbase not adjacent
-hull, shields, energy, quantorpedoes := max;  stardate += DOCK_TIME
+hull, shields, energy, quantorpedoes := max;  startick += DOCK_TIME
 run stardate events
 ```
 
@@ -358,8 +364,8 @@ run stardate events
 illegal if energy < LRS_ENERGY
 energy -= LRS_ENERGY
 for each sector in the 3×3 block around sector_yx: mark visible, report "E|B|S"; off-galaxy → "....."
-stardate += LRS_TIME [T]
-run stardate events      # enemies present act; in a cleared sector the stardate still advances, no one acts [D]
+startick += LRS_TIME [T]
+run stardate events      # enemies present act; in a cleared sector the clock still advances, no one acts [D]
 ```
 
 ### Blast — *Serves: F-danger, G-4* [D]
@@ -369,7 +375,7 @@ r = euclid(ship_yx, hit);  illegal if r > BLAST_RANGE
 cost = int(BLAST_ENERGY_BASE × √r);  illegal if energy < cost
 destroyed = rng.unit() < kill_chance(r)      # one draw per blast [D]
 if destroyed: destroy hit   else: report the miss (the enemy is untouched)
-energy -= cost;  stardate += int(BLAST_TIME_A + BLAST_TIME_B × √r)      # paid hit or miss [D]
+energy -= cost;  startick += int(BLAST_TIME_A + BLAST_TIME_B × √r)      # paid hit or miss [D]
 run stardate events
 
 kill_chance(r):
@@ -381,7 +387,7 @@ kill_chance(r):
 ```
 illegal if quantorpedoes == 0, or energy < TORPEDO_ENERGY
 hit = first enemy on ray(ship_yx, target);  illegal if none
-destroy hit;  quantorpedoes -= 1;  energy -= TORPEDO_ENERGY;  stardate += TORPEDO_TIME
+destroy hit;  quantorpedoes -= 1;  energy -= TORPEDO_ENERGY;  startick += TORPEDO_TIME
 run stardate events
 ```
 
@@ -392,9 +398,9 @@ remove from enemies_yx and map;  galaxy[sector_yx].enemies = len(enemies_yx)
 
 ### Stardate events — *Serves: F-danger* [D]
 ```
-if stardate − last_event_stardate < EVENT_INTERVAL: stop
+if startick − last_event_startick < EVENT_INTERVAL: stop
 for e in [ShieldReplenish, EnemiesTurn]: if e.can_occur: messages += e.execute
-last_event_stardate = stardate
+last_event_startick = startick
 ```
 
 ### Game end — *Serves: G-2, F-danger* [D]
@@ -456,15 +462,28 @@ message: "all clear, approach for docking" if no enemies else "under attack, nee
 ```
 
 ### Stardate display — *Serves: F-command* [D]
+One derivation turns a startick count into digits, for the clock and for a length of time alike.
 ```
-s = int(stardate) zero-padded to 8 digits, first 8 kept;  shown as s[0:2]-s[2:6]-s[6:8]
+parts(ticks):
+  whole = ticks div STARTICKS_PER_STARDATE
+  thousandths = (ticks mod STARTICKS_PER_STARDATE) × 1000 div STARTICKS_PER_STARDATE      # truncated, never rounded
+  return whole, thousandths div 10 as 2 digits (dd), thousandths mod 10 (d)
+
+stardate(startick):  whole zero-padded to 7 digits, its last four set apart:  ddd.dddd.dd.d
+duration(ticks):     whole unpadded:  d.dd.d
 ```
+Stardate 1020773.365 shows as `102.0773.36.5`. A duration of 416 starticks shows as `1.04.0`, and
+one startick as `0.00.2`. One startick is 0.0025 stardates, so every startick changes the
+display. `GameState.stardate` and `GameView.stardate` are the stardate form; every action
+report's `time` is the duration form.
 
 ### Game lookup — *Serves: G-1* [D]
 In the app layer.
 ```
-new_game: seed = random u32;  game_id = random id;  view_id = sha256(game_id);  store new_game(seed) under view_id
+new_game: seed = random u32;  game_id = random id;  view_id = sha256(game_id)
+          store new_game(seed, the adapter's clock in Unix seconds) under view_id
 any other tool: load sha256(game_id), else error "Game not found"
+                a stored game the core can't read is not found too
 apply the command;  if ok: store the returned game, publish its view frame to the viewers
 return the result
 ```
@@ -493,24 +512,24 @@ Referred to by name everywhere else.
 | `STARBASE_PLACE_TRIES` | 100 | random draws per starbase | D-38 |
 | `WARP_DISTANCE_SCALE` | 10 | distance per sector | D-5 |
 | `WARP_ENERGY_PER_DISTANCE` | 10 | energy | D-5 |
-| `WARP_TIME_PER_DISTANCE` | 2 | stardate | D-5 |
+| `WARP_TIME_PER_DISTANCE` | 2 | starticks per unit of distance, rounded to a whole startick | D-5 |
 | `SUBWARP_MAX_STEPS` | 10 | cells | D-6 |
 | `SUBWARP_MAX_STEPS_HOSTILE` | 3 | cells | D-6 |
 | `SUBWARP_ENERGY_PER_STEP` | 2 | energy | D-6 |
-| `SUBWARP_TIME_PER_STEP` | 1 | stardate | D-6 |
-| `DOCK_TIME` | 5 | stardate | D-7 |
+| `SUBWARP_TIME_PER_STEP` | 1 | startick | D-6 |
+| `DOCK_TIME` | 5 | starticks | D-7 |
 | `LRS_ENERGY` | 500 | energy | D-8 |
-| `LRS_TIME` | 3 | stardate | D-8 |
+| `LRS_TIME` | 3 | starticks | D-8 |
 | `BLAST_RANGE` | 9 | cells; also where the kill chance reaches `BLAST_KILL_CHANCE_FAR` | D-9, D-36 |
 | `BLAST_SURE_RANGE` | 4 | cells, up to which a blast kills with `BLAST_KILL_CHANCE_NEAR` | D-36 |
 | `BLAST_KILL_CHANCE_NEAR` | 0.9 | probability a blast kills, up to `BLAST_SURE_RANGE` | D-36 |
 | `BLAST_KILL_CHANCE_FAR` | 0.1 | probability a blast kills at `BLAST_RANGE` | D-36 |
 | `BLAST_ENERGY_BASE` | 1000 | energy per √cell | D-9 |
-| `BLAST_TIME_A` | −0.37840 | stardate | D-9 |
-| `BLAST_TIME_B` | 1.37840 | stardate per √cell | D-9 |
+| `BLAST_TIME_A` | −0.37840 | starticks | D-9 |
+| `BLAST_TIME_B` | 1.37840 | starticks per √cell | D-9 |
 | `TORPEDO_ENERGY` | 100 | energy | D-9 |
-| `TORPEDO_TIME` | 1 | stardate | D-9 |
-| `EVENT_INTERVAL` | 3 | stardate | D-10 |
+| `TORPEDO_TIME` | 1 | startick | D-9 |
+| `EVENT_INTERVAL` | 3 | starticks | D-10 |
 | `ENEMY_ADVANCE_FRACTION` | 1/3 | probability per enemy | D-10 |
 | `ENEMY_ADVANCE_STEPS` | 2 | cells | D-10 |
 | `ENEMY_OBLIQUE_CHANCE` | 0.5 | probability an advance is oblique, split evenly left and right | D-34 |
@@ -526,7 +545,9 @@ Referred to by name everywhere else.
 | `SHIP_MAX_SHIELDS` | 3000 | hp | D-11 |
 | `SHIP_MAX_ENERGY` | 50000 | energy | D-11 |
 | `SHIP_MAX_QUANTORPEDOES` | 7 | torpedoes | D-11 |
-| `STARDATE_START` | 1000000..2000000 | stardate | D-12 |
+| `STARTICKS_PER_STARDATE` | 400 | starticks in a stardate [D] | D-12 |
+| `SECONDS_PER_STARDATE` | 86400 | seconds of real time in a stardate: a stardate is a day [D] | D-12 |
+| `STARDATE_EPOCH_OFFSET` | 1000000 | stardates added to the Unix time in days for a game's starting stardate [D] | D-12 |
 | `SHIELD_REPLENISH` | 500 | hp per firing | D-27 |
 | `SHIELD_ENERGY_PER_POINT` | 1 | energy per hp | D-27 |
 | `STARBASE_EMERGENCY_ENERGY` | 1000 | energy floor a starbase restores to a stranded ship | D-30 |
@@ -545,12 +566,16 @@ Three JSON functions. The core holds no state between calls.
 
 | Function | Input | Output |
 |---|---|---|
-| `new_game` | `seed: u32` | Game |
+| `new_game` | `seed: u32`, `start_unix_seconds` | Game |
 | `apply` | `game: Game`, `command: Command` | `{game: Game, result: Result}` |
 | `view` | `game: Game` | GameView |
 
-`Game` is opaque to the app layer. 64-bit fields inside it are serialized as strings so a
-JavaScript round trip can't lose precision.
+`Game` is opaque to the app layer. The RNG's 64-bit state inside it is serialized as a string so a
+JavaScript round trip can't lose precision; the startick clock is a plain number, far below the
+size where JavaScript loses whole numbers. `start_unix_seconds` is the real time the game starts
+at: the core reads no clock, so the adapter supplies it (Game creation). Given text that isn't
+a Game it reads, such as a game stored before a change to the Game's fields, `apply` and `view`
+return nothing, and the app layer answers as for an unknown game. Stored games are not migrated. [D]
 
 ### Commands
 Each command is `{type, …args}`. Every command returns the same **Result** shape:
@@ -569,11 +594,13 @@ Each command is `{type, …args}`. Every command returns the same **Result** sha
 | `torpedo` | `y, x` | action | Torpedo | `{hit_yx, path, destroyed, energy_cost, time}`; `destroyed` is always true |
 
 `galaxy_map` rows are 10 space-separated entries: visible `E|B|S`, hidden `.....`.
+Every `time` is how long the action took, as a string in the duration form of the Stardate
+display rule. [D]
 
 **GameState:** `status, sector_yx, ship_yx, ship_hull, ship_max_hull, ship_shields,
 ship_max_shields, ship_energy, ship_max_energy, ship_quantorpedoes,
 ship_max_quantorpedoes, starbase_yx, enemies: EnemySight[], star_count, base_count, enemy_count,
-map: string[10], stardate: "99-9999-99"`.
+map: string[10], stardate: "ddd.dddd.dd.d"`.
 
 ### MCP tools (app layer) [D]
 One tool per core command, each taking `game_id` plus the command's args, and returning
@@ -590,9 +617,12 @@ most clients load a prompt only when the user picks it. They cast it as the ship
 working closely with the captain to make the galaxy safe, and tell it to give the captain the
 `viewer_url` and then wait for orders rather than play on its own [D]. Facts about one tool go in
 that tool's description: `subwarp`'s states the Subwarp rule's hostile-sector cap, so a move that
-stops short isn't a surprise [D].
+stops short isn't a surprise [D]. The instructions say how to read a stardate and a duration (a
+stardate is a day), `state`'s description gives the stardate form, and each action's description
+says how to read `report.time` [D].
 
-An unknown `game_id` returns `{ok: false, error: "Game not found", …}` with `state` null.
+An unknown `game_id`, or one whose stored game the core can't read, returns
+`{ok: false, error: "Game not found", …}` with `state` null.
 Arguments that don't fit a tool's schema, such as a missing `game_id` or a coordinate that
 isn't an integer, are rejected by MCP as a tool error and never reach the game. An integer
 coordinate outside `0..9` does reach the core, which refuses it with a Result. [P]
@@ -639,7 +669,7 @@ in `public/` is served, which adds the font's licence text to the pages' files. 
 ### Viewer socket [D]
 ```
 on connect to /live/<view_id>:
-    unknown game: close with code 4404
+    unknown game, or a stored game the core can't read: close with code 4404
     otherwise: add to the game's viewers, send {type: "view", view: GameView}
 on an accepted command: send {type: "view", view: GameView} to the game's viewers
 on any frame from a viewer: ignore it; one over VIEWER_MAX_FRAME_BYTES closes that socket (1009)

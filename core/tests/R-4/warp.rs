@@ -28,23 +28,23 @@ fn a_warp_moves_pays_and_restarts_the_event_clock() {
     assert_eq!(next.sector_yx, (4, 6));
     assert!(next.galaxy.record((4, 6)).visible);
     assert_eq!(next.ship.energy, game.ship.energy - distance * WARP_ENERGY_PER_DISTANCE);
-    assert_eq!(next.stardate, game.stardate + distance as f64 * WARP_TIME_PER_DISTANCE);
-    assert_eq!(next.last_event_stardate, next.stardate);
+    assert_eq!(next.startick, game.startick + (distance as f64 * WARP_TIME_PER_DISTANCE).round() as i64);
+    assert_eq!(next.last_event_startick, next.startick);
     assert_eq!(next.sector.enemies_yx.len() as u32, next.galaxy.record((4, 6)).enemies);
 }
 
-/// Stardates to clear the largest sectors in 9 of 10 battles, as `just cc-model-balance`
+/// Starticks to clear a sector of 7 enemies in 9 of 10 battles, as `just cc-model-balance`
 /// measures it (D-5). The shortest warp must take longer.
-const LONG_BATTLE_STARDATES: f64 = 19.0;
+const LONG_BATTLE_STARTICKS: i64 = 16;
 
 #[test]
 fn the_shortest_warp_outlasts_a_long_battle() {
-    assert!(warp_time((5, 5), (5, 6)) > LONG_BATTLE_STARDATES);
+    assert!(warp_time((5, 5), (5, 6)) > LONG_BATTLE_STARTICKS);
 }
 
 #[test]
 fn a_longer_warp_takes_longer() {
-    let times: Vec<f64> = (1..10).map(|x| warp_time((0, 0), (0, x))).collect();
+    let times: Vec<i64> = (1..10).map(|x| warp_time((0, 0), (0, x))).collect();
     assert!(times.windows(2).all(|pair| pair[0] < pair[1]));
 }
 

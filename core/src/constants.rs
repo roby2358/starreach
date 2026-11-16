@@ -24,18 +24,18 @@ pub const STARBASE_PLACE_TRIES: u32 = 100;
 
 pub const WARP_DISTANCE_SCALE: f64 = 10.0;
 pub const WARP_ENERGY_PER_DISTANCE: i32 = 10;
-/// Stardates per unit of warp distance. Sized so that a warp to the next sector outlasts a
+/// Starticks per unit of warp distance. Sized so that a warp to the next sector outlasts a
 /// battle (D-5).
 pub const WARP_TIME_PER_DISTANCE: f64 = 2.0;
 
 pub const SUBWARP_MAX_STEPS: usize = 10;
 pub const SUBWARP_MAX_STEPS_HOSTILE: usize = 3;
 pub const SUBWARP_ENERGY_PER_STEP: i32 = 2;
-pub const SUBWARP_TIME_PER_STEP: f64 = 1.0;
+pub const SUBWARP_TIME_PER_STEP: i64 = 1;
 
-pub const DOCK_TIME: f64 = 5.0;
+pub const DOCK_TIME: i64 = 5;
 pub const LRS_ENERGY: i32 = 500;
-pub const LRS_TIME: f64 = 3.0;
+pub const LRS_TIME: i64 = 3;
 
 pub const BLAST_RANGE: f64 = 9.0;
 /// Up to this range a blast kills with `BLAST_KILL_CHANCE_NEAR`; beyond it the chance falls
@@ -47,9 +47,9 @@ pub const BLAST_ENERGY_BASE: f64 = 1000.0;
 pub const BLAST_TIME_A: f64 = -0.37840;
 pub const BLAST_TIME_B: f64 = 1.37840;
 pub const TORPEDO_ENERGY: i32 = 100;
-pub const TORPEDO_TIME: f64 = 1.0;
+pub const TORPEDO_TIME: i64 = 1;
 
-pub const EVENT_INTERVAL: f64 = 3.0;
+pub const EVENT_INTERVAL: i64 = 3;
 pub const ENEMY_ADVANCE_FRACTION: f64 = 1.0 / 3.0;
 pub const ENEMY_ADVANCE_STEPS: usize = 2;
 pub const ENEMY_OBLIQUE_CHANCE: f64 = 0.5;
@@ -70,7 +70,12 @@ pub const SHIP_MAX_SHIELDS: i32 = 3000;
 pub const SHIP_MAX_ENERGY: i32 = 50000;
 pub const SHIP_MAX_QUANTORPEDOES: i32 = 7;
 
-pub const STARDATE_START: (i32, i32) = (1_000_000, 2_000_000);
+/// The clock counts whole starticks; every time below and above is in starticks (D-12).
+pub const STARTICKS_PER_STARDATE: i64 = 400;
+/// A stardate is a day.
+pub const SECONDS_PER_STARDATE: i64 = 86_400;
+/// Stardates added to the Unix time in days to give a game's starting stardate.
+pub const STARDATE_EPOCH_OFFSET: i64 = 1_000_000;
 
 pub const SHIELD_REPLENISH: i32 = 500;
 pub const SHIELD_ENERGY_PER_POINT: i32 = 1;

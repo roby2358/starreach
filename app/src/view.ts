@@ -2,7 +2,7 @@
 // layer only makes frames. Each adapter owns the sockets, because upgrading a request and
 // holding a socket are the platform's business.
 
-import type { Core, GameJson, GameView } from "./core.ts";
+import type { Core, GameView } from "./core.ts";
 import type { GameStore } from "./store.ts";
 
 /** The sockets watching each game. Nothing comes back from a viewer. */
@@ -43,16 +43,18 @@ export function viewerUrl(origin: string, viewIdValue: string): string {
   return `${origin}/viewer?view=${viewIdValue}`;
 }
 
-export function viewFrame(core: Core, game: GameJson): string {
-  const frame: Frame = { type: "view", view: core.view(game) };
+export function viewFrame(view: GameView): string {
+  const frame: Frame = { type: "view", view };
   return JSON.stringify(frame);
 }
 
-/** The frame a viewer gets on connecting, or undefined for an unknown game. */
+/** The frame a viewer gets on connecting, or undefined for an unknown game or a stored game the
+ *  core can't read. */
 export async function currentFrame(
   { core, store }: { core: Core; store: GameStore },
   viewIdValue: string,
 ): Promise<string | undefined> {
   const game = await store.get(viewIdValue);
-  return game === undefined ? undefined : viewFrame(core, game);
+  const view = game === undefined ? undefined : core.view(game);
+  return view === undefined ? undefined : viewFrame(view);
 }

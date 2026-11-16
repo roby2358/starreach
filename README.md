@@ -77,6 +77,12 @@ Build once with `just cc-build-wasm`, then point Claude Desktop at the Node adap
 
 Start with the `new_game` tool and pass its `game_id` to every other tool. The server's instructions, sent when a client connects, set the crew's voice.
 
+## Stardates
+
+The game clock counts whole starticks, 400 to a stardate, and a stardate is a day (D-12). A game starts at the real date: the Unix time in days plus 1,000,000. The stardate is shown to three decimals as `ddd.dddd.dd.d`, so `102.0773.36.5` is stardate 1020773.365. An action's `report.time` is how long it took, written the same way: `0.00.2` is one startick (3.6 minutes) and `1.04.0` is 1.04 stardates.
+
+Games stored before a change to the game's fields are not migrated: they answer "Game not found".
+
 ## The main viewer
 
 `new_game` reports a `viewer_url`, and the crew gives you the link. It carries a hash of the game_id, so sharing it shares the view and not the controls. Open it (at `/viewer`) for a live, read-only view of the current sector, the galaxy map and ship status. Only one server can hold the port. A stdio server that finds another Starreach server there forwards to it and shares its games, and those games end when the server holding the port exits.

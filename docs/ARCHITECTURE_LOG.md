@@ -3,6 +3,32 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — The clock counts whole starticks; the stardate is a day with three decimals
+The Game's `stardate` and `last_event_stardate` (floats, in stardates) became `startick` and
+`last_event_startick` (whole numbers). `STARTICKS_PER_STARDATE` = 400 is new. The in-sector
+times kept their numbers and are now starticks: subwarp step 1, torpedo 1, blast 1 to 3, scan
+3, dock 5, `EVENT_INTERVAL` 3. Warp time is still `distance × WARP_TIME_PER_DISTANCE`, now
+rounded to a whole startick, so the next sector is 20 starticks (0.05 stardates) away where
+it was 20 stardates.
+
+The display was `int(stardate)` as 8 digits, `99-9999-99`. It is now the stardate to three
+truncated decimals, `ddd.dddd.dd.d`, and action reports give `time` as a duration string in
+the same style (`0.00.7` for a scan) where they gave a number of stardates.
+
+A game's starting stardate was drawn from the seeded rng in `STARDATE_START`
+(1000000..2000000), which is removed. It is now the real date: `new_game` takes the Unix time
+beside the seed and adds `STARDATE_EPOCH_OFFSET` (1000000 stardates). The adapters read the
+clock (`Games.unixSeconds`); the core still reads none. Dropping that rng draw shifted the game
+stream by one draw, so a given seed plays out differently than before; the galaxies are the
+same. The D-5 battle figures, re-run, moved within sampling noise for the rare 8- and 9-enemy
+sectors (within 19 in 9 of 10 became 20 and 25), and R-4's benchmark went from 19 to the
+7-enemy figure, 16.
+
+Stored games are not migrated: one with the old fields doesn't parse. The WASM `apply` and
+`view` threw on such a game, which on Node could take the server down from a viewer's
+connection; they now return nothing, and the app layer answers "Game not found" and closes a
+viewer's socket with 4404. D-12 rewritten; R-17, R-20, R-21, R-25 and U-2 extended.
+
 ### 2026-11-15 — A warp to the next sector takes longer than a battle
 `WARP_TIME_PER_DISTANCE` moved from 0.01 to 2, so the next sector is 20 stardates away where it
 was 0.1, and corner to corner is 254 where it was 1.27. Before, crossing the galaxy took less

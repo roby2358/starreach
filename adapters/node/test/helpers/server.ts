@@ -14,6 +14,9 @@ import { SocketViewers } from "../../src/viewers.ts";
 
 const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(import.meta.resolve("@starreach/app/wasm")))));
 
+/** The real time every test game starts at: midnight on Unix day 20773, stardate 102.0773.00.0. */
+export const START_UNIX_SECONDS = 20_773 * 86_400;
+
 export interface Running {
   deps: NodeDeps;
   server: Server;
@@ -28,6 +31,7 @@ export async function startServer(): Promise<Running> {
     store: new MemoryStore(),
     viewers: new SocketViewers(),
     viewOrigin: "http://viewer.test",
+    unixSeconds: () => START_UNIX_SECONDS,
     instructions: "Test instructions",
     player: null,
   };

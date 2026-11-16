@@ -12,6 +12,9 @@ import { createMcpServer, loadCore, MemoryStore, type CommandResult, type McpDep
 const WASM = new URL("../../src/wasm/starreach_core_bg.wasm", import.meta.url);
 const core = loadCore(new WebAssembly.Module(readFileSync(fileURLToPath(WASM))));
 
+/** The real time every test game starts at: midnight on Unix day 20773, stardate 102.0773.00.0. */
+export const START_UNIX_SECONDS = 20_773 * 86_400;
+
 /** Keeps every frame published, as [gameId, frame] pairs. */
 export class RecordingViewers implements Viewers {
   readonly published: [string, string][] = [];
@@ -27,6 +30,7 @@ export function testDeps(): McpDeps & { viewers: RecordingViewers } {
     store: new MemoryStore(),
     viewers: new RecordingViewers(),
     viewOrigin: "http://viewer.test",
+    unixSeconds: () => START_UNIX_SECONDS,
     instructions: "Test instructions",
     player: null,
   };

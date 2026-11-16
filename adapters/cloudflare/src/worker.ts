@@ -26,6 +26,7 @@ function deps(env: Env, origin: string, player: string | null): McpDeps {
     store: new DurableObjectStore(env.GAMES),
     viewers: new DurableObjectViewers(env.GAMES),
     viewOrigin: origin,
+    unixSeconds: () => Math.floor(Date.now() / 1000),
     instructions: instructions.trim(),
     player,
   };

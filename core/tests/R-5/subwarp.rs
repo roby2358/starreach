@@ -12,7 +12,7 @@ fn moves_along_the_ray_and_pays_per_step() {
     assert_eq!(next.sector.at((0, 5)), Some(SHIP));
     assert_eq!(next.sector.at((0, 0)), Some(EMPTY));
     assert_eq!(next.ship.energy, game.ship.energy - 5 * SUBWARP_ENERGY_PER_STEP);
-    assert_eq!(next.stardate, game.stardate + 5.0 * SUBWARP_TIME_PER_STEP);
+    assert_eq!(next.startick, game.startick + 5 * SUBWARP_TIME_PER_STEP);
 }
 
 #[test]

@@ -24,6 +24,7 @@ export interface Command {
 /** What a read-only display may see of a Game (ONTOLOGY GameView). A hidden sector is null. */
 export interface GameView {
   status: string;
+  /** The game clock as a stardate, `ddd.dddd.dd.d`. */
   stardate: string;
   sector_yx: [number, number];
   ship: Record<string, number>;
@@ -32,21 +33,31 @@ export interface GameView {
   galaxy: ({ enemies: number; starbases: number; stars: number } | null)[][];
 }
 
+/** `apply` and `view` return undefined for text that isn't a Game this core reads, such as a
+ *  game stored by an earlier version. */
 export interface Core {
-  newGame(seed: number): GameJson;
-  apply(game: GameJson, command: Command): { game: GameJson; result: CommandResult };
-  view(game: GameJson): GameView;
+  /** `startUnixSeconds` is the real time the game's stardate starts from. The core reads no clock. */
+  newGame(seed: number, startUnixSeconds: number): GameJson;
+  apply(game: GameJson, command: Command): { game: GameJson; result: CommandResult } | undefined;
+  view(game: GameJson): GameView | undefined;
 }
 
 /** Instantiates the core from its compiled WASM module. Each platform loads the module its own way. */
 export function loadCore(module: WebAssembly.Module): Core {
   initSync({ module });
   return {
-    newGame: (seed) => new_game(seed),
+    newGame: (seed, startUnixSeconds) => new_game(seed, startUnixSeconds),
     apply: (game, command) => {
-      const applied = JSON.parse(apply(game, JSON.stringify(command)));
+      const text = apply(game, JSON.stringify(command));
+      if (text === undefined) {
+        return undefined;
+      }
+      const applied = JSON.parse(text);
       return { game: JSON.stringify(applied.game), result: applied.result };
     },
-    view: (game) => JSON.parse(view(game)),
+    view: (game) => {
+      const text = view(game);
+      return text === undefined ? undefined : JSON.parse(text);
+    },
   };
 }

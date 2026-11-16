@@ -34,5 +34,5 @@ fn a_hit_at_any_range_destroys_the_enemy_and_spends_a_torpedo() {
     assert_eq!(next.sector.enemies_yx, vec![(9, 4)]);
     assert_eq!(next.ship.quantorpedoes, game.ship.quantorpedoes - 1);
     assert_eq!(next.ship.energy, game.ship.energy - TORPEDO_ENERGY);
-    assert_eq!(next.stardate, game.stardate + TORPEDO_TIME);
+    assert_eq!(next.startick, game.startick + TORPEDO_TIME);
 }

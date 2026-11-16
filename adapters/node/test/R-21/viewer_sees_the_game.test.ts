@@ -60,6 +60,13 @@ test("an unknown game closes the socket with the not-found code", async () => {
   assert.equal(await viewer.closed, 4404);
 });
 
+test("a stored game the core can't read closes the socket with the not-found code", async () => {
+  const view = await viewId("old-game");
+  await running.deps.store.put(view, JSON.stringify({ seed: 7, stardate: 1234567.0, last_event_stardate: 1234567.0 }));
+  const viewer = new Viewer(running.port, view);
+  assert.equal(await viewer.closed, 4404);
+});
+
 test("any other socket path is refused", async () => {
   const response = await new Promise<number>((resolve) => {
     const viewer = new Viewer(running.port, "not-a-game-id");

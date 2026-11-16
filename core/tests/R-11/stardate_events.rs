@@ -6,7 +6,7 @@ use starreach_core::constants::*;
 fn short_actions_accumulate_until_the_interval() {
     let mut game = board(EMPTY_WITH_SHIP_AT_00);
     game.ship.shields = 0;
-    let start = game.last_event_stardate;
+    let start = game.last_event_startick;
     let mut events_seen = Vec::new();
     for x in 1..=EVENT_INTERVAL as i32 {
         let applied = run(&game, subwarp(0, x));
@@ -16,15 +16,15 @@ fn short_actions_accumulate_until_the_interval() {
     let last = events_seen.pop().unwrap();
     assert!(events_seen.iter().all(Vec::is_empty), "nothing runs before the interval");
     assert!(last[0].starts_with("Shields recharged"));
-    assert!(game.last_event_stardate > start);
-    assert_eq!(game.last_event_stardate, game.stardate);
+    assert!(game.last_event_startick > start);
+    assert_eq!(game.last_event_startick, game.startick);
 }
 
 #[test]
 fn the_clock_does_not_move_until_events_run() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
     let next = run(&game, subwarp(0, 1)).game;
-    assert_eq!(next.last_event_stardate, game.last_event_stardate);
+    assert_eq!(next.last_event_startick, game.last_event_startick);
 }
 
 #[test]
@@ -44,5 +44,5 @@ fn only_events_that_can_occur_run() {
     let game = board(EMPTY_WITH_SHIP_AT_00);
     let applied = run(&game, subwarp(0, 3));
     assert!(applied.result.events.is_empty());
-    assert_eq!(applied.game.last_event_stardate, applied.game.stardate);
+    assert_eq!(applied.game.last_event_startick, applied.game.startick);
 }

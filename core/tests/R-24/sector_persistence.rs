@@ -4,7 +4,7 @@ use crate::helpers::*;
 use starreach_core::constants::*;
 use starreach_core::geometry::all_cells;
 use starreach_core::sector::STAR;
-use starreach_core::{new_game, Game};
+use starreach_core::Game;
 
 #[test]
 fn terrain_returns_and_survivors_keep_the_first_cells() {

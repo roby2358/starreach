@@ -2,19 +2,21 @@
 
 use wasm_bindgen::prelude::*;
 
+/// `start_unix_seconds` is the real time the game starts at, read by the caller. It crosses as a
+/// JavaScript number and its fraction is dropped.
 #[wasm_bindgen]
-pub fn new_game(seed: u32) -> String {
-    crate::new_game_json(seed)
+pub fn new_game(seed: u32, start_unix_seconds: f64) -> String {
+    crate::new_game_json(seed, start_unix_seconds as i64)
 }
 
-/// Returns `{game, result}` as JSON text. Throws when `game` isn't a valid Game.
+/// Returns `{game, result}` as JSON text, or undefined when `game` isn't a Game this core reads.
 #[wasm_bindgen]
-pub fn apply(game: &str, command: &str) -> Result<String, JsError> {
-    crate::apply_json(game, command).map_err(|e| JsError::new(&e))
+pub fn apply(game: &str, command: &str) -> Option<String> {
+    crate::apply_json(game, command).ok()
 }
 
-/// Returns the GameView as JSON text. Throws when `game` isn't a valid Game.
+/// Returns the GameView as JSON text, or undefined when `game` isn't a Game this core reads.
 #[wasm_bindgen]
-pub fn view(game: &str) -> Result<String, JsError> {
-    crate::view_json(game).map_err(|e| JsError::new(&e))
+pub fn view(game: &str) -> Option<String> {
+    crate::view_json(game).ok()
 }

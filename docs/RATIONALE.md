@@ -256,10 +256,12 @@ inferences, waiting for review.
 - **Evidence:** Modeled by: `just cc-model-balance 2000` (a scripted captain, unverified in
   play) — a fresh ship that shoots the nearest enemy it has a clear shot at (a blast within
   `BLAST_SURE_RANGE`, else a torpedo while any remain) clears a sector in a median of 5
-  stardates and within 10 in 9 of 10 battles; sectors of 8 or 9 enemies take a median of 12
-  to 14 and within 19 in 9 of 10. Warp time: next sector 20, diagonal 28, 5 sectors 100,
-  corner to corner 254. The slowest battles (up to 199) are the script stepping aside
-  repeatedly for a clear shot, not a measure of play.
+  starticks and within 10 in 9 of 10 battles; a sector of 7 enemies takes a median of 10 and
+  within 16 in 9 of 10. Sectors of 8 or 9 enemies, under 1 in 100 battles, take a median of 12
+  to 13 and within 20 to 25 in 9 of 10, so the shortest warp doesn't outlast the slowest
+  of those. Warp time in starticks: next sector 20, diagonal 28, 5 sectors 100, corner to
+  corner 254. The slowest battles (up to 200) are the script stepping aside repeatedly for a
+  clear shot, not a measure of play.
 
 ### D-6 Subwarp is shortened while enemies are present — *Decided*
 - **Alternatives:** a fixed movement range; movement costed by energy alone.
@@ -484,9 +486,29 @@ inferences, waiting for review.
 ### D-11 Ship stats — *Decided, tuned by none yet*
 - **Why:** Starting values. Energy is generous next to costs (see D-9). Unmeasured.
 
-### D-12 Stardate display `99-9999-99` — *Decided*
-- **Why:** Flavor (F-command). `STARDATE_START` is 7 digits padded to 8, so every display
-  begins `01-`.
+### D-12 The clock counts whole starticks, 400 to a stardate; a stardate is a day and shows as `ddd.dddd.dd.d` — *Decided*
+- **Alternatives:** a fractional (floating-point) stardate; a whole-number stardate as the unit,
+  shown as an 8-digit `99-9999-99` with no decimals; 1000 starticks to a stardate, one per
+  shown decimal; a starting stardate drawn from the game's seed; migrating stored games.
+- **Why:** Whole ticks [D]: the stardate events rule compares elapsed time with
+  `EVENT_INTERVAL`, and sums of fractional times drift, so a round could fire an action late or
+  early. Whole numbers add exactly, and "every time is a whole number of starticks" is an
+  invariant a test can hold. 400 to a stardate [D]: a stardate is a day, so a startick is 3.6
+  minutes, a typical battle of 5 starticks is 18 minutes, and the in-sector times are small whole
+  numbers. It also divides evenly: one startick is 0.0025 stardates, so three
+  truncated decimals show every startick as a change. The display [D] is flavor (F-command):
+  seven whole digits split three and four, then the decimals split two and one. A duration is
+  written the same way without padding, so the crew reads both by one rule, and the tool
+  descriptions and instructions tell the LLM a stardate is a day so it can say minutes, hours
+  or days. The start [D] is the real date, the Unix time in days plus `STARDATE_EPOCH_OFFSET`,
+  so a game begun in late 2026 opens near stardate 1020770 (`102.0770`) and later games carry
+  later stardates. The core stays a pure function: the adapter reads the clock and the app
+  layer passes it to `new_game` beside the seed, and tests pin it. No migration [D]: nobody has
+  a production game going, so a stored game with the old clock fields is unreadable and is
+  answered as not found.
+- **Evidence:** R-17 (the display at whole, boundary and remainder values, truncation, the start
+  from Unix time), R-11 (the interval fires on the same actions), R-25 and R-21 (an unreadable
+  stored game is not found, for the player and for a viewer).
 
 ---
 
