@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# The local server in the background, for `just up`, `just down` and `just cc-wasm-ready`.
+# The local server in the background, for `just up`, `just down`, `just telemetry` and
+# `just cc-wasm-ready`.
 #
 # A script file, run as `bash tools/server.sh …`, rather than shebang recipes in the justfile:
 # just runs a shebang recipe by executing a temporary file, which fails with "Permission denied"
@@ -9,6 +10,7 @@
 #   server.sh wasm-ready
 #   server.sh up <pidfile> <log> <host> <port> <origin>
 #   server.sh down <pidfile>
+#   server.sh telemetry <host> <port>
 set -euo pipefail
 
 WASM=app/src/wasm/starreach_core_bg.wasm
@@ -86,11 +88,27 @@ down() {
   echo "server killed (pgid $pgid)"
 }
 
+# Prints what the local server's GET /telemetry gives: a JSON object per line.
+telemetry() {
+  local base="http://$1:$2" status=0
+  curl --fail --silent "$base/telemetry" || status=$?
+  if [ "$status" -eq 0 ]; then
+    return
+  fi
+  if [ "$status" -eq 7 ]; then
+    echo "no local server is running at $base; start one with: just up" >&2
+    exit 1
+  fi
+  echo "the server at $base gave no telemetry (curl exit $status); if it was started before this checkout, restart it: just down, then just up" >&2
+  exit 1
+}
+
 command=$1
 shift
 case "$command" in
   wasm-ready) wasm_ready ;;
   up) up "$@" ;;
   down) down "$@" ;;
+  telemetry) telemetry "$@" ;;
   *) echo "unknown command: $command" >&2; exit 2 ;;
 esac

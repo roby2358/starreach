@@ -60,6 +60,12 @@ down:
 logs:
     tail -n 50 -f {{LOG}}
 
+# A JSON object per line: each game record as {"game": …}, then each event record as {"event": …}.
+# Held in the server's memory, so gone when it stops. Fails when no local server is running.
+# Print the telemetry the local server (up, serve or stdio) holds
+telemetry:
+    @bash tools/server.sh telemetry {{HTTP_HOST}} {{HTTP_PORT}}
+
 # Add the deployed Starreach to Claude Code as the MCP server `starreach`
 add:
     claude mcp add --transport http --scope {{MCP_SCOPE}} {{MCP_NAME}} {{MCP_URL}}

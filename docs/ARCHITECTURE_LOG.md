@@ -3,6 +3,17 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — The local server gives its telemetry out at GET /telemetry, and `just telemetry` prints it
+Until now the Node adapter's in-memory sink could be read only from inside the process, by
+tests; ONTOLOGY said no route or tool gave telemetry out. The Node adapter's HTTP server now
+answers `GET /telemetry` with every record held, and `just telemetry` (a `telemetry` command in
+`tools/server.sh`, using curl) prints it or says that no local server is running. `NodeDeps` now
+requires its sink to be the in-memory one. The Cloudflare Worker is unchanged and a test holds it
+to answering the path as any unknown path. The designer settled the route, its absence on the
+Worker, memory only, and the recipe; the line format (`{"game": …}` lines, then `{"event": …}`
+lines, as `application/x-ndjson`), leaving the route open, and curl are Claude's proposals. The
+server's startup line now names `/telemetry`. Adds D-52 and R-51.
+
 ### 2026-11-16 — The app layer records telemetry: a record per game and an event per tool call
 Until now nothing recorded play: every balance figure in RATIONALE is modeled. The app layer now
 makes a game record at `new_game`, completes it when the game ends, and makes an event record for

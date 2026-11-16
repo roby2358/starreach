@@ -70,6 +70,7 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | R-48 | A game record's seed and start time, and its accepted events' tools and arguments in `seq` order | Applied to the core alone they give the final stored Game: for a game started with `new_game` and played to its end, and for a game through every tool with refusals among its calls | automated |
 | R-49 | A telemetry sink whose every write fails | `new_game` answers and stores its game; every command gets the Result it gets with a working sink, the same game is stored, and the viewers get a frame for every accepted command; a game can end. Each failed write is logged, as is the in-memory sink's refusal to end a game it has no record of | automated |
 | R-50 | Games played on the Cloudflare adapter | Their telemetry records are kept in a lasting store | not yet covered |
+| R-51 | `GET /telemetry` | On the Node adapter it returns every record the in-memory sink holds, one JSON object per line: each game record as `{"game": …}` in the order the games started, then each event record as `{"event": …}` in the order received, the records as the sink holds them. A game played over `/mcp` comes out as its game record and one event per tool call, refused calls included; with several games every game's records are there. A server that has recorded nothing answers 200 with no lines, and another method gets 404. The Cloudflare Worker answers the path as it answers any unknown path, after a game was played | automated |
 
 ## U — UI / readability
 
@@ -115,11 +116,13 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
   goal and a lifetime message, R-43's frames and stored player, R-44's tool schemas, tool descriptions and instructions,
   and telemetry: R-45's game record, R-46's events, R-47, R-48 and R-49.
 - **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets (by `view_id`), R-27, R-43's achievements on a real socket,
-  and R-45's record of a game started over the server's `/mcp`.
+  R-45's record of a game started over the server's `/mcp`, and R-51's route. It also runs
+  `just telemetry`'s script against a real server and against a port nobody listens on, which
+  is an integration test and owns no R-row.
 - **Not yet covered:** R-50. The Cloudflare adapter's sink drops every record until its store is built.
 - **Automated in the Cloudflare adapter** (`just cc-test-cloudflare`, inside workerd): R-21's
   sockets on the Durable Object (by `view_id`, through the Worker's upgrade) and R-27's ignored
-  frames and its size limit, R-35's sign-in on `/mcp`, R-39's player object, and R-43's stored player and achievements on the object's sockets. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
+  frames and its size limit, R-35's sign-in on `/mcp`, R-39's player object, R-43's stored player and achievements on the object's sockets, and R-51's absent route. It also checks the Durable Object GameStore and the Worker's `/mcp` and `/health`,
   which are integration tests and own no R-row. The static-assets pages aren't under test there:
   the viewer was checked by hand under `just cf-dev`, in headless Chromium (2026-11-14), and
   `just cc-smoke` against `just cf-up` fetches `/` and the `viewer_url`'s path without following redirects (2026-11-15).
@@ -140,6 +143,9 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
     transport's declared name is tested over an in-process connection, not the stdio process.
   - R-46: no test covers a call MCP rejects for its arguments leaving no event. The events'
     order is tested for calls made one after another, not for calls made at once.
+  - R-51: the Worker is tested inside workerd, where a request reaches the Worker directly; that
+    no static asset answers `/telemetry` on a deployed Worker rests on `public/` holding no such
+    file. The route in stdio mode is not tested apart from HTTP mode: both serve the same handler.
   - R-48: the game played to its end is a warp and scans; the game through every tool doesn't
     end. A replay under a different `RULES_VERSION` is not tested: nothing keeps old rules.
   - R-5: the `SUBWARP_MAX_STEPS` cap isn't tested, because no ray on a 10×10 board is longer

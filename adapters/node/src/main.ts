@@ -1,6 +1,6 @@
-// Starreach on Node (D-21): the page, viewer sockets, MCP and /health over HTTP, with MCP over
-// stdio as well in stdio mode. One process holds the games and their telemetry in memory, so the browser sees the
-// game the LLM is playing. A second stdio process on the same port forwards to the first, so
+// Starreach on Node (D-21): the page, viewer sockets, MCP, /health and /telemetry over HTTP, with
+// MCP over stdio as well in stdio mode. One process holds the games and their telemetry in memory,
+// so the browser sees the game the LLM is playing. A second stdio process on the same port forwards to the first, so
 // that stays true for every client. Logs go to stderr, because stdout is the stdio MCP channel.
 //
 //   node adapters/node/src/main.ts stdio --host 127.0.0.1 --port 8572 --origin http://127.0.0.1:8572
@@ -49,7 +49,7 @@ interface Launch {
 
 async function listen({ deps, hostname, port, origin }: Launch): Promise<void> {
   await serveHttp(deps, hostname, port);
-  console.error(`Starreach on http://${hostname}:${port} (viewer at ${origin}, MCP at /mcp, health at /health)`);
+  console.error(`Starreach on http://${hostname}:${port} (viewer at ${origin}, MCP at /mcp, health at /health, telemetry at /telemetry)`);
 }
 
 /** The HTTP listener keeps the process alive, so it ends itself when the MCP client hangs up.

@@ -1,5 +1,5 @@
-// The Node HTTP server (ONTOLOGY "HTTP"): the page, the app layer's routes, and viewer sockets
-// on one port.
+// The Node HTTP server (ONTOLOGY "HTTP"): the page, the app layer's routes, the telemetry the
+// process holds (D-52), and viewer sockets on one port.
 
 import { readFileSync } from "node:fs";
 import type { Server } from "node:http";
@@ -14,6 +14,7 @@ import {
   liveViewId,
   VIEWER_MAX_FRAME_BYTES,
   type McpDeps,
+  type MemoryTelemetry,
 } from "@starreach/app";
 import { WebSocket, WebSocketServer } from "ws";
 
@@ -21,7 +22,11 @@ import type { SocketViewers } from "./viewers.ts";
 
 export interface NodeDeps extends McpDeps {
   viewers: SocketViewers;
+  /** The sink is the in-memory one, so that `/telemetry` can give out what it holds. */
+  telemetry: MemoryTelemetry;
 }
+
+const TELEMETRY_PATH = "/telemetry";
 
 const PUBLIC_DIR = new URL("../../../public/", import.meta.url);
 
@@ -77,11 +82,28 @@ function acceptViewers(server: Server, deps: NodeDeps): void {
   });
 }
 
+/** Everything the sink holds, a JSON object per line: each game record as `{"game": …}` in the
+ *  order the games started, then each event record as `{"event": …}` in the order received. */
+export function telemetryLines(telemetry: MemoryTelemetry): string {
+  const lines = [
+    ...telemetry.games().map((game) => JSON.stringify({ game })),
+    ...telemetry.events().map((event) => JSON.stringify({ event })),
+  ];
+  return lines.map((line) => `${line}\n`).join("");
+}
+
 /** Serves everything on one port. Resolves once it is listening, and rejects if it can't bind. */
 export function serveHttp(deps: NodeDeps, hostname: string, port: number): Promise<Server> {
   const page = loadPage();
   const fetch = (request: Request): Response | Promise<Response> => {
-    const file = request.method === "GET" ? page.get(new URL(request.url).pathname) : undefined;
+    if (request.method !== "GET") {
+      return handleHttp(request, deps);
+    }
+    const path = new URL(request.url).pathname;
+    if (path === TELEMETRY_PATH) {
+      return new Response(telemetryLines(deps.telemetry), { headers: { "content-type": "application/x-ndjson; charset=utf-8" } });
+    }
+    const file = page.get(path);
     return file === undefined ? handleHttp(request, deps) : new Response(file.body, { headers: { "content-type": file.type } });
   };
   return new Promise((resolve, reject) => {

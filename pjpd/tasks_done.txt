@@ -106,6 +106,33 @@ Updated: 2026-11-05T01:44:39Z
 
 Q-3 (docs/RATIONALE.md): Warp and subwarp have no energy check and drive ship energy negative; blast and torpedo still succeed when unaffordable and clamp energy to 0 (a free last shot). RECOMMENDATION: refuse any action whose energy cost exceeds current energy, with no state change, matching long_range_scan's existing check. Add the energy >= 0 invariant to ONTOLOGY and a CRITERIA row.
 ----
+Priority:   70
+Status: Done
+ID: telemlocal-7m3m
+Created: 2026-11-16T19:07:49Z
+Updated: 2026-11-16T19:41:55Z
+
+The local server gives out its telemetry over HTTP, and a just recipe dumps it.
+
+Goal: when playing locally, the designer can see exactly what would be recorded, without a database. [D]
+
+Assumes the app layer already records telemetry into an in-memory sink (game records and per-call event records). If it does not yet, stop and say so.
+
+Settled design [D]:
+- The local Node server holds telemetry in memory only; it is lost when the server stops.
+- A route on the Node adapter's HTTP server, `GET /telemetry`, returns everything held: game records and event records, as JSON a script can read (one record per line is fine). It is not part of a viewer link and does not go over the viewer's socket: a viewer follows one game, telemetry spans all of them.
+- The route exists on the local Node adapter only. The Cloudflare Worker must not serve it; a test checks the Worker answers that path as it answers any unknown path.
+- A recipe `just telemetry` fetches the route from the local server (same host and port variables the other local recipes use) and prints it. It fails with a clear message when no local server is running.
+- The recipe must work on a host without a Rust toolchain and where recipes with a shebang cannot run: plain recipe lines or a script run through `bash`, like the other local server recipes.
+- Document the recipe in the project's recipes skill and the route in ONTOLOGY's interface section.
+
+Done when:
+- With `just up` running and a short game played over MCP, `just telemetry` prints the game record and one event per tool call.
+- Tests cover the route on the Node adapter and its absence on the Worker.
+- `just cc-test-all` passes.
+
+Don't deploy.
+----
 Priority:   65
 Status: Done
 ID: oblique-sxti

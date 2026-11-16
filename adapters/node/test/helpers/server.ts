@@ -21,7 +21,7 @@ export const START_UNIX_SECONDS = 20_773 * 86_400;
 export const TEST_CLIENT: McpClient = { name: "test", version: "0", user_agent: null };
 
 export interface Running {
-  deps: NodeDeps & { telemetry: MemoryTelemetry };
+  deps: NodeDeps;
   server: Server;
   connections: Set<Socket>;
   port: number;

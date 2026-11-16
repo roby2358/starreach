@@ -547,6 +547,41 @@ inferences, waiting for review.
 - **Evidence:** R-45 to R-49. Nothing is measured yet: the deployed Worker's sink drops every
   record until its store is built (R-50), and locally the records live as long as the process.
 
+### D-52 The local server gives its telemetry out at `GET /telemetry`, and the Worker does not — *Decided; the line format, the order, the open route and the recipe's use of curl are Proposed*
+- **Choice:** the Node adapter's HTTP server answers `GET /telemetry` with everything its
+  in-memory sink holds, so that when playing locally the designer sees exactly what would be
+  recorded, without a database. The records live in memory only and go when the server stops.
+  The route is not part of a viewer link and does not use the viewer's socket: a viewer follows
+  one game, telemetry spans all of them. Only the local Node adapter has it; the Cloudflare
+  Worker answers the path as any unknown path. `just telemetry` fetches it from the local server
+  at the host and port the other local recipes use, and fails with a clear message when no
+  server is running. [D]
+  - **One JSON object per line**, each wrapping its record under the key that says what it is:
+    `{"game": …}` or `{"event": …}`. The record inside is exactly the sink's, so what is printed
+    is what would be stored, and a line is told apart without adding a field to a record. Games
+    come first, then events in the order received. [P]
+  - **The route is open**, like the Node adapter's `/mcp`: whoever can reach the port can
+    already start and play games there. The records hold no `game_id`, `view_id` or player id
+    (D-51), so reading them gives no way to watch or command a game. [P]
+  - **The recipe is a command of `tools/server.sh` that calls curl**, run through `bash` like
+    `up` and `down`, so it works where a shebang recipe can't run and needs no Rust. It tells a
+    refused connection (no server: start one) from any other failure (a server that gave no
+    telemetry, such as one started from an older checkout). [P]
+- **Alternatives:** one JSON document `{games, events}` (as easy for a script, but a long session
+  is one long line to read, and `grep` and `tail` stop being useful); a `type` field added to
+  each record (the printed record would then differ from the stored one); events nested under
+  their game (the sink holds two flat kinds, and a later store's tables will too); a frame on
+  the viewer's socket or a field of the viewer link (the designer: a viewer is one game); an MCP
+  tool (telemetry is for the designer, not the captain, and D-51 keeps it out of every Result);
+  the route in the app layer's handler behind a flag (the Worker would carry a route it must
+  never serve); writing the records to a file (a second copy to keep in step, and a file to
+  clean up, where the designer asked for memory only); fetching with Node instead of curl (a
+  script file more; curl is already what the token recipe uses).
+- **Why:** the records are the source of every later "Measured by"; seeing them while playing
+  locally is the cheapest check that they say what was meant, before a store is built. [D]
+- **Evidence:** R-51. Checked by hand on 2026-11-16: with `just up` running, a short game played
+  over `/mcp`, and `just telemetry` printing its game record and one event per tool call.
+
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
   (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call

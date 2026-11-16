@@ -1023,6 +1023,7 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 | `POST /mcp` | Streamable-HTTP MCP. On Cloudflare it needs a signed-in player (D-41): without a valid auth/ access token carrying `starreach:play`, 401 (403 for a missing scope) with `WWW-Authenticate: Bearer resource_metadata=…, scope="starreach:play"` [D, the details P]. The Node adapter is open |
 | `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-protected-resource/mcp` | RFC 9728 metadata for `/mcp`: `resource: STARREACH_RESOURCE`, `authorization_servers: [AUTH_ISSUER]`, `scopes_supported: ["starreach:play"]` (Cloudflare only) [P] |
 | `GET /health` | `{status: "ok"}` |
+| `GET /telemetry` | Everything the in-memory telemetry sink holds (Telemetry route). Node adapter only [D]; on Cloudflare it is any other path |
 | `GET /` | The home page: a short briefing with how to connect (D-40). Cloudflare redirects `/index.html` to `/` [P] |
 | `GET /viewer` | The viewer page. `?view=<view_id>` chooses the game. Cloudflare redirects `/viewer.html` to `/viewer` [P]. With no game, its notice links to `/` |
 | `GET /css/styles.css`, `GET /css/home.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2`, `GET /images/viewer.jpg` | The pages' files |
@@ -1068,8 +1069,28 @@ GameStore and PlayerStore. It is always supplied: there is no running without on
 
 A write that fails is logged by the app layer and fails nothing else. [D] The Node adapter
 supplies the in-memory sink, one for the life of the process, in both of its modes. [D] The
-Cloudflare adapter supplies a sink that drops every record. [P] No route or tool gives telemetry
-out.
+Cloudflare adapter supplies a sink that drops every record. [P] No tool gives telemetry out, and
+the only route that does is the Node adapter's `GET /telemetry`.
+
+### Telemetry route (Node adapter) [D]
+`GET /telemetry` on the Node adapter's HTTP server returns every record its in-memory sink
+holds, for every game: a viewer follows one game and telemetry spans all of them, so it is no
+part of a viewer link and never goes over a viewer's socket. [D] The records live in the
+process's memory and are gone when the server stops. [D] The Cloudflare Worker does not serve
+the route: there the path gets the 404 of any other path. [D]
+
+The body is one JSON object per line, each line ended by a newline, as
+`application/x-ndjson` [P]:
+
+| Line | Holds | Order |
+|---|---|---|
+| `{"game": <game record>}` | A game record, `end` null while the game goes on | First, in the order the games started |
+| `{"event": <event record>}` | An event record | After every game line, in the order the sink received them, so each game's are in `seq` order |
+
+A server that has recorded nothing answers 200 with an empty body. Only `GET` reads it; any
+other method gets the 404 of any other path. The route is served in both of the adapter's modes
+and is as open as the adapter's `/mcp`. [P] `just telemetry` prints it for the local server at
+`HTTP_HOST`:`HTTP_PORT`. [D]
 
 What each transport lets the server tell of the MCP client [P]:
 
