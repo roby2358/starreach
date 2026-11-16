@@ -3,6 +3,28 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — On Cloudflare, telemetry is stored in a D1 database, and the home page says what is recorded
+The Cloudflare adapter's sink dropped every record (`NoTelemetry`), and R-50 was not yet covered.
+It is replaced by `D1Telemetry`, which writes each record as a row of a D1 database bound as
+`TELEMETRY`: a `games` table and an `events` table, in one schema file,
+`adapters/cloudflare/telemetry_schema.sql`, with no migration history. Each write is started and
+handed to the request's `waitUntil`, so the Worker's fetch handler now takes its
+`ExecutionContext`; the reply doesn't wait, and a failed write is logged by the sink and dropped.
+`wrangler.jsonc` gained the binding twice: at the top level with a made-up local id, and in the
+production environment with the placeholder `PUT-THE-DATABASE-ID-HERE`, because the production
+database is not created in this change. New recipes: `just cf-d1-local` (which `cf-dev` and
+`cf-up` now run first) and `just cf-d1-production` (create, then, run again with the id filled
+in, apply the schema), both through `tools/telemetry_db.sh`; `just cf-deploy` now refuses to
+deploy while the placeholder is there. The home page gained a panel, "What Fleet records". The
+designer settled D1 over Workers Analytics Engine, the two tables and which fields are columns,
+the one schema file, the write that neither delays nor fails a command, the recipes, deploying
+later, and what the page must and must not say. Claude's proposals: the column names and types,
+`rest` holding the whole detail, counting `seq` inside the insert, no foreign key, the
+placeholder and the deploy check, `cf-dev` and `cf-up` applying the schema, and the page's
+wording. R-50 is now automated, R-47 and R-49 gained Cloudflare tests, and U-12 gained the
+recorded-play line. Adds D-53. Nothing was created or changed on the Cloudflare account, and the
+production recipe was not run.
+
 ### 2026-11-16 — A blast's telemetry event records the damage it did, as a fixed placeholder
 A blast's event `detail` was `{range, hit, energy_cost}`, and D-51 said a blast records no
 damage. The designer now wants a figure there, so that reports can total blast damage and the

@@ -56,7 +56,7 @@ inferences, waiting for review.
   `instructions` prompt, loads the core, and talks to storage through a `GameStore`
   interface. `adapters/node/` runs the app over stdio and streamable HTTP with an in-memory
   store. `adapters/cloudflare/` is the only place Cloudflare APIs appear: the Worker, the
-  Durable Object store, `wrangler.jsonc`, and the auth hook. npm workspaces join the TS
+  Durable Object store, the D1 telemetry sink (D-53), `wrangler.jsonc`, and the auth hook. npm workspaces join the TS
   packages. `just` recipes launch the Node adapter locally on `HTTP_PORT` and the Cloudflare
   adapter under `wrangler dev` (`just cf-dev`).
   In the Cloudflare adapter [P]: the Durable Object keeps the game JSON under one key of its
@@ -550,8 +550,9 @@ inferences, waiting for review.
   its key would be a hash of whatever text was sent).
 - **Why:** every balance figure here is modeled; tuning and design should rest on what captains
   actually do, and this is the source of "Measured by" evidence. [D]
-- **Evidence:** R-45 to R-49. Nothing is measured yet: the deployed Worker's sink drops every
-  record until its store is built (R-50), and locally the records live as long as the process.
+- **Evidence:** R-45 to R-49. Nothing is measured yet: the deployed Worker keeps its records in
+  D1 (D-53, R-50), which holds none until that is deployed, and locally the records live as long
+  as the process.
 
 ### D-52 The local server gives its telemetry out at `GET /telemetry`, and the Worker does not — *Decided; the line format, the order, the open route and the recipe's use of curl are Proposed*
 - **Choice:** the Node adapter's HTTP server answers `GET /telemetry` with everything its
@@ -576,7 +577,7 @@ inferences, waiting for review.
 - **Alternatives:** one JSON document `{games, events}` (as easy for a script, but a long session
   is one long line to read, and `grep` and `tail` stop being useful); a `type` field added to
   each record (the printed record would then differ from the stored one); events nested under
-  their game (the sink holds two flat kinds, and a later store's tables will too); a frame on
+  their game (the sink holds two flat kinds, and the D1 tables are two as well, D-53); a frame on
   the viewer's socket or a field of the viewer link (the designer: a viewer is one game); an MCP
   tool (telemetry is for the designer, not the captain, and D-51 keeps it out of every Result);
   the route in the app layer's handler behind a flag (the Worker would carry a route it must
@@ -587,6 +588,83 @@ inferences, waiting for review.
   locally is the cheapest check that they say what was meant, before a store is built. [D]
 - **Evidence:** R-51. Checked by hand on 2026-11-16: with `just up` running, a short game played
   over `/mcp`, and `just telemetry` printing its game record and one event per tool call.
+
+### D-53 On Cloudflare, telemetry is kept in a D1 database, and the home page says what is recorded — *Decided; the column layout, sink-side details, the recipes' shape and the page's wording are Proposed*
+- **Choice:** the deployed game's telemetry goes to one D1 database, `starreach-telemetry`,
+  bound to the Worker as `TELEMETRY`: a `games` table with a row per game record and an `events`
+  table with a row per tool call. The commonly asked fields are columns (tool, accepted, refusal
+  reason, starticks, ticks taken, energy, shields, hull, torpedoes, damage taken, distance,
+  range, hit) and the rest is a JSON column, with indexes for the joins and the per-day
+  questions. Volume is small and there is no cardinality concern, so recording is generous. The
+  tables are one schema file applied by a recipe, with no migration history while the project is
+  this young. A write must not delay or fail the player's command: the reply does not wait on
+  it, and an error is logged and dropped. The Worker's tests set the schema up locally and check
+  the rows a played game leaves. One recipe sets up the local database and one the production
+  database; creating the production database and putting its id in the config happens at
+  deploy, on the designer's go-ahead. The home page says in plain words what is recorded: the
+  commands played and how games end, to tune the game; players counted by a one-way hash, not by
+  name; no name, Bluesky identity or conversation. It says what is true and no more: it does not
+  call the hash anonymous or say play cannot be traced, since the salt is a constant in a public
+  repository (D-51). [D]
+  - **The reply doesn't wait** because each write is started and handed to the request's
+    `waitUntil`, and the sink's operation returns at once. So the app layer's own guard never
+    sees a D1 failure, and the sink logs it. [P]
+  - **`seq` is counted inside the insert** (`SELECT COUNT(*)` of the game's rows), so the
+    database numbers a game's events in the order it gets them, with no read before the write
+    and no counter kept anywhere. Writes are sent in the order of the calls; nothing makes the
+    database receive them in that order, though one captain's calls come one after another. [P]
+  - **`rest` holds the event's `args` and its whole `detail`**, the parts that also have columns
+    included, and for a game its end's counters and goals. A record can then be read back from
+    a row without knowing which parts were lifted into columns. The client's three parts are
+    columns, since games per client is a question the records exist to answer. [P]
+  - **No foreign key from `events` to `games`**: a write that is dropped must not take others
+    with it, and a game's events are worth keeping without its game row. Ending a game that has
+    no row is logged as a failed write, as the in-memory sink refuses it. [P]
+  - **The config holds a placeholder for the production database id**, since the database is
+    not created until deploy. `just cf-d1-production` creates the database while the placeholder
+    is there and applies the schema once it is replaced; `just cf-deploy` refuses to deploy
+    while it is there, and `--dry-run` passes. The local and test database has a made-up id of
+    its own, so a deploy of the top-level config, which is never meant, fails rather than
+    creating or touching a database. [P]
+  - **`cf-dev` and `cf-up` apply the schema first**, so a local Worker never runs without its
+    tables; the schema's statements are safe to repeat. [P]
+  - **The page's wording**, in a panel of its own at the foot of the briefing, headed "What
+    Fleet records": "Fleet keeps a log to tune the game: the commands played and how each game
+    ends. Captains are counted by a one-way hash, not by name. No name, no Bluesky identity and
+    nothing of your conversation is recorded." [P] The game record also holds the `User-Agent`
+    of the MCP client that started the game (D-51), which names the assistant's software and
+    not the captain; the page does not mention it.
+- **Alternatives:** Workers Analytics Engine (the designer: D1 keeps the data permanently, so no
+  cold storage or export is needed, and it is queried through the existing wrangler login); a table in each game's Durable Object (no query
+  spans games); awaiting the write before replying (the simplest code, and the app layer's guard
+  would catch failures, but every command would wait on the database, which the designer ruled
+  out); a queue between the Worker and the database (another binding and a consumer, for a
+  volume that needs neither); one JSON column and no others (every report query would be
+  `json_extract`); a column for every detail part (columns that are NULL for most tools; the
+  designer named the ones worth lifting); a `seq` read before the insert (two calls at once
+  could read the same count); a migrations directory with wrangler's migration table (the
+  designer: one schema file while the project is young); the Worker creating its own tables on
+  first use (a schema statement on the request path, and a schema that changes without anyone
+  applying it); the production id filled in by wrangler at create (`--update-config` rewrites
+  the commented config, and would add the binding at the top level, not in the production
+  environment); leaving the id out for wrangler to provision the database at deploy (a deploy
+  would then create a database unasked, and the schema could not be applied before the first
+  request); per-file storage isolation for the tests (Durable Object WebSockets don't work with
+  it, so the files share one database and each test plays its own game).
+- **Why:** real play on the deployed game is kept permanently and can be asked questions in SQL,
+  which is what turns D-51's records into "Measured by" evidence. [D] Players are told what is
+  kept because it is their play. [D]
+- **Stored data:** a change to a table that exists is not made by applying the schema file
+  again (`CREATE TABLE IF NOT EXISTS` leaves an existing table as it is); it is made by hand and
+  said to the designer.
+- **Evidence:** R-50, R-47 and R-49 in workerd's local D1; U-12 in headless Chromium. Run by hand
+  on 2026-11-16: `just cf-d1-local` (six statements applied, and both tables and four indexes
+  listed afterwards), `just cf-up` with `just cc-smoke http://localhost:8787` passing without a
+  token, `just cf-deploy --dry-run` listing `env.TELEMETRY (starreach-telemetry)`, and
+  `just cf-deploy`'s check refusing the placeholder id. Not verified: anything on the Cloudflare
+  account. `just cf-d1-production` has not been run, the production database does not exist, and
+  no game has been recorded in a deployed D1; a signed-in game under `just cf-dev` was not
+  played either.
 
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
@@ -930,7 +1008,7 @@ inferences, waiting for review.
 - **Why:** Designer decisions: the viewer gets its own page and `/` becomes the home page. [P] Cloudflare static assets use the default
   `html_handling` (auto-trailing-slash), which serves `viewer.html` at `/viewer`, so building the
   link as `/viewer` avoids the redirect. The Node adapter serves its pages from an explicit list at the
-  same two paths, so both adapters agree. A viewer with no game links back to the home page. The page keeps game numbers out, so tuning doesn't make it stale.
+  same two paths, so both adapters agree. A viewer with no game links back to the home page. The page keeps game numbers out, so tuning doesn't make it stale. It also says what the game records about play (D-53).
 - **Evidence:** Page tests in the Node adapter (home content, viewer paths); U-12. `just cc-smoke`
   fetches `/` and the path of the `viewer_url` that `new_game` reports, on either adapter.
 

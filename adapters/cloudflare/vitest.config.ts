@@ -17,5 +17,5 @@ export default defineConfig({
       miniflare: { workers: [{ name: "auth", modules: true, script: AUTH_STUB }] },
     }),
   ],
-  test: { include: ["test/**/*.test.ts"], maxWorkers: 1, isolate: false },
+  test: { include: ["test/**/*.test.ts"], setupFiles: ["./test/helpers/setup.ts"], maxWorkers: 1, isolate: false },
 });

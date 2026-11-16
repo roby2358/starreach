@@ -5,7 +5,7 @@ The game is in three layers (D-21):
 - `core/`: the rules, in Rust compiled to WASM.
 - `app/`: the TypeScript MCP tools and HTTP routes, which work on any platform.
 - `adapters/node/`: runs the app on Node, with MCP over stdio or HTTP, the home page, the viewer page and its sockets, and games and player totals kept in memory.
-- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, each player's lifetime totals in another, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), where MCP needs sign-in through yuwakisacloud's auth/ ("Sign in with Bluesky"); the Node adapter has no sign-in.
+- `adapters/cloudflare/`: runs the app on Cloudflare as a Worker, with MCP over HTTP, each game and its viewer sockets in one Durable Object, each player's lifetime totals in another, telemetry in a D1 database, and the home page and viewer page as static assets. It is deployed at https://starreach.yuwakisa.com (MCP at `/mcp`), where MCP needs sign-in through yuwakisacloud's auth/ ("Sign in with Bluesky"); the Node adapter has no sign-in.
 
 ## Design docs
 
@@ -35,6 +35,7 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just cf-up        # cf-dev in the background; log in adapters/cloudflare/.wrangler/logs/cf.log
     just cf-logs      # follow that log
     just cf-down      # stop it
+    just cf-d1-production  # once, before the first deploy with telemetry: create the production D1 database, then (run again) apply its schema
     just cf-deploy    # deploy to https://starreach.yuwakisa.com (add --dry-run to check first)
     just cf-tail      # stream the production Worker's live logs
     just cf-undeploy  # kill switch: delete the production Worker AND every deployed game
@@ -43,7 +44,7 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just cc-smoke https://starreach.yuwakisa.com      # the same against production (game checks only with SMOKE_TOKEN)
     SMOKE_TOKEN=$(just cc-dev-token) just cc-smoke http://localhost:8787   # signed in against a local auth/
 
-Each recipe that runs a server builds the WASM core first. `cf-dev` keeps its games in local Durable Objects under `adapters/cloudflare/.wrangler/`, so they outlast a restart.
+Each recipe that runs a server builds the WASM core first. `cf-dev` keeps its games in local Durable Objects and its telemetry in a local D1 database under `adapters/cloudflare/.wrangler/`, so they outlast a restart; it applies `adapters/cloudflare/telemetry_schema.sql` to that database first (`just cf-d1-local`). The deploy steps, in order, are in `.claude/skills/starreach-recipes/SKILL.md` under Deploying.
 
 ## Sign in to the deployed server
 

@@ -1,6 +1,6 @@
 // Starreach on Cloudflare (D-21): one Worker, one SQLite Durable Object per game holding the
-// game and its viewer sockets, one per player holding the player's lifetime totals (D-45), and
-// the home page and viewer page as static assets.
+// game and its viewer sockets, one per player holding the player's lifetime totals (D-45), a D1
+// database holding telemetry (D-53), and the home page and viewer page as static assets.
 // `just cf-dev` runs this locally; `just cf-deploy` deploys the production environment.
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
@@ -28,6 +28,13 @@
   // through a service binding (a public same-zone fetch returned an edge 522 for jsonsolver).
   // Locally, auth/ runs under `just dev-up` in yuwakisacloud on :8788.
   "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
+  // Telemetry (D-53). This top-level block is what `wrangler dev` and the tests use, and they
+  // keep the database in local files, so its id is a made-up one that names no real database:
+  // a deploy without `--env production` fails on it. `just cf-d1-local` applies
+  // telemetry_schema.sql to the local database.
+  "d1_databases": [
+    { "binding": "TELEMETRY", "database_name": "starreach-telemetry", "database_id": "local-only-starreach-telemetry" }
+  ],
   "vars": {
     "AUTH_ISSUER": "http://localhost:8788",
     // The MCP endpoint's canonical URL, registered as a resource in the local auth/ D1
@@ -50,6 +57,13 @@
         ]
       },
       "services": [{ "binding": "AUTH_SERVICE", "service": "auth" }],
+      // The production telemetry database. It does not exist until `just cf-d1-production`
+      // creates it; that prints its database_id, which replaces PUT-THE-DATABASE-ID-HERE below.
+      // Run again, the recipe then applies telemetry_schema.sql to it. A deploy is refused
+      // until the id is filled in.
+      "d1_databases": [
+        { "binding": "TELEMETRY", "database_name": "starreach-telemetry", "database_id": "PUT-THE-DATABASE-ID-HERE" }
+      ],
       "vars": {
         "AUTH_ISSUER": "https://auth.yuwakisa.com",
         // The MCP endpoint's canonical URL, registered as a resource in production auth/

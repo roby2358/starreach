@@ -11,6 +11,8 @@ declare namespace Cloudflare {
     GAMES: DurableObjectNamespace<import("./game_object.ts").GameObject>;
     /** One Durable Object per player id (the auth/ `sub`), holding the player's lifetime totals. */
     PLAYERS: DurableObjectNamespace<import("./player_object.ts").PlayerObject>;
+    /** The telemetry database: the tables of telemetry_schema.sql. */
+    TELEMETRY: D1Database;
     /** The auth/ Worker, for its JWKS (a service binding, never a public same-zone fetch). */
     AUTH_SERVICE: Fetcher;
     /** auth/'s issuer, the `iss` every access token must carry. */
@@ -27,6 +29,11 @@ interface Env extends Cloudflare.Env {}
 declare module "*.wasm" {
   const module: WebAssembly.Module;
   export default module;
+}
+
+declare module "*.sql" {
+  const text: string;
+  export default text;
 }
 
 declare module "*.txt" {

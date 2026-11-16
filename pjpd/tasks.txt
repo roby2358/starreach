@@ -1,34 +1,3 @@
-Priority:   65
-Status: ToDo
-ID: telemd1-3qc4
-Created: 2026-11-16T19:08:01Z
-Updated: 2026-11-16T19:08:01Z
-
-On Cloudflare, telemetry is stored in a D1 database, and the home page says what is recorded.
-
-Goal: real play on the deployed game is kept permanently and can be asked questions in SQL. [D]
-
-Assumes the app layer already records telemetry through a sink interface (game records and per-call event records) with an in-memory sink. If it does not yet, stop and say so.
-
-Settled design [D]:
-- Store: one D1 database for telemetry, bound to the Worker. D1 was chosen over Workers Analytics Engine because it keeps data permanently, so no cold storage or export is needed, and it can be queried through the existing wrangler login. Volume is small and there is no cardinality concern, so recording is generous.
-- Schema: a games table (one row per game record) and an events table (one row per tool call), with the commonly queried fields as columns (tool, accepted, refusal reason, starticks, ticks taken, energy, shields, hull, torpedoes, damage taken, distance, range, hit) and the rest as a JSON column. Indexes for the joins and the per-day queries. One schema file, applied by a recipe; no migration history while the project is this young.
-- A Cloudflare sink that writes each record to D1. A write must not delay or fail the player's command: the reply does not wait on it, and an error is logged and dropped.
-- The schema is set up locally for the Worker's tests, which check that a game played against the Worker leaves the expected rows.
-- Recipes: one to create the database and apply the schema locally, one for production (create the database, apply the schema). The production recipe is written and documented but NOT run in this task: creating the production database and putting its id in the config happens at deploy, by the designer's go-ahead. Leave the config ready so that only the id needs filling in, and say exactly what the deploy steps are in the report and in the recipes skill.
-- Privacy line on the home page, in plain words: the game records the commands played and how games end, to tune the game; players are counted by a one-way hash, not by name; no name, Bluesky identity or conversation is recorded. Say what is true and no more: do not call the hash "anonymous" or say play "cannot be traced", since the salt is a constant in a public repository. Keep it short and in the page's voice.
-- Follow the sibling-project rules for npm: exact version pins, no install scripts.
-- Docs in the same change: ONTOLOGY (the stored tables), CRITERIA rows with tests, a RATIONALE decision for D1 with Analytics Engine as the alternative, ARCHITECTURE_LOG entry.
-
-Done when:
-- A game played against the Worker under its test runtime leaves a games row and one events row per tool call, with no player id, game id or viewer hash in any column.
-- A test shows a failing database does not fail a command.
-- `just cf-deploy --dry-run` succeeds with the new binding.
-- The home page carries the privacy line, and the page test checks it.
-- `just cc-test-all` passes.
-
-Don't deploy, and don't create or change anything on the production Cloudflare account.
-----
 Priority:   60
 Status: ToDo
 ID: telemreport-bvb9

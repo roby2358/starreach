@@ -9,6 +9,8 @@ CF_CONFIG := "adapters/cloudflare/wrangler.jsonc"
 CF_RUN := "adapters/cloudflare/.wrangler"
 CF_PIDFILE := CF_RUN / "pids/cf.pid"
 CF_LOG := CF_RUN / "logs/cf.log"
+# The telemetry database's tables (D-53), applied by cf-d1-local and cf-d1-production
+CF_TELEMETRY_SCHEMA := "adapters/cloudflare/telemetry_schema.sql"
 # Where `up` keeps the local server's pidfile and log
 RUN := ".run"
 PIDFILE := RUN / "serve.pid"
@@ -85,13 +87,13 @@ remove-local:
 # The home page, the viewer page and sockets, MCP at /mcp and /health on http://localhost:8787, games in local
 # Durable Objects under adapters/cloudflare/.wrangler/. In a container: just cf-dev --ip 0.0.0.0
 # Run the Cloudflare adapter locally under wrangler dev, in the foreground
-cf-dev *args: cc-build-wasm
+cf-dev *args: cc-build-wasm cf-d1-local
     npx wrangler dev --config {{CF_CONFIG}} {{args}}
 
 # Its own process group (setsid), the PGID in .wrangler/pids/cf.pid and output in
 # .wrangler/logs/cf.log under adapters/cloudflare/; waits for wrangler's "Ready on" line.
 # Run cf-dev in the background (stop with cf-down, follow with cf-logs)
-cf-up *args: cc-build-wasm
+cf-up *args: cc-build-wasm cf-d1-local
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p {{CF_RUN}}/pids {{CF_RUN}}/logs
@@ -151,6 +153,20 @@ cf-down:
 cf-logs:
     tail -n 200 -F {{CF_LOG}}
 
+# The database is local files under adapters/cloudflare/.wrangler/, made on first use; nothing
+# on the Cloudflare account is touched. Safe to run again. cf-dev and cf-up run it first.
+# Give wrangler dev's local telemetry database its tables
+cf-d1-local:
+    @bash tools/telemetry_db.sh local {{CF_CONFIG}} {{CF_TELEMETRY_SCHEMA}}
+
+# TOUCHES THE PRODUCTION ACCOUNT: only with the user's go-ahead. Run it twice. While
+# wrangler.jsonc still holds PUT-THE-DATABASE-ID-HERE it creates the D1 database
+# starreach-telemetry and prints the database_id to put there. Run again after that, it
+# applies the schema to the database, which is safe to repeat. Then cf-deploy.
+# Create the production telemetry database, then (run again) give it its tables
+cf-d1-production:
+    @bash tools/telemetry_db.sh production {{CF_CONFIG}} {{CF_TELEMETRY_SCHEMA}}
+
 # Checks /health, new_game and long_range_scan over /mcp, and a viewer socket's frames.
 # Creates one game. e.g. just cc-smoke http://localhost:8787
 # Smoke-test a running server at a base URL, local or https://starreach.yuwakisa.com
@@ -161,8 +177,10 @@ cc-smoke base_url:
 cf-whoami:
     npx wrangler whoami
 
+# Refused while wrangler.jsonc holds no production telemetry database id (cf-d1-production comes first).
 # Deploy the Cloudflare adapter to production (starreach.yuwakisa.com). Pass --dry-run to check without deploying.
 cf-deploy *args: cc-build-wasm
+    @bash tools/telemetry_db.sh deploy-check {{CF_CONFIG}} {{args}}
     npx wrangler deploy --config {{CF_CONFIG}} --env production {{args}}
 
 # Stream the production Worker's live logs (wrangler tail)

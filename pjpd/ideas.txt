@@ -273,6 +273,17 @@ Design questions:
 
 Depends on telemetry being recorded and on the report recipe showing which figures turn out to be worth watching.
 ----
+Score:   35
+ID: privacy-ua-gv98
+Created: 2026-11-16T19:59:10Z
+Updated: 2026-11-16T19:59:10Z
+
+Should the home page's "What Fleet records" line also mention the MCP client's User-Agent?
+
+The telemetry game record holds the HTTP User-Agent of the MCP client that started the game (which assistant software connected), so that games per client can be counted. The home page's privacy line says the game records the commands played and how games end, counts players by a one-way hash, and records no name, Bluesky identity or conversation. All of that is true, but the line does not mention the User-Agent. It names software, not a person, yet a reader could take the line as the full list of what is kept.
+
+Options: leave the line as it is; add a few words ("and which assistant app connected"); or stop recording the User-Agent. The designer wrote the line's content, so this is the designer's call. If the wording changes, the home page browser test and the U-12 criterion change with it.
+----
 Score:   75
 ID: goals-9atp
 Created: 2026-11-14T15:48:48Z

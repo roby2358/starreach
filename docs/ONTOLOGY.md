@@ -349,7 +349,7 @@ it can't tell is null. [D; the three fields P]
 The **telemetry sink** takes three writes: a game started, a game ended (by key), and a command
 run. [D; the three operations P] The Node adapter keeps the records in process memory, where
 tests and the local server read them, and they are gone when the process ends. [D] The
-Cloudflare adapter's sink drops every record [P]; a lasting store there is [D, unbuilt].
+Cloudflare adapter keeps them for good, as rows of a D1 database (Telemetry database, D-53). [D]
 
 ### Star Central messages
 *Serves: G-1, F-command.* [D] The messages fleet command sends the captain, held in the core as
@@ -1025,7 +1025,7 @@ coordinate outside `0..9` does reach the core, which refuses it with a Result. [
 | `GET /.well-known/oauth-protected-resource`, `GET /.well-known/oauth-protected-resource/mcp` | RFC 9728 metadata for `/mcp`: `resource: STARREACH_RESOURCE`, `authorization_servers: [AUTH_ISSUER]`, `scopes_supported: ["starreach:play"]` (Cloudflare only) [P] |
 | `GET /health` | `{status: "ok"}` |
 | `GET /telemetry` | Everything the in-memory telemetry sink holds (Telemetry route). Node adapter only [D]; on Cloudflare it is any other path |
-| `GET /` | The home page: a short briefing with how to connect (D-40). Cloudflare redirects `/index.html` to `/` [P] |
+| `GET /` | The home page: a short briefing with how to connect, and what the game records about play (D-40, D-53). Cloudflare redirects `/index.html` to `/` [P] |
 | `GET /viewer` | The viewer page. `?view=<view_id>` chooses the game. Cloudflare redirects `/viewer.html` to `/viewer` [P]. With no game, its notice links to `/` |
 | `GET /css/styles.css`, `GET /css/home.css`, `GET /js/script.js`, `GET /fonts/oxanium.woff2`, `GET /images/viewer.jpg` | The pages' files |
 | WebSocket `/live/<view_id>` | The game's frames, read-only [P] |
@@ -1042,7 +1042,7 @@ exits when its client closes stdin, which ends the games it holds. [P]
 
 The Cloudflare adapter is a Worker that serves `/mcp` and `/health` through the app layer's
 handler, and takes the viewer link's origin from the request. [D] It keeps each player's lifetime
-totals in the Durable Object named by the player's `sub` (PlayerStore). [D] `/mcp` serves only a signed-in
+totals in the Durable Object named by the player's `sub` (PlayerStore), and telemetry in a D1 database (Telemetry database). [D] `/mcp` serves only a signed-in
 player [D]: Starreach is an OAuth resource server only and never runs a sign-in flow. It verifies auth/'s access token offline with the vendored auth-client
 (`adapters/cloudflare/vendor/auth-client/`), pinning `iss` = `AUTH_ISSUER` and accepting an `aud` of
 `STARREACH_RESOURCE` (the MCP endpoint's canonical URL, which auth/ writes when the client names
@@ -1070,8 +1070,9 @@ GameStore and PlayerStore. It is always supplied: there is no running without on
 
 A write that fails is logged by the app layer and fails nothing else. [D] The Node adapter
 supplies the in-memory sink, one for the life of the process, in both of its modes. [D] The
-Cloudflare adapter supplies a sink that drops every record. [P] No tool gives telemetry out, and
-the only route that does is the Node adapter's `GET /telemetry`.
+Cloudflare adapter supplies a sink that writes each record to its D1 database (Telemetry
+database). [D] No tool gives telemetry out, and the only route that does is the Node adapter's
+`GET /telemetry`.
 
 ### Telemetry route (Node adapter) [D]
 `GET /telemetry` on the Node adapter's HTTP server returns every record its in-memory sink
@@ -1092,6 +1093,66 @@ A server that has recorded nothing answers 200 with an empty body. Only `GET` re
 other method gets the 404 of any other path. The route is served in both of the adapter's modes
 and is as open as the adapter's `/mcp`. [P] `just telemetry` prints it for the local server at
 `HTTP_HOST`:`HTTP_PORT`. [D]
+
+### Telemetry database (Cloudflare adapter) [D]
+*Serves: the tuning of G-2 and G-4: play on the deployed game is kept for good and can be asked
+questions in SQL.* [D] One D1 database, `starreach-telemetry`, bound to the Worker as
+`TELEMETRY`, holds every telemetry record of the games played there (D-53). It has two tables,
+one row per record. The fields asked about most are columns and the others are JSON in `rest`
+[D; which column holds what, the names and the types are P]. No column holds a `game_id`, a
+`view_id` or a player id.
+
+**`games`**: a row per game record, keyed by `game_key`. `new_game` writes it with the columns
+from `outcome` on NULL, and the command that ends the game fills those.
+
+| Column | Type | Holds |
+|---|---|---|
+| `game_key` | TEXT, primary key | The record's `game_key` |
+| `started_unix_seconds`, `seed`, `rules_version` | INTEGER | The record's fields of those names |
+| `player_hash` | TEXT | The record's `player_hash` |
+| `client_name`, `client_version`, `client_user_agent` | TEXT or NULL | The record's `client`, a column per part |
+| `outcome`, `ended_by` | TEXT or NULL | The GameEnd's fields of those names |
+| `rest` | TEXT or NULL | JSON `{counters, goals}`: the GameEnd's other two fields |
+
+**`events`**: a row per event record, keyed by (`game_key`, `seq`).
+
+| Column | Type | Holds |
+|---|---|---|
+| `game_key` | TEXT | The record's `game_key` |
+| `seq` | INTEGER | The count of the game's rows when this one was inserted, taken inside the insert: from 0, in the order the database got them [P] |
+| `unix_seconds`, `startick`, `ticks`, `energy`, `shields`, `hull`, `torpedoes`, `damage_taken`, `sectors_revealed`, `sectors_cleared` | INTEGER | The record's fields of those names |
+| `tool` | TEXT | The record's `tool` |
+| `accepted` | INTEGER | 1 or 0 |
+| `refusal` | TEXT or NULL | The record's `refusal` |
+| `distance`, `range` | REAL or NULL | `detail.distance` and `detail.range`, NULL where the tool tells none |
+| `hit` | INTEGER or NULL | `detail.hit` as 1 or 0, NULL where the tool tells none |
+| `rest` | TEXT | JSON `{args, detail}`: the record's `args`, and its `detail` whole, the parts that have columns included [P] |
+
+An event row needs no `games` row: there is no foreign key, so a game's events are kept even
+where its game row is missing. [P] Indexes: `games` by `started_unix_seconds` and by
+`player_hash`, `events` by `unix_seconds` and by `tool`; the `events` key is what joins a
+game's events to its row, in `seq` order. [D; which indexes P]
+
+```
+gameStarted(start):   INSERT the games row, end columns NULL
+gameEnded(key, end):  UPDATE the games row of key; no such row is a failed write
+commandRun(event):    INSERT the events row, seq = COUNT of the game's rows
+each write:           started at once and handed to the request's waitUntil; the sink's
+                      operation returns without waiting for the database
+                      a write that fails is logged and dropped
+```
+
+The player's reply never waits on the database, and a failing database fails no command. [D]
+Because a write goes on after the sink's operation has returned, the sink logs a failure
+itself. [P]
+
+The tables are one schema file, `adapters/cloudflare/telemetry_schema.sql`, every statement of
+which is safe to run again. There is no migration history. [D] `just cf-d1-local` applies it to
+the local database `wrangler dev` uses, and `cf-dev` and `cf-up` run that first [P];
+`just cf-d1-production` creates the production database and, run again once its id is in
+`wrangler.jsonc`, applies the file to it. [D; the two runs P] `just cf-deploy` is refused while
+`wrangler.jsonc` holds no production database id. [P] The Worker's tests apply the file to their
+own local database. [D]
 
 What each transport lets the server tell of the MCP client [P]:
 
