@@ -5,6 +5,14 @@ Constants are referred to by name (values are in ONTOLOGY's Numbers table). Deci
 marked *Decided* are shipped behavior the designer built. *Proposed* entries are Claude's
 inferences, waiting for review.
 
+**Evidence.** A figure is cited by the instrument that gave it. `Modeled by: <recipe>` is a
+formula or a scripted captain, unverified in play. `Measured by: just telemetry-report` is
+recorded play (D-54): the telemetry report is the instrument for it, and nothing else is cited
+as measured play. A citation says which source (production, or `local` for games played on a
+local server), the period, the date it was run, the number of games and their rules version,
+and then the figure as the report printed it. A figure from `local` or from a handful of games
+is said to be that.
+
 ---
 
 ## Interface and architecture
@@ -665,6 +673,98 @@ inferences, waiting for review.
   account. `just cf-d1-production` has not been run, the production database does not exist, and
   no game has been recorded in a deployed D1; a signed-in game under `just cf-dev` was not
   played either.
+
+### D-54 One telemetry report over two sources, printed by `just telemetry-report` — *Decided; what each figure counts where the designer's words leave it open, the `local-d1` source, the refusal before production exists and the placement of the code are Proposed*
+- **Choice:** `just telemetry-report` prints one report as plain text tables. With no argument
+  it reads the production D1 database through the existing wrangler login; `local` reads the
+  local server's telemetry dump instead. The same report code runs over both, so the local
+  report is a true preview. An optional number of days limits the period. The sections, in
+  order: tool calls (per tool, accepted and refused, and the tools never used); subwarp
+  distances, warp distances and energy cost, a blast histogram by range with hit rate and
+  damage, torpedo count, hit rate and range; per game the sectors cleared, sectors revealed and
+  dockings; the refusal reasons, most common first; how often a warp is preceded by a scan or a
+  galaxy map; games started per day, ended by outcome and cause, still open, their length in
+  commands and stardates, goals met per game; how low energy runs and how games that end badly
+  were doing on energy and hull; wall-clock gaps between commands and the real length of a
+  game, from event times; distinct and returning players by hash and games per MCP client; and
+  everything split by rules version when there is more than one. Stardates and durations are
+  printed the way the game prints them. It runs without a Rust toolchain and where shebang
+  recipes can't. Its sums are tested against a small fixed set of records with known answers. [D]
+  - **Records in, text out.** Each source is turned into the app layer's game records and event
+    records, and one function makes the report from records. The D1 queries are two
+    `SELECT *`, filtered only by the period's start; every sum is done in the report's code,
+    not in SQL. That is what makes "the same report code" literally true, and it means a D1 row
+    must give back the record it was written from, which a test in workerd holds it to. [P]
+  - **`local-d1`**, a third source: the same two queries through `wrangler d1 execute --local`,
+    against `wrangler dev`'s database. It is the production path with one flag changed, so it
+    is how that path is checked while no production database exists. [P]
+  - **Production is refused before wrangler runs** while `wrangler.jsonc` holds the placeholder
+    id, with a message naming `just cf-d1-production` and `just telemetry-report local`. The
+    bare recipe is the first thing to be typed, and until the deploy it has nothing to read. [P]
+  - **The period is by a game's start.** A game belongs if it started in the last N days, and
+    then all of its events belong, so no game is cut in two. An event whose game has no record
+    (the tables have no foreign key, D-53) can't be given a rules version; it is left out and
+    the heading counts such events. [P]
+  - **Split by rules version** means every section is printed once per version, under a line
+    naming the version, rather than every table gaining a column. [P]
+  - **Played events.** A captain can still call a tool after the game is over. Those calls are
+    counted under Tool calls and Refusals, and left out of a game's length, energy, wall-clock
+    and per-game sums: an ended game's events stop at its last event that took time, which is
+    the command that ended it. A game's length in commands counts every call up to there,
+    queries and refusals included; its length in stardates is the sum of the events' `ticks`. [P]
+  - **Nearest whole** for a warp's distance and a weapon's range, which are Euclidean to two
+    decimals: the blast and damage rules are stated at whole ranges (D-36, D-39), so a row sits
+    on the range it is nearest. [P]
+  - **A refusal's numbers become `N`**: the core's reasons carry coordinates and amounts ("No
+    clear path toward (6, 1)"), so as recorded nearly every refusal is its own reason. [P]
+  - **Looking before leaping** counts accepted warps, and a look is an accepted long range scan
+    or galaxy map since the warp before (or the game's start). A look therefore serves one warp;
+    a `state` is not a look, since it shows the sector the ship is in. Scan and map are also
+    counted apart. [P]
+  - **How games that end badly were doing** is the ship after the command before the last, and
+    after the last, by what ended the game. The first is what the captain last saw before the
+    choice that ended it. [P]
+  - **A long pause** is a gap of `LONG_PAUSE_SECONDS` (300) or more between two commands of a
+    game, `new_game` counting as the first. A game's real length is given whole and without its
+    long pauses, since a game picked up the next day is not a day long. The 300 is a guess at
+    where "the captain is thinking" ends and "the captain went away" begins; no play has been
+    measured to set it. [P]
+  - **Returning** is games started on more than one UTC day by one player hash; players with
+    more than one game are counted beside it. [P]
+  - **Real time is printed in hours, minutes and seconds.** "The way the game prints them"
+    is taken to cover game time; the game prints no real time. The report prints no clock
+    value, so only the duration form is used. [P]
+  - **The code is in `tools/telemetry_report/`**, with its tests under `R-52/` in the three
+    packages whose things it reads: the records (app), the local server (Node adapter) and the
+    D1 tables (Cloudflare adapter). It imports the app layer's record types and its one copy of
+    `STARTICKS_PER_STARDATE`, and never loads the core. The recipe runs `node` on the script
+    directly, as `cc-smoke` does: that is no shebang recipe. No package was added. [P]
+- **Alternatives:** the sums in SQL for D1 and in code for the dump (two reports to keep in
+  step, and the local one would preview nothing); loading the dump into a throwaway SQLite
+  database and running one set of SQL over both (Node's SQLite or a new dependency, and the
+  sink's row layout written a second time); the report as an MCP tool or a route (telemetry is
+  for the designer, D-52); reading D1 over Cloudflare's HTTP API with a token (the designer:
+  the existing wrangler login); a period by event time (a game straddling the start would show
+  half its commands); bucketing ranges downward (range 4.9 would sit with 4, where D-36 puts
+  it near 5); grouping refusals by tool (the same reason from two tools is one cause);
+  counting a warp as looked-before if any look ever came earlier in the game (after the first
+  scan every warp would count); the median alone for lengths (the designer asked for long
+  pauses too, and a least and most show the spread of a small sample); a `--json` output (no
+  reader for it yet).
+- **Why:** every balance figure here is modeled. The report asks the recorded play the questions
+  the design depends on, and its answers are what RATIONALE cites as "Measured by". [D]
+- **Evidence:** R-52. Run by hand on 2026-11-16: a local server on a spare port, three games
+  played over `/mcp` with curl (one fought through two sectors, one scanned until stranded, one
+  left open; 119 tool calls), and `just telemetry-report local` printing every section for
+  them, e.g. 4 blasts with 2 hits, a hit rate of 100% at range 2 and 33% at range 5, and 2 of
+  4 warps after neither a scan nor a map. Those records were then put, as the sink lays them
+  out, into a local D1 database made from the schema file, and the report through the real
+  `wrangler d1 execute --local --json` was the same text but for its source line, with and
+  without a number of days. `just telemetry-report` with no argument gave the refusal, since
+  the production database does not exist. **Not verified:** anything against a database on
+  Cloudflare. The production form has never run; that `--remote` prints what `--local` prints,
+  and that one answer holds every row once the tables are large, are assumed and
+  untested. Those figures are a path check from scripted calls, not measured play.
 
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function

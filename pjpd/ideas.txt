@@ -273,6 +273,15 @@ Design questions:
 
 Depends on telemetry being recorded and on the report recipe showing which figures turn out to be worth watching.
 ----
+Score:   40
+ID: reportremote-ttsp
+Created: 2026-11-16T20:16:23Z
+Updated: 2026-11-16T20:16:23Z
+
+Check the telemetry report against the production D1 database once it exists, and decide whether its reads need paging.
+
+`just telemetry-report` (no argument) reads production with two statements through `wrangler d1 execute --remote --env production --json`: `SELECT *` over the games table and over the events table from the period's start. That form has never run: it was only checked through wrangler with `--local`. Two things are assumed and untested: that `--remote --json` prints the same shape as `--local` (a list with one `{results, success}`), and that one answer holds every row when the events table has grown large. If wrangler or D1 caps a response, the report would fail or, worse, sum a part of the table. Open questions: is there a cap in practice at the volume this game sees; if so, page the reads (LIMIT and a key to continue from) or narrow them to the period only; should the report say how many rows it read so a short read is visible. First step is simply to run the report after the first deploy that records telemetry and compare its counts with a `SELECT COUNT(*)`.
+----
 Score:   35
 ID: privacy-ua-gv98
 Created: 2026-11-16T19:59:10Z

@@ -23,8 +23,9 @@ export const BLAST_HIT_DAMAGE = 1000;
 /** Sets a telemetry game key apart from the view_id, which is the bare hash of the game_id. */
 const GAME_KEY_DOMAIN = "starreach-telemetry-game-1";
 
-/** The core's STARTICKS_PER_STARDATE, which a stardate is read back into starticks by. */
-const STARTICKS_PER_STARDATE = 400;
+/** The core's STARTICKS_PER_STARDATE, which a stardate is read back into starticks by, and
+ *  the telemetry report prints a length of game time by. */
+export const STARTICKS_PER_STARDATE = 400;
 
 /** What the server can tell of the connecting MCP client; a part it can't tell is null. */
 export interface McpClient {

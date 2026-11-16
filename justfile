@@ -68,6 +68,15 @@ logs:
 telemetry:
     @bash tools/server.sh telemetry {{HTTP_HOST}} {{HTTP_PORT}}
 
+# Plain text tables: tool calls, movement and weapons, per game, refusals, looking before warping,
+# games, energy, wall-clock, players and clients, split by rules version when there are several.
+# With no source it READS THE PRODUCTION D1 database through wrangler's login (read-only queries).
+# `local` reads the local server's /telemetry instead, `local-d1` wrangler dev's local database.
+# A number limits it to games started in that many days. e.g. just telemetry-report local 7
+# Print the telemetry report: production's by default, or `local`, or `local-d1`; optionally a number of days
+telemetry-report *args:
+    @node tools/telemetry_report.ts {{HTTP_HOST}} {{HTTP_PORT}} {{CF_CONFIG}} {{args}}
+
 # Add the deployed Starreach to Claude Code as the MCP server `starreach`
 add:
     claude mcp add --transport http --scope {{MCP_SCOPE}} {{MCP_NAME}} {{MCP_URL}}

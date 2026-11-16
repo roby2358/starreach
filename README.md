@@ -30,6 +30,7 @@ Needs Rust (stable), Node 26 and `just`. Then run:
     just serve        # the viewer at http://127.0.0.1:8572/, MCP at /mcp, health at /health, telemetry at /telemetry
     just stdio        # the same, plus MCP over stdio
     just telemetry    # print what the local server has recorded: a game record per game, an event per tool call
+    just telemetry-report local  # a report of that play as text tables; without `local` it reads the production D1 database
 
     just cf-dev       # the Cloudflare adapter under wrangler dev: the viewer at http://localhost:8787/, MCP at /mcp
     just cf-up        # cf-dev in the background; log in adapters/cloudflare/.wrangler/logs/cf.log

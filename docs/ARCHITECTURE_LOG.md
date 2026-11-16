@@ -3,6 +3,30 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — `just telemetry-report` prints a report of recorded play, from production's D1 or a local server
+Telemetry could be recorded and dumped but not summed: `just telemetry` prints raw records, and
+D1 was to be asked in hand-written SQL. A new recipe, `just telemetry-report`, prints one plain
+text report: tool calls, movement and weapons, per-game counts, refusals, looking before
+warping, games, energy, wall-clock, players and clients, split by rules version when there are
+several. With no argument it reads the production D1 database by two read-only queries through
+wrangler; `local` reads the local server's `/telemetry`; `local-d1` reads `wrangler dev`'s local
+database; a number limits it to games started in that many days. The code is new, in
+`tools/telemetry_report.ts` and `tools/telemetry_report/` (`figures.ts` for the sums,
+`render.ts` for the text, `records.ts` for the sources); each source is turned into the app
+layer's records and one function reports on records. `app/src/telemetry.ts` now exports its
+`STARTICKS_PER_STARDATE`, which the report prints game time by. RATIONALE's head now states the
+evidence convention, with this recipe as the instrument for measured play. The designer settled
+the recipe and its two sources, the sections and their order, the days, the split by rules
+version, game time printed as the game prints it, and tests against fixed records. Claude's
+proposals: every sum in code rather than SQL, the `local-d1` source, refusing production before
+wrangler runs while the config holds the placeholder id, the period by a game's start, played
+events ending at the command that ended the game, ranges and distances to the nearest whole,
+numbers in refusal reasons shown as `N`, what counts as a look before a warp,
+`LONG_PAUSE_SECONDS` = 300, "returning" as a second UTC day, and the code's place under
+`tools/`. Adds D-54 and R-52, with tests in the app layer, the Node adapter and the Cloudflare
+adapter. No package was added. Nothing was read from or changed on the Cloudflare account: the
+production form of the report has never run.
+
 ### 2026-11-16 — On Cloudflare, telemetry is stored in a D1 database, and the home page says what is recorded
 The Cloudflare adapter's sink dropped every record (`NoTelemetry`), and R-50 was not yet covered.
 It is replaced by `D1Telemetry`, which writes each record as a row of a D1 database bound as

@@ -919,6 +919,7 @@ Referred to by name everywhere else.
 | `RULES_VERSION` | 1 | the rules version a new game's telemetry record carries; bumped by hand (Telemetry rule) [D] | D-51 |
 | `PLAYER_HASH_SALT` | `starreach-player-hash-1` | text hashed with a player id into the player hash; a constant in the code [D] | D-51 |
 | `BLAST_HIT_DAMAGE` | 1000 | the `damage` a hitting blast's telemetry event carries: a telemetry placeholder, used by no rule of the game [D] | D-51 |
+| `LONG_PAUSE_SECONDS` | 300 | real seconds between two commands of a game from which the telemetry report counts the gap as a long pause and leaves it out of a game's length without pauses [P] | D-54 |
 | `HTTP_PORT` | 8572 | port the `just` recipes pass to the local servers | D-21 |
 | `RECONNECT_MIN_MS` | 1000 | ms a viewer page waits before its first reconnect; it doubles after each failure | D-31 |
 | `RECONNECT_MAX_MS` | 15000 | ms, the longest a viewer page waits to reconnect | D-31 |
@@ -1072,7 +1073,7 @@ A write that fails is logged by the app layer and fails nothing else. [D] The No
 supplies the in-memory sink, one for the life of the process, in both of its modes. [D] The
 Cloudflare adapter supplies a sink that writes each record to its D1 database (Telemetry
 database). [D] No tool gives telemetry out, and the only route that does is the Node adapter's
-`GET /telemetry`.
+`GET /telemetry`. The telemetry report reads the records back from either place (Telemetry report).
 
 ### Telemetry route (Node adapter) [D]
 `GET /telemetry` on the Node adapter's HTTP server returns every record its in-memory sink
@@ -1165,6 +1166,64 @@ What each transport lets the server tell of the MCP client [P]:
 The auth/ access token names the player and the audience and not the client that obtained it, so
 sign-in adds nothing here. Whether the `User-Agent` tells Claude Desktop from Claude Code is not
 known until both have been recorded. [P]
+
+### Telemetry report (tools) [D]
+*Serves: the tuning of G-2 and G-4: the designer asks the recorded play the questions the design
+depends on, and the answers are cited in RATIONALE as "Measured by".* [D] `just telemetry-report`
+prints one report as plain text tables (D-54). It reads and never writes.
+
+| Invocation | Source |
+|---|---|
+| `just telemetry-report` | The production D1 database, by two read-only queries through `wrangler d1 execute --remote --env production --json`, on the existing wrangler login [D]. Refused, before wrangler runs, while `wrangler.jsonc` still holds the placeholder id: the database doesn't exist yet [P] |
+| `just telemetry-report local` | The local server's `GET /telemetry` at `HTTP_HOST`:`HTTP_PORT` [D]. Fails with "start one with: just up" when nothing listens there |
+| `just telemetry-report local-d1` | The local D1 database of `wrangler dev`, by the same two queries with `--local` [P] |
+
+A number among the arguments, in either order, is a number of days: the report then covers the
+games started in the last that many days. [D; a game belongs by its start P] `production` may
+also be named.
+
+```
+source → records:   local:  each line of the dump is a game record or an event record
+                    D1:     SELECT * FROM games  WHERE started_unix_seconds >= since
+                            SELECT * FROM events WHERE unix_seconds >= since
+                            each row → its record: columns by name, `end` from outcome, ended_by
+                            and rest, `args` and `detail` from rest
+report(records, since):
+    games  = records' games started at or after since
+    events = the events of those games; an event whose game has no record is left out, and counted in the heading
+    one rules version among the games:  the sections once
+    several:                            every section once per rules version, lowest first
+```
+The same code makes the report from the records whichever source gave them, so the local report
+is a true preview of production's. [D] The record a D1 row gives is the record the sink was
+handed. The report needs Node only: no Rust and no built core, and the recipe is not a shebang
+recipe. [D]
+
+The sections, in order [D; what each figure counts, where the designer's words leave it open, is P]:
+
+| Section | Figures |
+|---|---|
+| Tool calls | Per tool: calls, accepted, refused, the most called first; then the tools never used, of the eight that run on a game. Calls after a game's end are counted here and under Refusals, and nowhere else |
+| Subwarp | Accepted moves by cells moved |
+| Warp | Accepted warps by distance to the nearest whole sector, with the least, median, mean and greatest energy cost |
+| Blast | Accepted blasts by range to the nearest whole cell: blasts, hits, hit rate, and damage (the sum of `detail.damage`); then the same over all ranges |
+| Torpedo | Accepted torpedoes by range to the nearest whole cell: count, hits, hit rate; then over all ranges |
+| Per game | Sectors cleared, sectors revealed and dockings (accepted `dock`s): the total, and over the games the least, median, mean and most |
+| Refusals | The reasons, most common first. Every number in a reason is replaced by `N`, so refusals that differ only in a coordinate or an amount count together |
+| Looking before leaping | Of the accepted warps: how many came after an accepted long range scan, after an accepted galaxy map, after either, and after neither, each also as a share. A look counts if it came since the warp before it, or since the game's start |
+| Games | Started per UTC day; ended, by outcome and by what ended them; still open; length in commands and in stardates, for ended games and for open ones; how many ended games met each number of their goals, from 0 to `GOALS_PER_GAME` |
+| Energy | The lowest each game's energy ran; and for lost games, by what ended them, energy and hull after the command before the last and after the last |
+| Wall-clock | The gap between consecutive commands of a game in real seconds, `new_game` being the first; how many gaps are long pauses, `LONG_PAUSE_SECONDS` or more; a game's real length, start to last command; and the same without its long pauses |
+| Players and clients | Distinct player hashes; those with more than one game; those returning, with games started on more than one UTC day; games per MCP client, labelled by the declared name and version, else the `User-Agent`, else `unknown` |
+
+A game's **played events** are every event of a game still open, and for an ended game the events
+up to the command that ended it, which is its last event that took time: a call after the end is
+a query or a refusal. Per game, Games, Energy and Wall-clock are summed over played events; a
+game's length in commands is their count and its length in stardates the sum of their `ticks`. [P]
+
+A length of game time is printed by the Stardate display rule's duration form, `d.dd.d`; the
+report prints no clock value. [D] A length of real time is printed as `45s`, `2m 05s` or
+`1h 02m 03s`, and a mean to one decimal. [P]
 
 ### Viewer socket [D]
 ```
