@@ -17,12 +17,12 @@ Decided [D]:
 Do:
 - core: replace the f64 `stardate` and `last_event_stardate` on Game with whole startick counts (name them for what they are, e.g. `startick`, `last_event_startick`), and make every time constant and every `time` a whole number of starticks. Add STARTICKS_PER_STARDATE = 400. Blast time is already truncated to a whole number. Warp time is today a fraction (distance × WARP_TIME_PER_DISTANCE); until the warp time rule is replaced, round it to a whole startick.
 - The displayed stardate and a displayed duration are derived in one place from a startick count: whole stardates = ticks / 400, decimals from the remainder, truncated to three places. One startick is 0.0025 stardates, so every startick changes the display.
-- The starting stardate: today it is a whole number drawn from STARDATE_START by the game's seeded rng. Replace that with the real date as decided. The core stays a pure function, so the start time is an input to it: the adapter reads the clock and passes it to new_game beside the seed (proposed [P]: Unix seconds in, converted to starticks in the core with a STARDATE_EPOCH_OFFSET constant, for example an offset of 1,000,000 stardates so a game started in late 2026 begins near stardate 1,020,770). Same seed, same start time and same commands still give the same game; tests pin the start time.
+- The starting stardate: today it is a whole number drawn from STARDATE_START by the game's seeded rng. Replace that with the real date as decided. The core stays a pure function, so the start time is an input to it: the adapter reads the clock and passes it to new_game beside the seed (Unix seconds in, converted to starticks in the core with a STARDATE_EPOCH_OFFSET constant of 1,000,000 stardates [D], so a game started in late 2026 begins near stardate 1,020,770, shown as 102.0770). Same seed, same start time and same commands still give the same game; tests pin the start time.
 - Action reports carry `time` as the formatted stardate duration. Say in the tool descriptions and public/instructions.txt how to read a stardate and a duration (a stardate is a day), so the crew reports them sensibly.
 - GameState.stardate (the string), the GameView the viewer page receives, and the viewer page's stardate display (public/) all show the new form. Check the page's layout with the new string and update the committed screenshot script if it asserts on it.
 - Stored games from before this change hold the old f64 fields and won't parse; that is accepted. Make sure a game that doesn't parse answers as an unknown game and doesn't crash the server.
 
-Tests: the stardate format (whole, boundary and remainder cases, truncation not rounding); every action advances the clock by a whole number of starticks; the event interval still fires on the same actions as before (the existing stardate-event tests, in starticks). Update ONTOLOGY (Game fields, the stardate display rule, the numbers table with units in starticks), CRITERIA, RATIONALE (why whole ticks: no floating-point drift in the interval check; why 400; the display form), the tool descriptions, README, and a log entry. Run `just cc-test-all`. Ask the user before committing or deploying.
+Tests: the stardate format (whole, boundary and remainder cases, truncation not rounding); every action advances the clock by a whole number of starticks; the event interval still fires on the same actions as before (the existing stardate-event tests, in starticks). Update ONTOLOGY (Game fields, the stardate display rule, the numbers table with units in starticks), CRITERIA, RATIONALE (why whole ticks: no floating-point drift in the interval check; why 400; the display form), the tool descriptions, README, and a log entry. Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   85
 Status: ToDo
@@ -40,12 +40,12 @@ Decided [D]:
 
 What the rule gives (time, energy): next sector 416 starticks (1.04 stardates), 4160 energy; diagonal 529 (1.32), 5290; 5 sectors 1075 (2.69), 10750; corner to corner 1572 (3.93), 15720. A typical battle is about 5 starticks and the largest sectors take about 19 in 9 of 10 battles, so the next sector is some 80 typical battles away. One long jump beats several hops in both time and energy (five hops in a line: 2080 starticks, 20800 energy; one 5-sector jump: 1075, 10750).
 
-Balance to check before settling the numbers: today warp energy is 100 per sector, linear, so a 50000 tank is 500 one-sector warps. Under the new price a full tank is 12 one-sector warps, or three crossings of the galaxy, before any blast or scan. Energy becomes the tight resource and starbases matter far more. Extend the balance harness to answer: from each sector, the energy to reach the nearest starbase; how many enemy sectors a ship can visit and clear on one tank; and how often the stranded rule (energy below the warp cost to the nearest other visible starbase sector, with no starbase in the sector) would end a game. Show the designer the figures; WARP_ENERGY_PER_TICK, SHIP_MAX_ENERGY or starbase count may need to move.
+Balance to check before settling the numbers: today warp energy is 100 per sector, linear, so a 50000 tank is 500 one-sector warps. Under the new price a full tank is 12 one-sector warps, or three crossings of the galaxy, before any blast or scan. Energy becomes the tight resource and starbases matter far more. Extend the balance harness to answer: from each sector, the energy to reach the nearest starbase; how many enemy sectors a ship can visit and clear on one tank; and how often the stranded rule (energy below the warp cost to the nearest other visible starbase sector, with no starbase in the sector) would end a game. Report the figures to the user when the task is done. The scarcity is intended [D]: don't change WARP_ENERGY_PER_TICK, SHIP_MAX_ENERGY or the starbase count here.
 
 This needs the clock in whole starticks first.
 
 An interim version is already committed, built before these decisions. It keeps linear time and sets WARP_TIME_PER_DISTANCE to 2. Adopt what still fits and replace the rest:
-- core/src/actions.rs: keep `warp_time(from, to)` with the new formula, using the distance in sectors (`euclid`) and rounding to the nearest startick; `warp_cost` becomes warp_time × WARP_ENERGY_PER_TICK, so every caller (the warp rule and the stranded check) follows. Remove `warp_distance` if nothing else needs it, and decide what the warp report's `distance` field carries (proposed: drop it, since `time` and `energy_cost` say what the captain needs).
+- core/src/actions.rs: keep `warp_time(from, to)` with the new formula, using the distance in sectors (`euclid`) and rounding to the nearest startick; `warp_cost` becomes warp_time × WARP_ENERGY_PER_TICK, so every caller (the warp rule and the stranded check) follows. Remove `warp_distance` and the warp report's `distance` field: `time` and `energy_cost` say what the captain needs.
 - core/src/constants.rs: replace WARP_TIME_PER_DISTANCE, WARP_DISTANCE_SCALE and WARP_ENERGY_PER_DISTANCE with WARP_TIME_K = 600 and WARP_ENERGY_PER_TICK = 10.
 - core/tests/R-4/warp.rs: the clock rises by the formula and energy drops by time × WARP_ENERGY_PER_TICK; the shortest warp outlasts a long battle (keep the draft's benchmark constant, in starticks); a longer warp takes longer and costs more, checked over every distance on the map since rounding must not break it. Update the stranded rule's tests for the new cost.
 - core/examples/model_balance.rs and the justfile comment: keep the battle measurement and the warp line, printing starticks, stardates and energy, plus the balance figures above.
@@ -54,7 +54,7 @@ An interim version is already committed, built before these decisions. It keeps 
 
 What happens to shields during a warp is separate work: don't claim a transit rule in the docs that the code lacks.
 
-Run `just cc-test-all`. Ask the user before committing or deploying.
+Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   80
 Status: ToDo
@@ -77,13 +77,13 @@ recharge(ship, limit):                       # limit = SHIELD_REPLENISH in a sec
   cost   = ceil(points / SHIELD_POINTS_PER_ENERGY)
   shields += points;  energy -= cost
 ```
-In `warp`: after the enemies' parting turn and after the warp's own energy and time are paid, recharge with no limit, before the ship enters the new sector, so it meets any arrival ambush with the recharged shields. If energy runs short the shields recharge as far as it allows. Decide the rounding (proposed: round the cost up, so a recharge is never free) and whether the in-sector check "can recharge" needs at least 1 energy, as today.
+In `warp`: after the enemies' parting turn and after the warp's own energy and time are paid, recharge with no limit, before the ship enters the new sector, so it meets any arrival ambush with the recharged shields. If energy runs short the shields recharge as far as it allows. The cost rounds up, so a recharge is never free [D]. The in-sector check that shields can recharge still needs at least 1 energy, as today.
 
 Unchanged: hull is not repaired by a warp. Enemies in the sector being entered get no turns for the journey time; only the arrival ambush applies. The event clock restarts on arrival.
 
 Consequences to keep in mind: leaving a battle and coming back resets the shields for at most 300 energy plus the warps; enemies still get their turn before the ship leaves. In-sector recharging becomes ten times cheaper, which leaves more energy for blasts over a long game.
 
-Do: the shared recharge function; the warp reports the recharge in its events as the in-sector one does ("Shields recharged by N using M energy"), only when shields were below maximum. Tests under the shield replenish criterion for the new price (and its rounding), and under the warp criterion: a damaged ship arrives with full shields and pays points/10 energy; full shields cost nothing and produce no message; too little energy gives a partial recharge; hull is unchanged; enemies get no extra turns. Update ONTOLOGY (the ShieldReplenish rule, the Warp rule pseudocode, the numbers table), RATIONALE (the price, and D-5 for the warp recharge, with the alternatives: no recharge in transit, a recharge counted per interval, a free recharge), CRITERIA, the galaxy_warp tool description, and a log entry. Rerun `just cc-model-balance 2000` and update any Evidence that quotes energy. Run `just cc-test-all`. Ask the user before committing or deploying.
+Do: the shared recharge function; the warp reports the recharge in its events as the in-sector one does ("Shields recharged by N using M energy"), only when shields were below maximum. Tests under the shield replenish criterion for the new price (and its rounding), and under the warp criterion: a damaged ship arrives with full shields and pays points/10 energy; full shields cost nothing and produce no message; too little energy gives a partial recharge; hull is unchanged; enemies get no extra turns. Update ONTOLOGY (the ShieldReplenish rule, the Warp rule pseudocode, the numbers table), RATIONALE (the price, and D-5 for the warp recharge, with the alternatives: no recharge in transit, a recharge counted per interval, a free recharge), CRITERIA, the galaxy_warp tool description, and a log entry. Rerun `just cc-model-balance 2000` and update any Evidence that quotes energy. Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   75
 Status: ToDo
@@ -106,7 +106,7 @@ Do:
 - Refused commands change nothing, as for all state. The counters are deterministic: same seed and commands give the same counts.
 - Stored games from before this change have no counters and won't parse. No migration [D]: old games are wiped.
 
-Tests (one rule each): each counter rises by the right amount on its event and not otherwise (a missed blast raises blasts_missed and not blasts_hit; damage absorbed by shields counts as shield damage and the rest as hull damage; a starbase seen twice counts once); a new game starts at zero; a refused command leaves counters unchanged. Update ONTOLOGY (the Counters entity with its field table, the counter table, GameState, each rule's pseudocode where it counts), CRITERIA (an R-row), RATIONALE (why the core counts; the list and the goal flag) and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
+Tests (one rule each): each counter rises by the right amount on its event and not otherwise (a missed blast raises blasts_missed and not blasts_hit; damage absorbed by shields counts as shield damage and the rest as hull damage; a starbase seen twice counts once); a new game starts at zero; a refused command leaves counters unchanged. Update ONTOLOGY (the Counters entity with its field table, the counter table, GameState, each rule's pseudocode where it counts), CRITERIA (an R-row), RATIONALE (why the core counts; the list and the goal flag) and the log. Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   65
 Status: ToDo
@@ -125,9 +125,9 @@ Decided [D]:
 - Totals are kept per player as counter name to total. Locally there is no permanent storage: an in-memory store behind the same interface supports a playthrough. Deployed, a key-value shape.
 - Totals go to the signed-in player who issued the command. This does not need games to have owners.
 
-This needs the core to count what happens in a game and report the counts with each Result, and it needs each ladder's scale, which comes from simulating whole games.
+This needs the core to count what happens in a game and report the counts with each Result, and it needs each ladder's scale: a `scale` on each row of the core's counter table, set from simulating whole games.
 
-Proposed [P], confirm with the designer while building:
+Settled design:
 - The ladder rule and each counter's scale live in the core beside the counter table (one source for keys, labels, scales), as a pure function: given a counter, a total before and a total after, the rungs crossed. A rung is scale × {1, 2, 5} × 10^n.
 - A `PlayerStore` interface in the app: read a player's totals, and add a set of increments and return the totals before and after. An in-memory implementation for the Node adapter and tests. On Cloudflare, one Durable Object per player (keyed by the player id), so increments are applied one at a time and none is lost; this needs a new Durable Object class and its migration entry in the wrangler config.
 - In the app's command path: after an accepted command, the increments are the difference between the game's counters before and after; add them to the player's totals; for each rung crossed append one Star Central message to the Result's events. One command can cross several rungs on several counters; each gets its own message.
@@ -136,7 +136,7 @@ Proposed [P], confirm with the designer while building:
 - Add a line to public/instructions.txt on relaying Star Central's messages in character, and on pointing the captain to the viewer for achievements.
 - A new game's counters start at zero, so nothing is added twice; a game abandoned midway keeps what it already contributed.
 
-Tests: the ladder (rungs for a scale, several rungs crossed at once, none crossed); every message kind has exactly 20 wordings and each fills its placeholders; totals accumulate across two games of one player and not across players; the commendation appears in the events exactly once when a rung is crossed; a refused command adds nothing; the Cloudflare player object keeps totals between requests (in adapters/cloudflare/test). Update ONTOLOGY (Player totals, the ladder rule, the scales in the numbers table as [T], the MCP tools table, the events), CRITERIA (R-rows), RATIONALE (the template, the storage choice and why not an eventually consistent key-value store, the scales with their Modeled Evidence), README and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
+Tests: the ladder (rungs for a scale, several rungs crossed at once, none crossed); every message kind has exactly 20 wordings and each fills its placeholders; totals accumulate across two games of one player and not across players; the commendation appears in the events exactly once when a rung is crossed; a refused command adds nothing; the Cloudflare player object keeps totals between requests (in adapters/cloudflare/test). Update ONTOLOGY (Player totals, the ladder rule, the scales in the numbers table as [T], the MCP tools table, the events), CRITERIA (R-rows), RATIONALE (the template, the storage choice and why not an eventually consistent key-value store, the scales with their Modeled Evidence), README and the log. Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   70
 Status: ToDo
@@ -157,10 +157,10 @@ Do:
 - A scripted captain that plays a whole game with the real commands: fight the sector it is in (the existing battle policy), scan, choose the next sector, warp, and dock to resupply when energy, torpedoes or hull run low. Keep it small and readable; it is a yardstick, not an AI player. A command cap ends a game the script can't finish.
 - Read each game's counts from the counters the core keeps in the game and reports in its state; don't count again in the harness. If the core doesn't count yet, that comes first.
 - Print, for each counter over N seeded games: mean, median, the 10th and 90th percentiles, and the share of games in which it was at least 1. Print how games ended.
-- From those, propose for each positive counter: the per-game objective sizes a typical game meets comfortably (around what most games reach, e.g. the 10th to 25th percentile), and a ladder scale for lifetime achievements (for example enemies in 10s, docks in 1s, shield damage in 1000s, hull damage in 100s).
-- Run this on the game's current time and energy rules. Warp time, warp energy and shield recharging are being changed; if those changes are not in yet, say so in the output and rerun afterwards, because energy scarcity decides how many sectors a game reaches.
+- From those, set two [T] numbers on each row of the core's counter table, by rule, so no further ruling is needed: `scale`, the ladder's unit for lifetime achievements, is the largest of 1, 10, 100, 1000 that is at most the counter's median per game (1 if the median is below 1), which should give enemies in 10s, docks in 1s, shield damage in 1000s and hull damage in 100s or close to it; `goal_ceiling`, for counters that may be goals, is the counter's 25th percentile per game, so three games in four reach it. A goal-allowed counter whose 25th percentile is below its scale gets a ceiling of 0 and is not offered as a goal.
+- Run this on the game's rules as they stand when the task is worked. Energy scarcity (warp energy per startick, shields recharged on a warp) decides how many sectors a game reaches, so the scripted captain must manage energy: prefer nearer enemy sectors, and return to a starbase before the energy to reach one runs out.
 
-Output: the harness section and its recipe, and a short table of the proposed objective sizes and ladder scales for the designer to rule on, marked as modeled and unverified in play. Record the figures as Modeled Evidence where RATIONALE later cites them. Ask the user before committing.
+Done when: the recipe prints the per-game table for N seeded games; every counter row in the core has its `scale`, and its `goal_ceiling` where it may be a goal; ONTOLOGY's numbers table lists them as [T]; a RATIONALE decision states the rule and quotes the figures as Modeled Evidence (unverified in play); the log has an entry; `just cc-test-all` passes. Report the table to the user.
 ----
 Priority:   55
 Status: ToDo
@@ -177,9 +177,9 @@ Decided [D]:
 - Meeting a goal arrives as a message from Star Central in the command's events. No reward beyond the message for now. The message is a kind in the Star Central messages structure: 20 wordings with named placeholders, one picked at random each time. Write the 20 wordings for a met objective.
 - A goal's amount is picked as a random rung of the counter's ladder at or below a per-game ceiling; try it and see how it plays.
 
-This needs the core to count what happens in a game, and it needs the objective sizes, which come from simulating whole games: for each counter, the amounts a typical game reaches comfortably.
+This needs the core to count what happens in a game, and it needs the objective sizes: a per-game `goal_ceiling` on each goal-allowed row of the core's counter table, set from simulating whole games as the amount a typical game reaches comfortably.
 
-Proposed [P], confirm with the designer while building:
+Settled design:
 - Goals live in the Game and are chosen by the core at new_game from the game's seed, so they are deterministic and need no player data: `goals: [{counter, amount, met}]`.
 - The ceiling is a [T] constant per counter set from the simulation; rungs are scale × 1, 2, 5, 10…. Counters whose ceiling allows no rung are not offered as goals.
 - After each accepted action the core checks the goals: a goal whose counter has reached its amount and is not yet met becomes met and adds one Star Central message to the events. A goal is met once.
@@ -187,7 +187,7 @@ Proposed [P], confirm with the designer while building:
 - public/instructions.txt: the crew presents the three goals when the game starts, and reports progress when asked.
 - Stored games from before this change have no goals and won't parse. No migration [D]: old games are wiped.
 
-Tests: a new game has 3 goals on 3 different goal-allowed counters, the same for the same seed; amounts are rungs at or below the ceiling; reaching the amount marks the goal met and emits the message exactly once; a goal doesn't unmeet; no negative counter is ever chosen (over many seeds). Update ONTOLOGY (the Goal entity, game creation, the goal check rule, the ceilings in the numbers table, GameState, the new_game report), CRITERIA (R-rows, and an X-row that can fail: for example fails if in most of 5 sessions the captain meets none of the three goals), DYNAMICS if the game has one (the driver the goals serve), RATIONALE (why per-game amounts, the selection rule, the ceilings with their Modeled Evidence), README and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
+Tests: a new game has 3 goals on 3 different goal-allowed counters, the same for the same seed; amounts are rungs at or below the ceiling; reaching the amount marks the goal met and emits the message exactly once; a goal doesn't unmeet; no negative counter is ever chosen (over many seeds). Update ONTOLOGY (the Goal entity, game creation, the goal check rule, the ceilings in the numbers table, GameState, the new_game report), CRITERIA (R-rows, and an X-row that can fail: for example fails if in most of 5 sessions the captain meets none of the three goals), DYNAMICS if the game has one (the driver the goals serve), RATIONALE (why per-game amounts, the selection rule, the ceilings with their Modeled Evidence), README and the log. Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   50
 Status: ToDo
@@ -204,12 +204,12 @@ This needs goals in the game (three per game, with progress and met or not) and 
 Do:
 - Goals: the GameView the page receives carries the game's three goals with progress (counter label, current count, amount, met). The page shows them in a small panel, each with its progress, and marks a goal met when it happens.
 - Achievements: for each counter, the player's lifetime total, the last rung reached and the next rung. These come from the player's totals, not from the game, so the frame sent to viewers needs them added by the app layer. A frame is sent after each command (the commanding player is known then) and also when a viewer first connects, when no command is in hand: the game must therefore remember which player started it, stored beside the game when new_game runs. With no sign-in (local play) that is the single local player.
-- Layout [D]: be creative. A button that opens a scrollable panel is fine. The sector board, galaxy map and ship status stay the page's subject. Proposed [P]: the three goals always visible in a small strip; a button opens the scrollable achievements panel, ordered by how close the next rung is, with negative counters shown as well. Show the designer the result with the committed screenshot script.
+- Layout [D]: be creative. A button that opens a scrollable panel is fine. The sector board, galaxy map and ship status stay the page's subject. The three goals are always visible in a small strip; a button opens the scrollable achievements panel, ordered by how close the next rung is, with negative counters shown as well. Take a screenshot with the committed screenshot script for the user's review.
 - When a goal is met or a rung reached, the page may flash that row; no sound, no modal.
 - The page never shows the player's id.
 - Plain HTML, CSS and JS with no build step, as the page is today. Use the existing CSS custom properties for colour.
 
-Tests: the view carries the goals; a frame carries the starting player's achievements both after a command and on first connect; the page renders three goals and marks a met one (the page tests or the screenshot script). Update ONTOLOGY (GameView, the viewer frame, the viewer page section), CRITERIA (U-rows), RATIONALE (why the viewer and not a player page; that the frame's achievements belong to the player who started the game), README and the log. Run `just cc-test-all`. Ask the user before committing or deploying.
+Tests: the view carries the goals; a frame carries the starting player's achievements both after a command and on first connect; the page renders three goals and marks a met one (the page tests or the screenshot script). Update ONTOLOGY (GameView, the viewer frame, the viewer page section), CRITERIA (U-rows), RATIONALE (why the viewer and not a player page; that the frame's achievements belong to the player who started the game), README and the log. Run `just cc-test-all`. Don't deploy.
 ----
 Priority:   45
 Status: ToDo
@@ -227,7 +227,7 @@ Do:
 - Check the stardate over a long game: how many stardates a full game spans, and that the display form holds.
 - Add an X-row to CRITERIA phrased so it can fail (for example: fails if, in most of 5 sessions, any battle outlasts the shortest warp), and replace D-5's modeled Evidence with the measured result.
 
-Update RATIONALE D-5, CRITERIA and the log if the number moves. Ask the user before committing or deploying.
+Update RATIONALE D-5, CRITERIA and the log if the number moves. Don't deploy.
 ----
 Priority:   42
 Status: ToDo
@@ -244,7 +244,7 @@ Do:
 - Optionally include an arrival ambush (ENEMY_AMBUSH_CHANCE), which the harness skips today by entering the sector directly, and a damaged-ship case.
 - Keep the policy small and readable; it is a yardstick, not an AI player.
 
-Then rerun `just cc-model-balance 2000`, update the Evidence lines in RATIONALE that quote battle length, and check that the shortest warp still outlasts a long battle (the benchmark constant in the warp criterion's test). Add a log entry if any quoted number changes. Ask the user before committing.
+Then rerun `just cc-model-balance 2000`, update the Evidence lines in RATIONALE that quote battle length, and check that the shortest warp still outlasts a long battle (the benchmark constant in the warp criterion's test). Add a log entry if any quoted number changes. Don't deploy.
 ----
 Priority:   35
 Status: ToDo
@@ -262,7 +262,7 @@ Do:
 - Make sure a local player id can never collide with, or be accepted as, a real auth/ sub on the Cloudflare endpoint: Cloudflare takes the player only from a verified token.
 - Keep the app tests' shared setup (app/test/helpers/deps.ts, which passes `player: null`) and the Node adapter's integration tests working.
 
-Tests: on an endpoint without sign-in, a game can be started and commanded; `whoami` reports what was decided. Update ONTOLOGY (the player on an endpoint without sign-in), CRITERIA, RATIONALE (the choice and the alternatives), README (local play) and the log. Ask the user before committing or deploying.
+Tests: on an endpoint without sign-in, a game can be started and commanded; `whoami` reports what was decided. Update ONTOLOGY (the player on an endpoint without sign-in), CRITERIA, RATIONALE (the choice and the alternatives), README (local play) and the log. Don't deploy.
 ----
 Priority:   30
 Status: ToDo
@@ -278,7 +278,7 @@ Needs:
 
 Out of scope [D]: the viewer page stays unauthenticated. Its link carries a view hash rather than the game_id and it is read-only, so it needs no sign-in, no cookie, and no Origin check on its socket.
 
-Depends on MCP sign-in through auth/ (RATIONALE Q-15) being proven first. Update ONTOLOGY (Game's owner field, the commands table), RATIONALE, CRITERIA (an R-row for the owner check), README, and the log. Ask the user before committing or deploying.
+Depends on MCP sign-in through auth/ (RATIONALE Q-15) being proven first. Update ONTOLOGY (Game's owner field, the commands table), RATIONALE, CRITERIA (an R-row for the owner check), README, and the log. Don't deploy.
 ----
 Priority:   30
 Status: ToDo
@@ -304,7 +304,7 @@ Design:
 - The Node adapter keeps games in memory until the process exits; decide whether it needs the same rule or is exempt.
 - Say on the home page that idle games are removed after the retention period.
 
-Tests: an idle game past retention is gone and its viewer socket is closed; a command resets the clock (pin the clock; use the Durable Object alarm test helpers); a game inside retention survives. Update ONTOLOGY (Game's last-activity field, the retention rule, the numbers table), CRITERIA (an R-row), RATIONALE (the retention period and what counts as activity) and the log. Ask the user before committing or deploying.
+Tests: an idle game past retention is gone and its viewer socket is closed; a command resets the clock (pin the clock; use the Durable Object alarm test helpers); a game inside retention survives. Update ONTOLOGY (Game's last-activity field, the retention rule, the numbers table), CRITERIA (an R-row), RATIONALE (the retention period and what counts as activity) and the log. Don't deploy.
 ----
 Priority:   20
 Status: ToDo
@@ -312,7 +312,7 @@ ID: eventarch-rm5g
 Created: 2026-11-07T02:15:40Z
 Updated: 2026-11-14T16:08:57Z
 
-Event architecture: push what happens in a game, not only what it now looks like, to viewers. Today a viewer's socket carries `{type: "view", view: GameView}` frames after each accepted command, while events are plain strings in the MCP Result that only the caller sees (D-17). Design structured events (for example `{type, from, to, damage}`) in the Rust core, with the strings still derived for the LLM, and send them as a new frame type on the same socket, so the page can animate beams, torpedoes, hits, warps and hails. One `apply` runs the ship's action and then the enemy turn, and today the viewer sees only the final board. The core must emit a command's events in the order they happened (the ship's action first, then each enemy's move and shot), and the page plays them back in that order, so a viewer sees the ship act and then the enemies respond, and a hit or kill flashes on the right cell (the Holotank page currently flares the whole plane because a frame can't say which enemy died). This replaces any idea of capturing board snapshots between the two halves. Decide: event visibility per player for multiplayer (see RATIONALE Q-19); an ordering sequence number; replay or catch-up when a viewer reconnects; and how it maps onto one Durable Object per game, which would be the natural sequencer. Colour such as messages from Star Central could travel this way. Update ONTOLOGY (Event, Viewer socket), RATIONALE D-17, and CRITERIA. Ask the user before committing.
+Event architecture: push what happens in a game, not only what it now looks like, to viewers. Today a viewer's socket carries `{type: "view", view: GameView}` frames after each accepted command, while events are plain strings in the MCP Result that only the caller sees (D-17). Design structured events (for example `{type, from, to, damage}`) in the Rust core, with the strings still derived for the LLM, and send them as a new frame type on the same socket, so the page can animate beams, torpedoes, hits, warps and hails. One `apply` runs the ship's action and then the enemy turn, and today the viewer sees only the final board. The core must emit a command's events in the order they happened (the ship's action first, then each enemy's move and shot), and the page plays them back in that order, so a viewer sees the ship act and then the enemies respond, and a hit or kill flashes on the right cell (the Holotank page currently flares the whole plane because a frame can't say which enemy died). This replaces any idea of capturing board snapshots between the two halves. Decide: event visibility per player for multiplayer (see RATIONALE Q-19); an ordering sequence number; replay or catch-up when a viewer reconnects; and how it maps onto one Durable Object per game, which would be the natural sequencer. Colour such as messages from Star Central could travel this way. Update ONTOLOGY (Event, Viewer socket), RATIONALE D-17, and CRITERIA. Don't deploy.
 ----
 Priority:   20
 Status: ToDo
