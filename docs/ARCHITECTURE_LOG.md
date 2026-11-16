@@ -3,6 +3,16 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — The home page asks for comments and feedback on Bluesky
+The home page gave a visitor no place to send comments. It gains one line in the "Connect your
+computer" panel, after the paragraph about signing in with a Bluesky account and before the one
+about starting a game: "Please send comments and feedback to @yuwakisa.bsky.social on Bluesky."
+The handle links to https://bsky.app/profile/yuwakisa.bsky.social. The designer settled the
+line, its place and the link. Claude's proposals: the link opens in the same tab, as the
+viewer's link to the home page does, since the home page had no link of its own to follow; and
+one new rule in `home.css` gives the briefing's links the cyan of the viewer's link, since the
+page had no link style. U-12 gains the line, with a browser test.
+
 ### 2026-11-16 — `just telemetry-report` prints a report of recorded play, from production's D1 or a local server
 Telemetry could be recorded and dumped but not summed: `just telemetry` prints raw records, and
 D1 was to be asked in hand-written SQL. A new recipe, `just telemetry-report`, prints one plain

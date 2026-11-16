@@ -44,3 +44,25 @@ test("U-12: the home page says what is recorded, and claims no more", async () =
   assert.doesNotMatch((await page.locator("body").textContent())!, /anonym|traced|untraceable/i);
   await page.close();
 });
+
+test("U-12: the home page asks for feedback on Bluesky, after the sign-in paragraph", async () => {
+  const page = await browser.newPage({ viewport: { width: 375, height: 700 } });
+  await page.goto(`${running.base}/`);
+  const feedback = page.locator(".feedback");
+  assert.ok(await feedback.isVisible());
+  assert.equal(
+    (await feedback.textContent())!.replaceAll(/\s+/g, " "),
+    "Please send comments and feedback to @yuwakisa.bsky.social on Bluesky.",
+  );
+  const link = feedback.locator("a");
+  assert.equal(await link.textContent(), "@yuwakisa.bsky.social");
+  assert.equal(await link.getAttribute("href"), "https://bsky.app/profile/yuwakisa.bsky.social");
+  const neighbours = await feedback.evaluate((p) => [
+    p.previousElementSibling?.textContent ?? "",
+    p.nextElementSibling?.textContent ?? "",
+  ]);
+  assert.match(neighbours[0]!, /sign in with your Bluesky account/);
+  assert.match(neighbours[1]!, /tell the computer to start a game/);
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), "no horizontal scroll");
+  await page.close();
+});

@@ -1,21 +1,3 @@
-Priority:   51
-Status: ToDo
-ID: feedbackline-h8mu
-Created: 2026-11-16T19:25:28Z
-Updated: 2026-11-16T19:25:28Z
-
-The home page asks for comments and feedback on Bluesky.
-
-Goal: a visitor to the home page (`public/index.html`, served at starreach.yuwakisa.com) can see where to send comments and feedback.
-
-Design (settled):
-- Add one short paragraph directly after the paragraph about signing in with a Bluesky account ("The first time you connect, you'll sign in with your Bluesky account…"), and before the paragraph about starting a game.
-- Wording to the effect of: "Please send comments and feedback to @yuwakisa.bsky.social on Bluesky." It may be fitted to the page's voice, but must stay one line, name the handle, and say Bluesky.
-- The handle is a link to https://bsky.app/profile/yuwakisa.bsky.social, opening like the page's other outside links.
-- Use the page's existing paragraph and link styles; add no new CSS unless the page has no link style to reuse.
-
-Done when: the local home page shows the line in that place with a working link to the Bluesky profile, and `just cc-test-all` passes. Don't deploy.
-----
 Priority:   45
 Status: ToDo
 ID: warpplay-45ha

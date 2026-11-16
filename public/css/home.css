@@ -41,6 +41,9 @@
 .viewer-shot img { display: block; width: 100%; height: auto; }
 .viewer-shot figcaption { margin-top: 8px; color: var(--dim); font-size: 0.875rem; }
 
+/* As the viewer's one link (.notice a in styles.css). */
+.briefing a { color: var(--cyan); }
+
 .briefing code {
     color: var(--star);
     overflow-wrap: anywhere;
