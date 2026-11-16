@@ -194,6 +194,50 @@ Design questions:
 - A small recipe or report to query it (e.g. per-day games, win rate, blast range histogram) so it feeds RATIONALE Evidence as "Measured by".
 - Keep it out of the Rust core's rules: the app layer records Results it already has, so the core stays pure and deterministic.
 ----
+Score:   50
+ID: colors-x89e
+Created: 2026-11-16T00:17:10Z
+Updated: 2026-11-16T00:17:10Z
+
+Selectable colour schemes for the viewer page. The page's colours are already CSS custom properties on :root in public/css/styles.css (--space, --glow, --text, --dim, --cyan, --ship, --enemy, --base, --star, --warn, and others), so a scheme is a set of overrides for those tokens.
+
+Do:
+- Add a few named schemes, each a block like `:root[data-scheme="amber"] { … }`. The current cyan look stays the default. Ask the designer which to include; suggestions: classic cyan, amber CRT, green phosphor, red alert, a light scheme for daylight, and a colour-blind-safe scheme where enemy, starbase and ship differ in more than hue, checked for contrast.
+- Add a small selector on the viewer page that sets data-scheme on <html>.
+- Remember the choice per viewer in localStorage. Wrap reads and writes in try/catch, and fall back to the default when storage is unavailable.
+- Allow a `?scheme=` query parameter, so a shared viewer link can carry a scheme.
+- If a static home page sits beside the viewer, it should honour the same stored scheme.
+
+Keep it plain CSS and JS with no build step. Don't change the markers' meaning or shapes, only colours.
+
+Docs: ONTOLOGY (the viewer page section), a RATIONALE decision listing the schemes and why, CRITERIA (a U-row, or a page test that choosing a scheme sets data-scheme and survives a reload), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+----
+Score:   50
+ID: sqlstore-83f6
+Created: 2026-11-16T00:17:10Z
+Updated: 2026-11-16T00:17:10Z
+
+Move the Cloudflare game store from the Durable Object's key-value storage to a SQL table, as the game grows. Today each game's Durable Object (adapters/cloudflare/src/game_object.ts, one per view_id, SQLite-backed) keeps the whole game JSON under one key in ctx.storage.kv, recorded as a [P] decision in RATIONALE D-21. Replace that with a table in the object's SQLite storage (ctx.storage.sql), e.g. a games row holding the JSON plus columns worth querying (turn, status, updated time), so later work (per-player state for multiplayer, event history and replay for viewers, owner sub once login lands) can add tables and indexes instead of growing one blob. Read the object's existing key-value value on first access and write it into the table, or wipe local dev state if no deployed games need keeping (ask the user which; deployed games may exist by then). Keep the app's GameStore interface unchanged. Update the store tests in adapters/cloudflare/test, ONTOLOGY, RATIONALE D-21 (settle the [P] as [D]), CRITERIA Status, and an ARCHITECTURE_LOG entry. Ask the user before committing.
+----
+Score:   50
+ID: listgames-bf9i
+Created: 2026-11-16T00:17:10Z
+Updated: 2026-11-16T00:17:10Z
+
+A way for a signed-in player to find their own games without keeping the game_id: a `list_games` MCP tool. Today the game_id that new_game returns is the only handle on a game, so a player who starts a new conversation, or whose assistant loses the id, can't get back to a game in progress.
+
+Needs game ownership first: each game stored with its owner (the auth/ token's sub) and commands limited to the owner.
+
+Do:
+- An index from player to their games. On Cloudflare each game is its own Durable Object, so one object can't list the others: decide where the index lives (for example one Durable Object per player holding that player's game ids, written when new_game runs). The Node adapter's in-memory store can scan.
+- A `list_games` tool that returns the caller's games only: game_id, viewer link, stardate or turn, status (in progress, won, lost) and when it was last played, newest first. Never another player's games.
+- With no sign-in (the local Node adapter), list the games of the single implicit player.
+- Cap the list length (a [T] constant) and decide whether finished games are listed.
+- Tell the LLM in public/instructions.txt when to use it, for example when the captain asks to resume a game.
+- If idle games are ever deleted, a deleted game must also leave the index.
+
+Tests: a player sees their own games and not another player's; a new game appears in the list; the cap holds. Update ONTOLOGY (the MCP tools table, the index), CRITERIA (an R-row), RATIONALE (where the index lives and why), README and the log. Ask the user before committing or deploying.
+----
 Score:   60
 ID: warptime-6g9e
 Created: 2026-11-15T01:28:06Z

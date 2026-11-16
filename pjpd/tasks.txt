@@ -1,45 +1,25 @@
-Priority:   30
+Priority:   80
 Status: ToDo
-ID: loginflow-96sy
-Created: 2026-11-07T02:15:45Z
-Updated: 2026-11-15T07:45:51Z
+ID: starticks-kp76
+Created: 2026-11-15T23:59:54Z
+Updated: 2026-11-15T23:59:54Z
 
-Game ownership once MCP sign-in works: each game belongs to the player who started it, identified by the auth/ token's sub, and only that player can command it.
+Keep the game clock in whole starticks and show it as a stardate with three decimals, written `dddd.dd.d`.
 
-Needs:
-- Store the owner's sub with each game when new_game runs (the Cloudflare Durable Object and the Node adapter's store).
-- An owner check on every MCP tool: a game_id belonging to someone else answers "Game not found", the same as an unknown game, so game_ids can't be probed.
-
-Out of scope [D]: the viewer page stays unauthenticated. Its link carries a view hash rather than the game_id and it is read-only, so it needs no sign-in, no cookie, and no Origin check on its socket.
-
-Depends on MCP sign-in through auth/ (RATIONALE Q-15) being proven first. Update ONTOLOGY (Game's owner field, the commands table), RATIONALE, CRITERIA (an R-row for the owner check), README, and the log. Ask the user before committing or deploying.
-----
-Priority:   30
-Status: ToDo
-ID: authclient-ze87
-Created: 2026-11-05T00:41:07Z
-Updated: 2026-11-14T15:47:45Z
-
-Publish yuwakisacloud's auth-client and switch Starreach to consume it. Today auth-client is a private workspace package inside /work/yuwakisacloud/jsonsolver/auth-client ("private": true, version 0.0.0, depends on cbor-x 1.6.4); it verifies auth/'s bespoke Ed25519/CBOR access tokens offline (verifyAccessToken, JWKS cache, pins iss/aud/exp). Short-term plan (decided): Starreach COPIES auth-client into this repo (vendored, with a note recording the source path and git commit it was copied from) so the Cloudflare deployment isn't blocked. This task: (1) in yuwakisacloud, make auth-client publishable — give it a real version, move it out of jsonsolver to a shared location or keep it there, and publish as a git dependency or private npm package; update jsonsolver to depend on the published version; (2) in Starreach, replace the vendored copy with the published package and delete the copy; (3) add an ARCHITECTURE_LOG entry. Risk while vendored: the copy silently drifts if auth/ changes its token format — check the source commit before each Starreach deploy.
-----
-Priority:   30
-Status: ToDo
-ID: colors-6q77
-Created: 2026-11-15T01:34:57Z
-Updated: 2026-11-15T01:34:57Z
-
-Selectable colour schemes for the viewer page. The page's colours are already CSS custom properties on :root in public/css/styles.css (--space, --glow, --text, --dim, --cyan, --ship, --enemy, --base, --star, --warn, and others), so a scheme is a set of overrides for those tokens.
+Decided [D]:
+- The clock is counted internally in starticks, whole numbers. 400 starticks make one stardate, so a stardate is a day and a startick is 3.6 minutes.
+- In-sector times stay the numbers they are today, now read as starticks: a subwarp step 1, a torpedo 1, a blast 1 to 3, a long range scan 3, docking 5, and the interval at which enemies act and shields recharge 3. Nothing about how a battle plays changes. A typical battle is about 5 starticks (18 minutes).
+- The stardate is shown to three decimal places in the form `dddd.dd.d`: the whole stardates, then the first two decimals, then the third, for example 4721.36.5 for stardate 4721.365. This replaces today's `99-9999-99` form of an 8-digit whole number.
 
 Do:
-- Add a few named schemes, each a block like `:root[data-scheme="amber"] { … }`. The current cyan look stays the default. Ask the designer which to include; suggestions: classic cyan, amber CRT, green phosphor, red alert, a light scheme for daylight, and a colour-blind-safe scheme where enemy, starbase and ship differ in more than hue, checked for contrast.
-- Add a small selector on the viewer page that sets data-scheme on <html>.
-- Remember the choice per viewer in localStorage. Wrap reads and writes in try/catch, and fall back to the default when storage is unavailable.
-- Allow a `?scheme=` query parameter, so a shared viewer link can carry a scheme.
-- If a static home page sits beside the viewer, it should honour the same stored scheme.
+- core: replace the f64 `stardate` and `last_event_stardate` on Game with whole startick counts (name them for what they are, e.g. `startick`, `last_event_startick`), and make every time constant and every `time` a whole number of starticks. Add STARTICKS_PER_STARDATE = 400. Blast time is already truncated to a whole number. Warp time is today a fraction (distance × WARP_TIME_PER_DISTANCE); until the warp time rule is replaced, round it to a whole startick.
+- The displayed stardate is derived in one place from the startick count: whole stardates = ticks / 400, decimals from the remainder, truncated to three places, formatted `dddd.dd.d`. One startick is 0.0025 stardates, so every startick changes the display.
+- The starting stardate: today a game starts at a whole stardate drawn from STARDATE_START (1,000,000 to 2,000,000), which is seven digits, not `dddd`. Proposed [P]: draw a four-digit starting stardate (for example 1000 to 8999) so the form holds for a whole game; confirm the range with the designer.
+- What the `time` field in action reports carries: proposed [P] whole starticks, with the tool descriptions and public/instructions.txt saying that 400 starticks are one stardate, so the crew can report durations sensibly. Confirm with the designer.
+- GameState.stardate (the string), the GameView the viewer page receives, and the viewer page's stardate display (public/) all show the new form. Check the page's layout with the new string and update the committed screenshot script if it asserts on it.
+- Stored games from before this change hold the old f64 fields and won't parse. No migration: say so to the user, who decides whether deployed games are wiped.
 
-Keep it plain CSS and JS with no build step. Don't change the markers' meaning or shapes, only colours.
-
-Docs: ONTOLOGY (the viewer page section), a RATIONALE decision listing the schemes and why, CRITERIA (a U-row, or a page test that choosing a scheme sets data-scheme and survives a reload), and an ARCHITECTURE_LOG entry. Ask the user before committing or deploying.
+Tests: the stardate format (whole, boundary and remainder cases, truncation not rounding); every action advances the clock by a whole number of starticks; the event interval still fires on the same actions as before (the existing stardate-event tests, in starticks). Update ONTOLOGY (Game fields, the stardate display rule, the numbers table with units in starticks), CRITERIA, RATIONALE (why whole ticks: no floating-point drift in the interval check; why 400; the display form), the tool descriptions, README, and a log entry. Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
 Priority:   75
 Status: ToDo
@@ -73,37 +53,6 @@ What happens to shields during a warp is separate work: don't claim a transit ru
 
 Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
-Priority:   80
-Status: ToDo
-ID: starticks-kp76
-Created: 2026-11-15T23:59:54Z
-Updated: 2026-11-15T23:59:54Z
-
-Keep the game clock in whole starticks and show it as a stardate with three decimals, written `dddd.dd.d`.
-
-Decided [D]:
-- The clock is counted internally in starticks, whole numbers. 400 starticks make one stardate, so a stardate is a day and a startick is 3.6 minutes.
-- In-sector times stay the numbers they are today, now read as starticks: a subwarp step 1, a torpedo 1, a blast 1 to 3, a long range scan 3, docking 5, and the interval at which enemies act and shields recharge 3. Nothing about how a battle plays changes. A typical battle is about 5 starticks (18 minutes).
-- The stardate is shown to three decimal places in the form `dddd.dd.d`: the whole stardates, then the first two decimals, then the third, for example 4721.36.5 for stardate 4721.365. This replaces today's `99-9999-99` form of an 8-digit whole number.
-
-Do:
-- core: replace the f64 `stardate` and `last_event_stardate` on Game with whole startick counts (name them for what they are, e.g. `startick`, `last_event_startick`), and make every time constant and every `time` a whole number of starticks. Add STARTICKS_PER_STARDATE = 400. Blast time is already truncated to a whole number. Warp time is today a fraction (distance × WARP_TIME_PER_DISTANCE); until the warp time rule is replaced, round it to a whole startick.
-- The displayed stardate is derived in one place from the startick count: whole stardates = ticks / 400, decimals from the remainder, truncated to three places, formatted `dddd.dd.d`. One startick is 0.0025 stardates, so every startick changes the display.
-- The starting stardate: today a game starts at a whole stardate drawn from STARDATE_START (1,000,000 to 2,000,000), which is seven digits, not `dddd`. Proposed [P]: draw a four-digit starting stardate (for example 1000 to 8999) so the form holds for a whole game; confirm the range with the designer.
-- What the `time` field in action reports carries: proposed [P] whole starticks, with the tool descriptions and public/instructions.txt saying that 400 starticks are one stardate, so the crew can report durations sensibly. Confirm with the designer.
-- GameState.stardate (the string), the GameView the viewer page receives, and the viewer page's stardate display (public/) all show the new form. Check the page's layout with the new string and update the committed screenshot script if it asserts on it.
-- Stored games from before this change hold the old f64 fields and won't parse. No migration: say so to the user, who decides whether deployed games are wiped.
-
-Tests: the stardate format (whole, boundary and remainder cases, truncation not rounding); every action advances the clock by a whole number of starticks; the event interval still fires on the same actions as before (the existing stardate-event tests, in starticks). Update ONTOLOGY (Game fields, the stardate display rule, the numbers table with units in starticks), CRITERIA, RATIONALE (why whole ticks: no floating-point drift in the interval check; why 400; the display form), the tool descriptions, README, and a log entry. Run `just cc-test-all`. Ask the user before committing or deploying.
-----
-Priority:   35
-Status: ToDo
-ID: sqlstore-dmew
-Created: 2026-11-14T17:14:23Z
-Updated: 2026-11-14T17:14:23Z
-
-Move the Cloudflare game store from the Durable Object's key-value storage to a SQL table, as the game grows. Today each game's Durable Object (adapters/cloudflare/src/game_object.ts, one per view_id, SQLite-backed) keeps the whole game JSON under one key in ctx.storage.kv, recorded as a [P] decision in RATIONALE D-21. Replace that with a table in the object's SQLite storage (ctx.storage.sql), e.g. a games row holding the JSON plus columns worth querying (turn, status, updated time), so later work (per-player state for multiplayer, event history and replay for viewers, owner sub once login lands) can add tables and indexes instead of growing one blob. Read the object's existing key-value value on first access and write it into the table, or wipe local dev state if no deployed games need keeping (ask the user which; deployed games may exist by then). Keep the app's GameStore interface unchanged. Update the store tests in adapters/cloudflare/test, ONTOLOGY, RATIONALE D-21 (settle the [P] as [D]), CRITERIA Status, and an ARCHITECTURE_LOG entry. Ask the user before committing.
-----
 Priority:   70
 Status: ToDo
 ID: warpshields-g28t
@@ -133,23 +82,40 @@ Consequences to keep in mind: leaving a battle and coming back resets the shield
 
 Do: the shared recharge function; the warp reports the recharge in its events as the in-sector one does ("Shields recharged by N using M energy"), only when shields were below maximum. Tests under the shield replenish criterion for the new price (and its rounding), and under the warp criterion: a damaged ship arrives with full shields and pays points/10 energy; full shields cost nothing and produce no message; too little energy gives a partial recharge; hull is unchanged; enemies get no extra turns. Update ONTOLOGY (the ShieldReplenish rule, the Warp rule pseudocode, the numbers table), RATIONALE (the price, and D-5 for the warp recharge, with the alternatives: no recharge in transit, a recharge counted per interval, a free recharge), CRITERIA, the galaxy_warp tool description, and a log entry. Rerun `just cc-model-balance 2000` and update any Evidence that quotes energy. Run `just cc-test-all`. Ask the user before committing or deploying.
 ----
-Priority:   30
+Priority:   45
 Status: ToDo
-ID: gamecleanup-m6n9
-Created: 2026-11-15T09:25:10Z
-Updated: 2026-11-15T09:25:10Z
+ID: warpplay-45ha
+Created: 2026-11-15T23:34:09Z
+Updated: 2026-11-16T00:00:16Z
 
-Clean up inactive games (data retention). On Cloudflare every `new_game` creates a SQLite Durable Object that is kept forever, and any signed-in player can create as many as they like. Delete games nobody has touched for a while.
+Check warp time in real play and tune it. Warp time is to be round(WARP_TIME_K × ln(d + 1)) starticks with WARP_TIME_K = 600 and d in sectors (next sector 416 starticks, about a day; corner to corner 1572, about four days; 400 starticks to a stardate). The battle figures it is judged against come from a model only: a scripted captain in `just cc-model-balance` clears a sector in a median of 5 starticks, and the largest sectors within 19 in 9 of 10 battles (RATIONALE D-5, "unverified in play"). The goal [D] is that a whole battle is over long before a warp to the next sector ends, so the galaxy feels big. Do this after the new clock and warp time are in the game.
 
-Design:
-- Each game's Durable Object records when it was last commanded, and sets an alarm for that time plus a retention period (a new [T] constant, e.g. GAME_RETENTION_DAYS = 30; finished games, won or lost, could use a shorter one). Each accepted command pushes the alarm out.
-- When the alarm fires and the game is still idle, the object closes any viewer sockets and deletes its storage (`deleteAll`), which removes the object. A later request for that game or its viewer link answers "Game not found" / the viewer's unknown-game notice, as for any unknown id.
-- Decide whether watching counts as activity (a viewer socket open or connecting), or only commands.
-- Games created before this ships have no alarm: either set one lazily on their next request, or run a one-off sweep.
-- The Node adapter keeps games in memory until the process exits; decide whether it needs the same rule or is exempt.
-- Say on the home page that idle games are removed after the retention period.
+Do:
+- Play several full sessions through the MCP (an LLM as crew, a human captain) and record, per battle, the starticks from arrival to the sector being clear, and per warp, the time. Compare with the model. Real play includes long range scans, subwarp steps and misses the script doesn't make.
+- Judge the feel: does the stardate jump on a warp read as a long journey? Does the captain notice that far sectors take only a little longer than near ones, and choose long jumps over hops because of it? Does the crew report journey time sensibly, and should the warp report or the viewer show it more plainly?
+- Can the captain see time pass in a battle on the `dddd.dd.d` stardate, or does only travel seem to move the clock?
+- Halve and double WARP_TIME_K (300 and 1200) and compare, per the tuning rule.
+- Check the stardate over a long game: how many stardates a full game spans, and that the display form holds.
+- Add an X-row to CRITERIA phrased so it can fail (for example: fails if, in most of 5 sessions, any battle outlasts the shortest warp), and replace D-5's modeled Evidence with the measured result.
 
-Tests: an idle game past retention is gone and its viewer socket is closed; a command resets the clock (pin the clock; use the Durable Object alarm test helpers); a game inside retention survives. Update ONTOLOGY (Game's last-activity field, the retention rule, the numbers table), CRITERIA (an R-row), RATIONALE (the retention period and what counts as activity) and the log. Ask the user before committing or deploying.
+Update RATIONALE D-5, CRITERIA and the log if the number moves. Ask the user before committing or deploying.
+----
+Priority:   42
+Status: ToDo
+ID: battlescript-brea
+Created: 2026-11-15T23:34:17Z
+Updated: 2026-11-15T23:34:17Z
+
+Make the balance harness's scripted captain fight more like a player, so its battle-length numbers can be trusted in the tail. `just cc-model-balance` (core/examples/model_balance.rs) fights every enemy sector of each galaxy with a simple policy: shoot the nearest enemy with a clear shot (a blast within BLAST_SURE_RANGE, else a torpedo while any remain, else a blast); with no clear shot, sidestep to the first neighbouring cell the core accepts. The median and 9-in-10 figures look sound, but the slowest battles run to nearly 200 stardates because the sidestep is blind: it takes the first legal neighbour whether or not that opens a shot, and can shuffle back and forth while enemies fire. A few battles also end at the command cap or with the ship lost for the same reason. RATIONALE D-5 quotes these numbers and notes the tail is an artifact.
+
+Do:
+- Choose the sidestep by looking ahead: among legal subwarp destinations, prefer one from which some enemy has a clear line, then the nearest such; avoid returning to the cell just left.
+- Consider closing to BLAST_SURE_RANGE when out of torpedoes rather than blasting at long range with a low kill chance.
+- Report separately how many battles were lost and how many hit the command cap, instead of folding both into "not cleared".
+- Optionally include an arrival ambush (ENEMY_AMBUSH_CHANCE), which the harness skips today by entering the sector directly, and a damaged-ship case.
+- Keep the policy small and readable; it is a yardstick, not an AI player.
+
+Then rerun `just cc-model-balance 2000`, update the Evidence lines in RATIONALE that quote battle length, and check that the shortest warp still outlasts a long battle (the benchmark constant in the warp criterion's test). Add a log entry if any quoted number changes. Ask the user before committing.
 ----
 Priority:   35
 Status: ToDo
@@ -169,23 +135,47 @@ Do:
 
 Tests: on an endpoint without sign-in, a game can be started and commanded; `whoami` reports what was decided. Update ONTOLOGY (the player on an endpoint without sign-in), CRITERIA, RATIONALE (the choice and the alternatives), README (local play) and the log. Ask the user before committing or deploying.
 ----
-Priority:   45
+Priority:   30
 Status: ToDo
-ID: warpplay-45ha
-Created: 2026-11-15T23:34:09Z
-Updated: 2026-11-16T00:00:16Z
+ID: loginflow-96sy
+Created: 2026-11-07T02:15:45Z
+Updated: 2026-11-15T07:45:51Z
 
-Check warp time in real play and tune it. Warp time is to be round(WARP_TIME_K × ln(d + 1)) starticks with WARP_TIME_K = 600 and d in sectors (next sector 416 starticks, about a day; corner to corner 1572, about four days; 400 starticks to a stardate). The battle figures it is judged against come from a model only: a scripted captain in `just cc-model-balance` clears a sector in a median of 5 starticks, and the largest sectors within 19 in 9 of 10 battles (RATIONALE D-5, "unverified in play"). The goal [D] is that a whole battle is over long before a warp to the next sector ends, so the galaxy feels big. Do this after the new clock and warp time are in the game.
+Game ownership once MCP sign-in works: each game belongs to the player who started it, identified by the auth/ token's sub, and only that player can command it.
 
-Do:
-- Play several full sessions through the MCP (an LLM as crew, a human captain) and record, per battle, the starticks from arrival to the sector being clear, and per warp, the time. Compare with the model. Real play includes long range scans, subwarp steps and misses the script doesn't make.
-- Judge the feel: does the stardate jump on a warp read as a long journey? Does the captain notice that far sectors take only a little longer than near ones, and choose long jumps over hops because of it? Does the crew report journey time sensibly, and should the warp report or the viewer show it more plainly?
-- Can the captain see time pass in a battle on the `dddd.dd.d` stardate, or does only travel seem to move the clock?
-- Halve and double WARP_TIME_K (300 and 1200) and compare, per the tuning rule.
-- Check the stardate over a long game: how many stardates a full game spans, and that the display form holds.
-- Add an X-row to CRITERIA phrased so it can fail (for example: fails if, in most of 5 sessions, any battle outlasts the shortest warp), and replace D-5's modeled Evidence with the measured result.
+Needs:
+- Store the owner's sub with each game when new_game runs (the Cloudflare Durable Object and the Node adapter's store).
+- An owner check on every MCP tool: a game_id belonging to someone else answers "Game not found", the same as an unknown game, so game_ids can't be probed.
 
-Update RATIONALE D-5, CRITERIA and the log if the number moves. Ask the user before committing or deploying.
+Out of scope [D]: the viewer page stays unauthenticated. Its link carries a view hash rather than the game_id and it is read-only, so it needs no sign-in, no cookie, and no Origin check on its socket.
+
+Depends on MCP sign-in through auth/ (RATIONALE Q-15) being proven first. Update ONTOLOGY (Game's owner field, the commands table), RATIONALE, CRITERIA (an R-row for the owner check), README, and the log. Ask the user before committing or deploying.
+----
+Priority:   30
+Status: ToDo
+ID: authclient-ze87
+Created: 2026-11-05T00:41:07Z
+Updated: 2026-11-14T15:47:45Z
+
+Publish yuwakisacloud's auth-client and switch Starreach to consume it. Today auth-client is a private workspace package inside /work/yuwakisacloud/jsonsolver/auth-client ("private": true, version 0.0.0, depends on cbor-x 1.6.4); it verifies auth/'s bespoke Ed25519/CBOR access tokens offline (verifyAccessToken, JWKS cache, pins iss/aud/exp). Short-term plan (decided): Starreach COPIES auth-client into this repo (vendored, with a note recording the source path and git commit it was copied from) so the Cloudflare deployment isn't blocked. This task: (1) in yuwakisacloud, make auth-client publishable — give it a real version, move it out of jsonsolver to a shared location or keep it there, and publish as a git dependency or private npm package; update jsonsolver to depend on the published version; (2) in Starreach, replace the vendored copy with the published package and delete the copy; (3) add an ARCHITECTURE_LOG entry. Risk while vendored: the copy silently drifts if auth/ changes its token format — check the source commit before each Starreach deploy.
+----
+Priority:   30
+Status: ToDo
+ID: gamecleanup-m6n9
+Created: 2026-11-15T09:25:10Z
+Updated: 2026-11-15T09:25:10Z
+
+Clean up inactive games (data retention). On Cloudflare every `new_game` creates a SQLite Durable Object that is kept forever, and any signed-in player can create as many as they like. Delete games nobody has touched for a while.
+
+Design:
+- Each game's Durable Object records when it was last commanded, and sets an alarm for that time plus a retention period (a new [T] constant, e.g. GAME_RETENTION_DAYS = 30; finished games, won or lost, could use a shorter one). Each accepted command pushes the alarm out.
+- When the alarm fires and the game is still idle, the object closes any viewer sockets and deletes its storage (`deleteAll`), which removes the object. A later request for that game or its viewer link answers "Game not found" / the viewer's unknown-game notice, as for any unknown id.
+- Decide whether watching counts as activity (a viewer socket open or connecting), or only commands.
+- Games created before this ships have no alarm: either set one lazily on their next request, or run a one-off sweep.
+- The Node adapter keeps games in memory until the process exits; decide whether it needs the same rule or is exempt.
+- Say on the home page that idle games are removed after the retention period.
+
+Tests: an idle game past retention is gone and its viewer socket is closed; a command resets the clock (pin the clock; use the Durable Object alarm test helpers); a game inside retention survives. Update ONTOLOGY (Game's last-activity field, the retention rule, the numbers table), CRITERIA (an R-row), RATIONALE (the retention period and what counts as activity) and the log. Ask the user before committing or deploying.
 ----
 Priority:   20
 Status: ToDo
@@ -212,43 +202,6 @@ Work in auth/:
 - Clients not on the list can still use a pre-registered client id with their callback registered.
 
 Record the choice per resource server in auth/'s docs, and in Starreach's docs if its setting changes. Ask the user before committing, deploying, or touching yuwakisacloud's production.
-----
-Priority:   15
-Status: ToDo
-ID: listgames-q8eh
-Created: 2026-11-15T23:12:02Z
-Updated: 2026-11-15T23:12:02Z
-
-A way for a signed-in player to find their own games without keeping the game_id: a `list_games` MCP tool. Today the game_id that new_game returns is the only handle on a game, so a player who starts a new conversation, or whose assistant loses the id, can't get back to a game in progress.
-
-Needs game ownership first: each game stored with its owner (the auth/ token's sub) and commands limited to the owner.
-
-Do:
-- An index from player to their games. On Cloudflare each game is its own Durable Object, so one object can't list the others: decide where the index lives (for example one Durable Object per player holding that player's game ids, written when new_game runs). The Node adapter's in-memory store can scan.
-- A `list_games` tool that returns the caller's games only: game_id, viewer link, stardate or turn, status (in progress, won, lost) and when it was last played, newest first. Never another player's games.
-- With no sign-in (the local Node adapter), list the games of the single implicit player.
-- Cap the list length (a [T] constant) and decide whether finished games are listed.
-- Tell the LLM in public/instructions.txt when to use it, for example when the captain asks to resume a game.
-- If idle games are ever deleted, a deleted game must also leave the index.
-
-Tests: a player sees their own games and not another player's; a new game appears in the list; the cap holds. Update ONTOLOGY (the MCP tools table, the index), CRITERIA (an R-row), RATIONALE (where the index lives and why), README and the log. Ask the user before committing or deploying.
-----
-Priority:   42
-Status: ToDo
-ID: battlescript-brea
-Created: 2026-11-15T23:34:17Z
-Updated: 2026-11-15T23:34:17Z
-
-Make the balance harness's scripted captain fight more like a player, so its battle-length numbers can be trusted in the tail. `just cc-model-balance` (core/examples/model_balance.rs) fights every enemy sector of each galaxy with a simple policy: shoot the nearest enemy with a clear shot (a blast within BLAST_SURE_RANGE, else a torpedo while any remain, else a blast); with no clear shot, sidestep to the first neighbouring cell the core accepts. The median and 9-in-10 figures look sound, but the slowest battles run to nearly 200 stardates because the sidestep is blind: it takes the first legal neighbour whether or not that opens a shot, and can shuffle back and forth while enemies fire. A few battles also end at the command cap or with the ship lost for the same reason. RATIONALE D-5 quotes these numbers and notes the tail is an artifact.
-
-Do:
-- Choose the sidestep by looking ahead: among legal subwarp destinations, prefer one from which some enemy has a clear line, then the nearest such; avoid returning to the cell just left.
-- Consider closing to BLAST_SURE_RANGE when out of torpedoes rather than blasting at long range with a low kill chance.
-- Report separately how many battles were lost and how many hit the command cap, instead of folding both into "not cleared".
-- Optionally include an arrival ambush (ENEMY_AMBUSH_CHANCE), which the harness skips today by entering the sector directly, and a damaged-ship case.
-- Keep the policy small and readable; it is a yardstick, not an AI player.
-
-Then rerun `just cc-model-balance 2000`, update the Evidence lines in RATIONALE that quote battle length, and check that the shortest warp still outlasts a long battle (the benchmark constant in the warp criterion's test). Add a log entry if any quoted number changes. Ask the user before committing.
 ----
 Priority:   10
 Status: ToDo
