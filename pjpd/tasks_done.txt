@@ -395,6 +395,20 @@ Q-12 (docs/RATIONALE.md): MCP command results signal failure inconsistently — 
 ----
 Priority:   50
 Status: Done
+ID: criteriarows-r2p6
+Created: 2026-11-16T01:32:49Z
+Updated: 2026-11-16T02:34:54Z
+
+Move the stray R-rows in docs/CRITERIA.md back into the rules table. The rows from R-30 onward sit at the very end of the file, after the "Status" section's "Partial coverage" list, instead of in the "R — Rules (automated)" table that ends at R-29. A reader of the rules table misses them, and the Status section appears to end in a table.
+
+Why: the doc reads wrongly, though the coverage test still passes because it scans every line that starts with "| R-".
+
+Do: cut those rows from the end of the file and paste them, unchanged, directly after the R-29 row in the rules table. Change no wording, IDs or Instrument cells. No log entry is needed, since no rule or design changes.
+
+Done when: every "| R-" row is inside the rules table, the Status section is the last thing in the file, and `just cc-test-core` passes (its coverage test reads CRITERIA.md).
+----
+Priority:   50
+Status: Done
 ID: homeshot-6qjv
 Created: 2026-11-16T01:14:44Z
 Updated: 2026-11-16T02:32:33Z
@@ -460,6 +474,20 @@ Created: 2026-11-04T23:54:00Z
 Updated: 2026-11-05T01:22:49Z
 
 Q-9 (docs/RATIONALE.md): README disagrees with the code — stars per sector '0-7' (code 2-8), start at '[4,4:5,5]' (code (4,4)), MCP server on port 8001 (code: single server on 8000 or stdio), UI at /static/index.html (not served). RECOMMENDATION: the code wins; correct the README's launch/port/URL instructions (URL after the browser view is served).
+----
+Priority:   30
+Status: Done
+ID: criteriarows-sav3
+Created: 2026-11-16T01:56:41Z
+Updated: 2026-11-16T02:34:54Z
+
+docs/CRITERIA.md: move the stray rule rows back into the R table.
+
+Goal: the rows R-30 to R-36 sit at the very end of the file, after the Status section's "Partial coverage" bullets, instead of in the "R — Rules (automated)" table. A reader of the R table doesn't find them, and on a rendered page they appear as a headless table fragment under Status.
+
+Settled design: cut those seven rows from the end of the file and paste them into the R table directly after the R-29 row, so the table runs in ID order (R-29, R-30 … R-36, then the later rows). Change no wording. Check that the Status section ends with its "Partial coverage" bullets.
+
+Done when: every `| R-n |` row in docs/CRITERIA.md is inside the R table, in ID order, and `just cc-test-core` passes (its coverage test reads the rows).
 ----
 Priority:   30
 Status: Done

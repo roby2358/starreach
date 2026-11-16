@@ -1,17 +1,3 @@
-Priority:   50
-Status: ToDo
-ID: criteriarows-r2p6
-Created: 2026-11-16T01:32:49Z
-Updated: 2026-11-16T01:34:57Z
-
-Move the stray R-rows in docs/CRITERIA.md back into the rules table. The rows from R-30 onward sit at the very end of the file, after the "Status" section's "Partial coverage" list, instead of in the "R — Rules (automated)" table that ends at R-29. A reader of the rules table misses them, and the Status section appears to end in a table.
-
-Why: the doc reads wrongly, though the coverage test still passes because it scans every line that starts with "| R-".
-
-Do: cut those rows from the end of the file and paste them, unchanged, directly after the R-29 row in the rules table. Change no wording, IDs or Instrument cells. No log entry is needed, since no rule or design changes.
-
-Done when: every "| R-" row is inside the rules table, the Status section is the last thing in the file, and `just cc-test-core` passes (its coverage test reads CRITERIA.md).
-----
 Priority:   45
 Status: ToDo
 ID: warpplay-45ha
@@ -157,20 +143,6 @@ Done when: `just cc-model-games 1000` reports no (or nearly no) games ended by t
 ----
 Priority:   30
 Status: ToDo
-ID: criteriarows-sav3
-Created: 2026-11-16T01:56:41Z
-Updated: 2026-11-16T01:56:41Z
-
-docs/CRITERIA.md: move the stray rule rows back into the R table.
-
-Goal: the rows R-30 to R-36 sit at the very end of the file, after the Status section's "Partial coverage" bullets, instead of in the "R — Rules (automated)" table. A reader of the R table doesn't find them, and on a rendered page they appear as a headless table fragment under Status.
-
-Settled design: cut those seven rows from the end of the file and paste them into the R table directly after the R-29 row, so the table runs in ID order (R-29, R-30 … R-36, then the later rows). Change no wording. Check that the Status section ends with its "Partial coverage" bullets.
-
-Done when: every `| R-n |` row in docs/CRITERIA.md is inside the R table, in ID order, and `just cc-test-core` passes (its coverage test reads the rows).
-----
-Priority:   30
-Status: ToDo
 ID: dynlifetime-9mi5
 Created: 2026-11-16T02:08:02Z
 Updated: 2026-11-16T02:08:02Z
@@ -196,6 +168,20 @@ The Cloudflare game object (`adapters/cloudflare/src/game_object.ts`, `welcome`)
 Do: add a test under `adapters/cloudflare/test/` beside the other tests of that row. Create a game, then many times over start `callTool("long_range_scan", ...)` and `connectViewer(view)` together without awaiting either first (`Promise.all`), wait for both, then issue a `state` command to learn the game's final ship energy and read the viewer's frames until one arrives for that `state` command. Assert that the frames each viewer received never go back in time: `view.stardate` never decreases from one frame to the next, and the last frame's `view.ship.energy` equals the state's. If the test passes with the `blockConcurrencyWhile` removed as well, say so in the test's header comment rather than claiming it proves the guard.
 
 Done when: the test passes under `just cc-test-cloudflare`, the partial-coverage line for that row in `docs/CRITERIA.md` is removed or reworded to what is still untested, and `just cc-test-all` passes. Don't deploy.
+----
+Priority:   25
+Status: ToDo
+ID: urowsorder-j5sh
+Created: 2026-11-16T02:34:54Z
+Updated: 2026-11-16T02:34:54Z
+
+docs/CRITERIA.md: put the rows of the "U — UI / readability" table in ID order.
+
+Goal: the U table runs U-1, U-2, U-8 … U-16, then U-3 … U-7, so a reader looking for a row by ID has to scan the whole table. The R and X tables are in ID order.
+
+Settled design: reorder the U table's rows to U-1 … U-16 by number. Change no ID, wording or Instrument cell. Docs only; no log entry, since no criterion changes.
+
+Done when: the U rows in docs/CRITERIA.md are in rising ID order and `just cc-test-all` passes (the coverage test reads the U rows).
 ----
 Priority:   20
 Status: ToDo
