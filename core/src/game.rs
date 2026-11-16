@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::constants::*;
+use crate::counters::Counters;
 use crate::galaxy::Galaxy;
 use crate::geometry::{euclid, Yx};
 use crate::rng::Rng;
@@ -63,6 +64,8 @@ pub struct Game {
     pub startick: i64,
     /// The clock when stardate events last ran, or when the ship entered the sector.
     pub last_event_startick: i64,
+    /// What has happened in this game so far (D-42).
+    pub counters: Counters,
 }
 
 impl Game {
@@ -82,12 +85,24 @@ impl Game {
             sector,
             startick,
             last_event_startick: startick,
+            counters: Counters::default(),
         }
+    }
+
+    /// Makes a sector's counts visible (Visibility). The one place a hidden sector is uncovered,
+    /// so the one place a starbase is discovered.
+    pub fn reveal(&mut self, yx: Yx) {
+        let record = self.galaxy.record_mut(yx);
+        if record.visible {
+            return;
+        }
+        record.visible = true;
+        self.counters.starbases_discovered += record.starbases;
     }
 
     /// Moves the ship into `target` and builds its board from the seed.
     pub fn enter_sector(&mut self, target: Yx) {
-        self.galaxy.record_mut(target).visible = true;
+        self.reveal(target);
         self.sector_yx = target;
         self.sector = instantiate(&self.galaxy, self.seed, target);
         self.last_event_startick = self.startick;
@@ -97,6 +112,10 @@ impl Game {
     pub fn destroy_enemy(&mut self, yx: Yx) {
         self.sector.remove_enemy(yx);
         self.galaxy.record_mut(self.sector_yx).enemies = self.sector.enemies_yx.len() as u32;
+        self.counters.enemies_destroyed += 1;
+        if !self.sector.has_enemies() {
+            self.counters.sectors_cleared += 1;
+        }
     }
 
     /// Each enemy as the ship sees it (ONTOLOGY EnemySight), in `enemies_yx` order.
@@ -134,6 +153,7 @@ impl Game {
             enemy_count: self.sector.enemies_yx.len() as u32,
             map: self.sector.map_rows(),
             stardate: format_stardate(self.startick),
+            counters: self.counters,
         }
     }
 }
@@ -205,4 +225,5 @@ pub struct GameState {
     pub enemy_count: u32,
     pub map: Vec<String>,
     pub stardate: String,
+    pub counters: Counters,
 }

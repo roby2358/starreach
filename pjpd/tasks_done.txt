@@ -161,6 +161,29 @@ Q-10 (docs/RATIONALE.md): All randomness uses the global random module and most 
 ----
 Priority:   75
 Status: Done
+ID: counters-9ten
+Created: 2026-11-16T00:40:05Z
+Updated: 2026-11-16T01:32:49Z
+
+The core counts what happens in a game. Each Game carries a set of counters that every command keeps up to date, and the game state reports them. Achievements (lifetime totals) and per-game goals will be built on these; this task only counts.
+
+Why: today a game records nothing about what happened. Kills and damage exist only as text in a command's events, so nothing can total them. The counts must come from the core so they are authoritative.
+
+One table of counters in the core, one row each: key, display label, and whether it may be a goal. The list below is decided [D]. Positive counters may be goals; negative ones are for achievements only.
+- Positive: enemies_destroyed (an enemy is removed by a blast or torpedo); sectors_cleared (the last enemy in the ship's sector is destroyed); sectors_warped (a warp completes); docks (a dock is accepted); starbases_discovered (a sector with a starbase becomes visible for the first time, by warp or long range scan; the starting sector's doesn't count); blasts_hit (a blast destroys its target); torpedoes_fired; scans (a long range scan is accepted); games_won.
+- Negative: shield_damage (points taken from shields by enemy fire); hull_damage (points taken from the hull); blasts_missed; games_lost; times_stranded (the game ends by the stranded rule).
+
+Do:
+- A `counters` value on Game with a named field per counter (state must fit in a struct), all starting at 0 in a new game. Each rule increments its counter at the one place the thing happens (destroy enemy, the enemy fire rule, the game-end rule, and so on), not by parsing event text.
+- GameState gains `counters`, so every Result shows the game's counts, and a caller can take the difference between two Results.
+- The counter table is the single source for keys, labels and the may-be-a-goal flag; expose it through the core API so the app, the viewer and the docs don't repeat the list.
+- Refused commands change nothing, as for all state. The counters are deterministic: same seed and commands give the same counts.
+- Stored games from before this change have no counters and won't parse. No migration [D]: old games are wiped.
+
+Tests (one rule each): each counter rises by the right amount on its event and not otherwise (a missed blast raises blasts_missed and not blasts_hit; damage absorbed by shields counts as shield damage and the rest as hull damage; a starbase seen twice counts once); a new game starts at zero; a refused command leaves counters unchanged. Update ONTOLOGY (the Counters entity with its field table, the counter table, GameState, each rule's pseudocode where it counts), CRITERIA (an R-row), RATIONALE (why the core counts; the list and the goal flag) and the log. Run `just cc-test-all`. Don't deploy.
+----
+Priority:   75
+Status: Done
 ID: lrsturn-q2fy
 Created: 2026-11-14T23:58:27Z
 Updated: 2026-11-15T00:50:56Z

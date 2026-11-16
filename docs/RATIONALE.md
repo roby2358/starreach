@@ -131,6 +131,42 @@ inferences, waiting for review.
   LLM both call north, and clockwise is how a compass and a clock read. No command takes a bearing
   yet. The viewer page doesn't show the table; whether it should is open.
 
+### D-42 The core counts what happens in a game, from one table of counters — *Decided; the labels, the count at arrival and the uncounted rescue are Proposed*
+- **Choice:** A Game carries `counters`, a named count per kind of thing that happens, and every
+  Result reports them in its state. The rule where the thing happens adds to its counter. One
+  table in the core lists each counter's key, label and whether it may be a goal, and the Core API
+  gives it out (`counter_table`), so the app layer and the displays read the list and never repeat
+  it. The list: positive, and allowed as goals, are enemies destroyed, sectors cleared, sectors
+  warped to, docks, starbases discovered, blasts that hit, torpedoes fired, long-range scans and
+  games won; negative, never goals, are shield damage, hull damage, blasts that missed, games lost
+  and times stranded.
+- **Alternatives:** total kills and damage from the event messages (they are text, D-17, so a
+  change of wording would change the count, and a client could count differently from another);
+  count in the app layer from each command's report (the report doesn't carry the damage taken or
+  what an enemy turn did, and the rules would be restated outside the core); a map from key to
+  count instead of named fields (state must fit in a struct, and a misspelt key would count
+  nothing, silently); structured events to count from (a larger change than counting needs).
+- **Why:** A game recorded nothing about what happened in it. The counts have to be
+  authoritative, so they come from the rules themselves, each at the single place its thing
+  happens: Destroy enemy, the enemy fire rule, the Game end rule, the one place a sector becomes
+  visible. They are state like any other, so a refused command leaves them alone and the same
+  seed and commands give the same counts. A caller that wants to know what one command did takes
+  the difference between two Results. The goal flag separates the things a player sets out to do
+  from the things that happen to the ship: a goal is a positive objective, so damage taken, misses,
+  losses and strandings can't be one.
+- **Proposed details:** a label is lower case and reads after a number ("12 enemies destroyed"),
+  so one label serves a list and a sentence. `sectors_warped` counts when the ship arrives, before
+  the ambush, so a warp into a fatal ambush still counts; a warp the parting enemy turn stops
+  doesn't. A stranded ship that a starbase rescues with emergency energy (D-30) isn't counted
+  as stranded, because the game didn't end. `games_lost` rises on every loss, a stranding
+  included. Damage is counted as the points actually taken, so a shot larger than what the hull
+  had left counts only what was left. A starbase the ship is told of only through `reveal`
+  counts; Star Central's never passes through it.
+- **Stored games:** a game stored without `counters` doesn't parse and is not found (the Core
+  API's rule for stored games). No migration.
+- **Evidence:** R-36 tests; R-19 checks over random play that no counter decreases, and R-20's
+  equal final states include the counters.
+
 ### D-32 The viewer's link holds the SHA-256 of the `game_id`, called the `view_id` — *Decided*
 - **Choice:** `view_id` is the hex SHA-256 of the `game_id`, computed in one app-layer function
   (`viewId`, Web Crypto). The GameStore and the Viewers are keyed by `view_id`. An MCP call

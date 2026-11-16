@@ -3,6 +3,22 @@
 Dated entries, newest first. This is the only doc that records what changed and what it
 replaced.
 
+### 2026-11-16 — The core counts what happens in a game
+A game recorded nothing about what happened in it: kills and damage existed only as text in a
+command's events. Game gained `counters`, a Counters value of 14 named counts starting at 0, and
+GameState reports it in every Result (GameView is unchanged). The counts are made where the
+thing happens: Destroy enemy (`enemies_destroyed`, `sectors_cleared`), Warp (`sectors_warped`),
+Dock (`docks`), Long-range scan (`scans`), Blast (`blasts_hit`, `blasts_missed`), Torpedo
+(`torpedoes_fired`), the enemy fire rule (`shield_damage`, `hull_damage`) and Game end
+(`games_won`, `games_lost`, `times_stranded`). Game end's three endings became rows of status,
+message and count. Marking a sector visible was done in two places, the warp and the scan; it is
+now one `reveal`, which also counts `starbases_discovered`, and `Galaxy::scan` only reads. The
+core holds one counter table (key, label, may be a goal) and the Core API gained a fourth
+function, `counter_table`, carried through the WASM boundary and the app layer's `Core`. D-42
+added; R-36 added, with tests in the core and the app layer; R-19's random play also checks that
+no counter decreases, and R-25 that a stored game without counters is not a game. Games stored
+before this change don't parse and are not found; they are not migrated.
+
 ### 2026-11-16 — A warp recharges the shields to full; shields cost 1 energy per 10 points
 Shield recharging charged `SHIELD_ENERGY_PER_POINT` = 1 energy per shield point: a 500-point
 replenish cost 500 and a refill from empty 3000. That constant is replaced by

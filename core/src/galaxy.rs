@@ -91,8 +91,8 @@ impl Galaxy {
             .collect()
     }
 
-    /// Marks the 3×3 block around `center` visible and returns its 3 rows of summaries.
-    pub fn scan(&mut self, center: Yx) -> Vec<String> {
+    /// The 3×3 block around `center` as 3 rows of summaries.
+    pub fn scan(&self, center: Yx) -> Vec<String> {
         (-1..=1)
             .map(|dy| {
                 (-1..=1)
@@ -103,13 +103,11 @@ impl Galaxy {
             .collect()
     }
 
-    fn scan_one(&mut self, yx: Yx) -> String {
-        if !in_bounds(yx) {
-            return ".....".to_string();
+    fn scan_one(&self, yx: Yx) -> String {
+        match in_bounds(yx) {
+            true => self.record(yx).summary(),
+            false => ".....".to_string(),
         }
-        let record = self.record_mut(yx);
-        record.visible = true;
-        record.summary()
     }
 
     /// Visible sectors with a starbase.
@@ -119,6 +117,11 @@ impl Galaxy {
             r.visible && r.starbases > 0
         })
     }
+}
+
+/// The sectors of the 3×3 block around `center` that are in the galaxy.
+pub fn scan_block(center: Yx) -> impl Iterator<Item = Yx> {
+    all_cells().filter(move |&yx| (yx.0 - center.0).abs() <= 1 && (yx.1 - center.1).abs() <= 1)
 }
 
 fn generate_record(yx: Yx, rng: &mut Rng) -> SectorRecord {

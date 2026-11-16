@@ -66,6 +66,7 @@ One name per concept. These names are used in code, tools and docs.
 | **Action** | A command that changes state | |
 | **Query** | A command that only reads state | |
 | **Event** | Something the game does in response to an action, reported as a message | |
+| **Counter** | A running count of one kind of thing that has happened in a game | |
 | **Game id** | The name a client uses for one stored game (`game_id`) | |
 | **View id** | The hex SHA-256 of a `game_id` (`view_id`). It keys the GameStore and the Viewers, and is all the viewer's link and socket carry | |
 | **Viewer** | A browser page watching one game over its socket | main viewer |
@@ -90,6 +91,7 @@ receives it, returns a new one, and never keeps it.
 | `sector` | ActiveSector | The live board of `sector_yx` |
 | `startick` | int | The game clock, in whole starticks [D] |
 | `last_event_startick` | int | The clock when stardate events last ran, or when the ship entered the sector |
+| `counters` | Counters | What has happened in this game so far [D] |
 
 The event kinds and their order are fixed by the rules, not stored.
 
@@ -104,6 +106,35 @@ The event kinds and their order are fixed by the rules, not stored.
 | `quantorpedoes`, `max_quantorpedoes` | int | Spent by torpedoes |
 
 The ship's cell is `ActiveSector.ship_yx`.
+
+### Counters
+*Serves: G-1, G-2.* [D] What has happened in one game: a named count per kind of thing, all 0 in
+a new game. The rule where the thing happens adds to its counter, at that one place; nothing
+is counted by reading event text. Every Result reports them in `GameState.counters`, so a
+caller can take the difference between two Results (D-42).
+
+This is also the **counter table**: the core holds one row per counter with its key (the field
+name), its label and whether it may be a goal, and gives it out through the Core API's
+`counter_table`. It is the single source of the list for the app layer and the displays.
+Positive counters may be a game's goal; negative ones never are. [D] A label reads after a
+number ("12 enemies destroyed"). [P]
+
+| Field (key) | Type | Label | May be a goal | Counts, and the rule that counts it |
+|---|---|---|---|---|
+| `enemies_destroyed` | int | enemies destroyed | yes | Enemies removed by a blast or a torpedo (Destroy enemy) |
+| `sectors_cleared` | int | sectors cleared | yes | Times the last enemy in the ship's sector was destroyed (Destroy enemy) |
+| `sectors_warped` | int | sectors warped to | yes | Warps that reached their sector (Warp) |
+| `docks` | int | docks at a starbase | yes | Docks accepted (Dock) |
+| `starbases_discovered` | int | starbases discovered | yes | Starbases in sectors that became visible, by warp or long-range scan; Star Central's is visible from the start and never counts (Visibility) |
+| `blasts_hit` | int | blasts that hit | yes | Blasts that destroyed their target (Blast) |
+| `torpedoes_fired` | int | torpedoes fired | yes | Torpedoes accepted (Torpedo) |
+| `scans` | int | long range scans | yes | Long-range scans accepted (Long-range scan) |
+| `games_won` | int | games won | yes | 1 once the game is won (Game end) |
+| `shield_damage` | int | shield damage taken | no | Points enemy fire took from the shields (EnemyFire) |
+| `hull_damage` | int | hull damage taken | no | Points enemy fire took from the hull (EnemyFire) |
+| `blasts_missed` | int | blasts that missed | no | Blasts that left their target untouched (Blast) |
+| `games_lost` | int | games lost | no | 1 once the game is lost, however it was lost (Game end) |
+| `times_stranded` | int | times stranded | no | 1 once the game is lost by the stranded rule (Game end) |
 
 ### Galaxy
 *Serves: G-2, F-discovery.* [D]
@@ -225,7 +256,7 @@ call on that object, which sends the frame to each of its sockets. [D]
 | Relation | Cardinality |
 |---|---|
 | GameStore *has* Game | 1 → 0..n, keyed by `view_id` |
-| Game *has* Galaxy, Ship, ActiveSector | 1 → 1 each |
+| Game *has* Galaxy, Ship, ActiveSector, Counters | 1 → 1 each |
 | Galaxy *has* SectorRecord | 1 → 100 |
 | Ship *is in* Sector (`sector_yx`) | exactly one sector |
 | ActiveSector *is the live form of* the SectorRecord at `sector_yx` | 1 : 1 |
@@ -246,6 +277,7 @@ call on that object, which sends the frame to each of its sockets. [D]
 - `0 ≤ shields ≤ max_shields`, `0 ≤ hull ≤ max_hull`, `0 ≤ energy ≤ max_energy`,
   `0 ≤ quantorpedoes ≤ max_quantorpedoes`. [D]
 - `status` leaves `playing` at most once, and never returns. [D]
+- A counter never decreases. [P]
 - A refused command returns the game unchanged. [D]
 - Games are isolated: a command on one never changes another. [D]
 - Same seed, same start time and same commands give the same state. The core reads no clock:
@@ -271,6 +303,13 @@ ray(start, dest):
 *Serves: F-discovery.* [D] A SectorRecord's counts are shown only when it is `visible`. A
 record becomes visible at generation (the center only), when the ship warps into it, or
 when a long-range scan covers it.
+```
+reveal(sector):
+  if visible: stop
+  visible = true;  counters.starbases_discovered += starbases
+```
+Warp and Long-range scan mark a sector visible only through `reveal`, so a starbase is counted
+once, the first time its sector is seen. [D]
 
 ### Distances
 `euclid(a, b)` sets ranges and costs. `chebyshev(a, b) ≤ 1` defines *adjacent*. [D]
@@ -296,7 +335,7 @@ new_game(seed, start_unix_seconds):
 rng = seeded(seed);  galaxy = generate(rng)
 startick = floor(start_unix_seconds × STARTICKS_PER_STARDATE / SECONDS_PER_STARDATE) + STARDATE_EPOCH_OFFSET × STARTICKS_PER_STARDATE
 ship = full;  sector_yx = GALAXY_CENTER;  sector = instantiate(GALAXY_CENTER)
-last_event_startick = startick;  status = playing
+last_event_startick = startick;  status = playing;  counters = all 0
 ```
 The starting stardate is the real date: the Unix time in days plus `STARDATE_EPOCH_OFFSET`. The
 caller reads the clock and passes it in. [D]
@@ -337,9 +376,10 @@ illegal if target == sector_yx
 time = round(WARP_TIME_K × ln(euclid(sector_yx, target) + 1));  cost = time × WARP_ENERGY_PER_TICK
 illegal if energy < cost
 if enemies are present: run EnemiesTurn;  if hull == 0: end game, stop
-mark target visible;  energy -= cost;  startick += time
+energy -= cost;  startick += time
 recharge(max_shields)      # the Shield recharge rule: to full, as far as the energy left allows [D]
-sector_yx = target;  sector = instantiate(target);  last_event_startick = startick
+reveal(target);  sector_yx = target;  sector = instantiate(target);  last_event_startick = startick
+counters.sectors_warped += 1      # the ship has arrived, whatever the ambush then does [P]
 ambush: for each enemy in order, while hull > 0: with probability ENEMY_AMBUSH_CHANCE it fires once (the EnemiesTurn fire rule) [D]
 run warp events
 ```
@@ -361,15 +401,15 @@ startick += steps × SUBWARP_TIME_PER_STEP;  run stardate events
 ### Dock — *Serves: G-4* [D]
 ```
 illegal if enemies are present, or no starbase, or starbase not adjacent
-hull, shields, energy, quantorpedoes := max;  startick += DOCK_TIME
+hull, shields, energy, quantorpedoes := max;  counters.docks += 1;  startick += DOCK_TIME
 run stardate events
 ```
 
 ### Long-range scan — *Serves: F-discovery, F-danger* [D]
 ```
 illegal if energy < LRS_ENERGY
-energy -= LRS_ENERGY
-for each sector in the 3×3 block around sector_yx: mark visible, report "E|B|S"; off-galaxy → "....."
+energy -= LRS_ENERGY;  counters.scans += 1
+for each sector in the 3×3 block around sector_yx: reveal it, report "E|B|S"; off-galaxy → "....."
 startick += LRS_TIME [T]
 run stardate events      # enemies present act; in a cleared sector the clock still advances, no one acts [D]
 ```
@@ -380,7 +420,8 @@ hit = first enemy on ray(ship_yx, target);  illegal if none
 r = euclid(ship_yx, hit);  illegal if r > BLAST_RANGE
 cost = int(BLAST_ENERGY_BASE × √r);  illegal if energy < cost
 destroyed = rng.unit() < kill_chance(r)      # one draw per blast [D]
-if destroyed: destroy hit   else: report the miss (the enemy is untouched)
+if destroyed: destroy hit;  counters.blasts_hit += 1
+else: report the miss (the enemy is untouched);  counters.blasts_missed += 1
 energy -= cost;  startick += int(BLAST_TIME_A + BLAST_TIME_B × √r)      # paid hit or miss [D]
 run stardate events
 
@@ -393,13 +434,15 @@ kill_chance(r):
 ```
 illegal if quantorpedoes == 0, or energy < TORPEDO_ENERGY
 hit = first enemy on ray(ship_yx, target);  illegal if none
-destroy hit;  quantorpedoes -= 1;  energy -= TORPEDO_ENERGY;  startick += TORPEDO_TIME
+destroy hit;  quantorpedoes -= 1;  counters.torpedoes_fired += 1
+energy -= TORPEDO_ENERGY;  startick += TORPEDO_TIME
 run stardate events
 ```
 
 ### Destroy enemy — *Serves: F-danger* [D]
 ```
 remove from enemies_yx and map;  galaxy[sector_yx].enemies = len(enemies_yx)
+counters.enemies_destroyed += 1;  if enemies_yx is empty: counters.sectors_cleared += 1
 ```
 
 ### Stardate events — *Serves: F-danger* [D]
@@ -412,11 +455,13 @@ last_event_startick = startick
 ### Game end — *Serves: G-2, F-danger* [D]
 Runs after every accepted action.
 ```
-if hull == 0: status = lost
-else if the sum of galaxy enemies == 0: status = won
+if hull == 0: status = lost;  counters.games_lost += 1
+else if the sum of galaxy enemies == 0: status = won;  counters.games_won += 1
 else if stranded and a starbase is present: energy = max(energy, STARBASE_EMERGENCY_ENERGY)
-else if stranded: status = lost
+else if stranded: status = lost;  counters.games_lost += 1;  counters.times_stranded += 1
 ```
+Each way of ending is one row: its status, its message and what it counts. A ship the starbase
+rescues is not counted as stranded: the game didn't end. [P]
 *Stranded* [P]: energy is below the warp cost to the nearest visible starbase sector other
 than `sector_yx` (infinite if there is none), by the Warp rule's `cost`. Outside Star
 Central, Star Central is always that fallback. `STARBASE_EMERGENCY_ENERGY` is less than any
@@ -453,6 +498,7 @@ base = d ≥ ENEMY_FIRE_FAR_RANGE:  ENEMY_FIRE_FAR
        otherwise:                 linear from ENEMY_FIRE_BASE at 1 to ENEMY_FIRE_NEAR at ENEMY_FIRE_NEAR_RANGE      [D, D-39]
 damage = round(base × factor)
 shields absorb up to their value; hull absorbs the rest up to its value
+counters.shield_damage += what the shields absorbed;  counters.hull_damage += what the hull absorbed
 ```
 
 ### ShieldReplenish — *Serves: F-danger, G-4* [D]
@@ -577,13 +623,14 @@ Referred to by name everywhere else.
 ## 8. Interface
 
 ### Core API (Rust → WASM) [D]
-Three JSON functions. The core holds no state between calls.
+Four JSON functions. The core holds no state between calls.
 
 | Function | Input | Output |
 |---|---|---|
 | `new_game` | `seed: u32`, `start_unix_seconds` | Game |
 | `apply` | `game: Game`, `command: Command` | `{game: Game, result: Result}` |
 | `view` | `game: Game` | GameView |
+| `counter_table` | — | The counter table: `[{key, label, may_be_goal}]`, a row per Counters field |
 
 `Game` is opaque to the app layer. The RNG's 64-bit state inside it is serialized as a string so a
 JavaScript round trip can't lose precision; the startick clock is a plain number, far below the
@@ -615,7 +662,7 @@ display rule. [D]
 **GameState:** `status, sector_yx, ship_yx, ship_hull, ship_max_hull, ship_shields,
 ship_max_shields, ship_energy, ship_max_energy, ship_quantorpedoes,
 ship_max_quantorpedoes, starbase_yx, enemies: EnemySight[], star_count, base_count, enemy_count,
-map: string[10], stardate: "ddd.dddd.dd.d"`.
+map: string[10], stardate: "ddd.dddd.dd.d", counters: Counters`.
 
 ### MCP tools (app layer) [D]
 One tool per core command, each taking `game_id` plus the command's args, and returning

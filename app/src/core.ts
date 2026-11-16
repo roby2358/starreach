@@ -1,7 +1,7 @@
 // The Rust core behind its JSON boundary (ONTOLOGY "Core API").
 // The app never reads a Game's fields: a Game travels as the JSON text the core produced.
 
-import { initSync, new_game, apply, view } from "./wasm/starreach_core.js";
+import { initSync, new_game, apply, view, counter_table } from "./wasm/starreach_core.js";
 
 /** A Game as JSON text, opaque to the app layer. */
 export type GameJson = string;
@@ -33,6 +33,14 @@ export interface GameView {
   galaxy: ({ enemies: number; starbases: number; stars: number } | null)[][];
 }
 
+/** One row of the core's counter table: a counter a game keeps (`state.counters[key]`), its label,
+ *  which reads after a number, and whether it may be a game's goal. */
+export interface CounterRow {
+  key: string;
+  label: string;
+  may_be_goal: boolean;
+}
+
 /** `apply` and `view` return undefined for text that isn't a Game this core reads, such as a
  *  game stored by an earlier version. */
 export interface Core {
@@ -40,6 +48,8 @@ export interface Core {
   newGame(seed: number, startUnixSeconds: number): GameJson;
   apply(game: GameJson, command: Command): { game: GameJson; result: CommandResult } | undefined;
   view(game: GameJson): GameView | undefined;
+  /** The single list of counters, in the core's order. */
+  counterTable(): CounterRow[];
 }
 
 /** Instantiates the core from its compiled WASM module. Each platform loads the module its own way. */
@@ -59,5 +69,6 @@ export function loadCore(module: WebAssembly.Module): Core {
       const text = view(game);
       return text === undefined ? undefined : JSON.parse(text);
     },
+    counterTable: () => JSON.parse(counter_table()),
   };
 }

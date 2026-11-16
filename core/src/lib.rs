@@ -2,11 +2,13 @@
 //!
 //! `new_game(seed, start_unix_seconds)` builds a Game: the caller reads the clock, the core
 //! never does. `apply(game, command)` returns the next Game and a Result. `view(game)` returns
-//! what a read-only display may see. The core keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for the WASM
-//! boundary.
+//! what a read-only display may see. `counter_table()` lists the counters a game keeps. The core
+//! keeps nothing between calls. The `*_json` functions are the same calls over JSON text, for
+//! the WASM boundary.
 
 pub mod actions;
 pub mod constants;
+pub mod counters;
 pub mod events;
 pub mod galaxy;
 pub mod game;
@@ -20,6 +22,7 @@ mod wasm;
 use serde::{Deserialize, Serialize};
 
 use actions::{Refusal, Report};
+pub use counters::{CounterRow, Counters, COUNTER_TABLE};
 pub use game::{Game, GameState, Status};
 use geometry::{in_bounds, Yx};
 pub use view::{view, GameView};
@@ -56,6 +59,11 @@ pub struct Applied {
 
 pub fn new_game(seed: u32, start_unix_seconds: i64) -> Game {
     Game::new(seed, start_unix_seconds)
+}
+
+/// The counter table: every counter's key, label and whether it may be a goal (D-42).
+pub fn counter_table() -> &'static [CounterRow] {
+    &COUNTER_TABLE
 }
 
 /// Runs one command. A refused command returns the game unchanged.
@@ -110,6 +118,11 @@ fn accepted(game: Game, events: Vec<String>, report: Option<Report>) -> Applied 
 fn refused(game: &Game, error: Refusal) -> Applied {
     let result = Outcome { ok: false, error: Some(error), events: Vec::new(), report: None, state: game.state() };
     Applied { game: game.clone(), result }
+}
+
+/// `counter_table` over JSON: the rows as a JSON array, in table order.
+pub fn counter_table_json() -> String {
+    serde_json::to_string(counter_table()).expect("the counter table always serializes")
 }
 
 /// `new_game` over JSON: returns the Game as JSON text.

@@ -1,4 +1,5 @@
-//! The WASM boundary: `new_game`, `apply` and `view` over JSON text (ONTOLOGY "Core API").
+//! The WASM boundary: `new_game`, `apply`, `view` and `counter_table` over JSON text (ONTOLOGY
+//! "Core API").
 
 use wasm_bindgen::prelude::*;
 
@@ -19,4 +20,10 @@ pub fn apply(game: &str, command: &str) -> Option<String> {
 #[wasm_bindgen]
 pub fn view(game: &str) -> Option<String> {
     crate::view_json(game).ok()
+}
+
+/// Returns the counter table as JSON text: an array of `{key, label, may_be_goal}`.
+#[wasm_bindgen]
+pub fn counter_table() -> String {
+    crate::counter_table_json()
 }

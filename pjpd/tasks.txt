@@ -1,26 +1,3 @@
-Priority:   75
-Status: ToDo
-ID: counters-9ten
-Created: 2026-11-16T00:40:05Z
-Updated: 2026-11-16T00:40:05Z
-
-The core counts what happens in a game. Each Game carries a set of counters that every command keeps up to date, and the game state reports them. Achievements (lifetime totals) and per-game goals will be built on these; this task only counts.
-
-Why: today a game records nothing about what happened. Kills and damage exist only as text in a command's events, so nothing can total them. The counts must come from the core so they are authoritative.
-
-One table of counters in the core, one row each: key, display label, and whether it may be a goal. The list below is decided [D]. Positive counters may be goals; negative ones are for achievements only.
-- Positive: enemies_destroyed (an enemy is removed by a blast or torpedo); sectors_cleared (the last enemy in the ship's sector is destroyed); sectors_warped (a warp completes); docks (a dock is accepted); starbases_discovered (a sector with a starbase becomes visible for the first time, by warp or long range scan; the starting sector's doesn't count); blasts_hit (a blast destroys its target); torpedoes_fired; scans (a long range scan is accepted); games_won.
-- Negative: shield_damage (points taken from shields by enemy fire); hull_damage (points taken from the hull); blasts_missed; games_lost; times_stranded (the game ends by the stranded rule).
-
-Do:
-- A `counters` value on Game with a named field per counter (state must fit in a struct), all starting at 0 in a new game. Each rule increments its counter at the one place the thing happens (destroy enemy, the enemy fire rule, the game-end rule, and so on), not by parsing event text.
-- GameState gains `counters`, so every Result shows the game's counts, and a caller can take the difference between two Results.
-- The counter table is the single source for keys, labels and the may-be-a-goal flag; expose it through the core API so the app, the viewer and the docs don't repeat the list.
-- Refused commands change nothing, as for all state. The counters are deterministic: same seed and commands give the same counts.
-- Stored games from before this change have no counters and won't parse. No migration [D]: old games are wiped.
-
-Tests (one rule each): each counter rises by the right amount on its event and not otherwise (a missed blast raises blasts_missed and not blasts_hit; damage absorbed by shields counts as shield damage and the rest as hull damage; a starbase seen twice counts once); a new game starts at zero; a refused command leaves counters unchanged. Update ONTOLOGY (the Counters entity with its field table, the counter table, GameState, each rule's pseudocode where it counts), CRITERIA (an R-row), RATIONALE (why the core counts; the list and the goal flag) and the log. Run `just cc-test-all`. Don't deploy.
-----
 Priority:   70
 Status: ToDo
 ID: goalsim-icnj
@@ -240,6 +217,20 @@ Created: 2026-11-16T01:20:43Z
 Updated: 2026-11-16T01:20:43Z
 
 RATIONALE D-3's Evidence quotes generation figures that no longer match the harness. It says about 198 enemies per galaxy, range 123–281; `just cc-model-balance 2000` prints "enemies/galaxy mean 199 range 129-269" and "enemy-free sectors mean 40". Re-run `just cc-model-balance 2000` and restate D-3's Evidence in docs/RATIONALE.md with what it prints (docs only; no code change, no log entry needed beyond a one-line note if the docs convention asks for one). Done when D-3's numbers match the harness output and `just cc-test-all` passes.
+----
+Priority:   30
+Status: ToDo
+ID: criteriarows-r2p6
+Created: 2026-11-16T01:32:49Z
+Updated: 2026-11-16T01:32:49Z
+
+Move the stray R-rows in docs/CRITERIA.md back into the rules table. The rows from R-30 onward sit at the very end of the file, after the "Status" section's "Partial coverage" list, instead of in the "R — Rules (automated)" table that ends at R-29. A reader of the rules table misses them, and the Status section appears to end in a table.
+
+Why: the doc reads wrongly, though the coverage test still passes because it scans every line that starts with "| R-".
+
+Do: cut those rows from the end of the file and paste them, unchanged, directly after the R-29 row in the rules table. Change no wording, IDs or Instrument cells. No log entry is needed, since no rule or design changes.
+
+Done when: every "| R-" row is inside the rules table, the Status section is the last thing in the file, and `just cc-test-core` passes (its coverage test reads CRITERIA.md).
 ----
 Priority:   20
 Status: ToDo

@@ -42,6 +42,11 @@ fn check(before: &Game, after: &Game) {
     for yx in all_cells() {
         assert!(!before.galaxy.record(yx).visible || after.galaxy.record(yx).visible);
     }
+    let counts = |game: &Game| serde_json::to_value(game.counters).unwrap();
+    let (was, now) = (counts(before), counts(after));
+    for (key, count) in now.as_object().unwrap() {
+        assert!(count.as_u64() >= was[key].as_u64(), "{key} never decreases");
+    }
     if before.status != Status::Playing {
         assert_eq!(after.status, before.status, "status leaves playing at most once");
     }

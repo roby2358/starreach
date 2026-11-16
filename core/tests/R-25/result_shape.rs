@@ -58,6 +58,15 @@ fn a_stored_game_without_the_startick_clock_is_not_a_game() {
 }
 
 #[test]
+fn a_stored_game_without_counters_is_not_a_game() {
+    let mut stored: serde_json::Value = serde_json::from_str(&new_game_json(5, START_UNIX_SECONDS)).unwrap();
+    stored.as_object_mut().unwrap().remove("counters");
+    let text = stored.to_string();
+    assert!(apply_json(&text, r#"{"type":"state"}"#).is_err());
+    assert!(starreach_core::view_json(&text).is_err());
+}
+
+#[test]
 fn a_game_survives_the_json_round_trip() {
     let game = new_game_json(u32::MAX, START_UNIX_SECONDS);
     let applied: serde_json::Value =

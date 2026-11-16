@@ -6,7 +6,9 @@
 use serde::Serialize;
 
 use crate::constants::*;
+use crate::counters::Counters;
 use crate::events::{ambush, enemies_turn, recharge_shields, stardate_events, warp_events};
+use crate::galaxy::scan_block;
 use crate::game::{format_duration, Game, Status};
 use crate::geometry::{adjacent, euclid, exp_falloff, format_yx, Yx};
 
@@ -55,6 +57,7 @@ pub fn warp(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<Rep
     let shield_limit = game.ship.max_shields;
     events.extend(recharge_shields(game, shield_limit));
     game.enter_sector(target);
+    game.counters.sectors_warped += 1;
     events.extend(ambush(game, ENEMY_AMBUSH_CHANCE));
     events.extend(warp_events(game));
     Ok(Report::Warp { sector_yx: target, energy_cost, time: format_duration(time) })
@@ -94,6 +97,7 @@ pub fn dock(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal
         return Err("Starbase is not adjacent to the ship".to_string());
     }
     game.ship.resupply();
+    game.counters.docks += 1;
     pass_time(game, DOCK_TIME, events);
     Ok(Report::Dock { time: format_duration(DOCK_TIME) })
 }
@@ -101,6 +105,10 @@ pub fn dock(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal
 pub fn long_range_scan(game: &mut Game, events: &mut Vec<String>) -> Result<Report, Refusal> {
     afford(game, LRS_ENERGY, "a long-range scan")?;
     game.ship.energy -= LRS_ENERGY;
+    game.counters.scans += 1;
+    for yx in scan_block(game.sector_yx) {
+        game.reveal(yx);
+    }
     let scan = game.galaxy.scan(game.sector_yx);
     pass_time(game, LRS_TIME, events);
     Ok(Report::Scan { scan, energy_cost: LRS_ENERGY, time: format_duration(LRS_TIME) })
@@ -123,8 +131,12 @@ pub fn blast_by(game: &mut Game, target: Yx, roll: f64, events: &mut Vec<String>
     afford(game, energy_cost, "this blast")?;
     let time = blast_time(range);
     let destroyed = roll < blast_kill_chance(range);
-    if !destroyed {
-        events.push(format!("Blaston beam misses the enemy at {}! Distance: {range:.2}", format_yx(hit_yx)));
+    match destroyed {
+        true => game.counters.blasts_hit += 1,
+        false => {
+            game.counters.blasts_missed += 1;
+            events.push(format!("Blaston beam misses the enemy at {}! Distance: {range:.2}", format_yx(hit_yx)));
+        }
     }
     fire(game, hit_yx, destroyed, energy_cost, time, events);
     Ok(Report::Shot { hit_yx, path, destroyed, energy_cost, time: format_duration(time) })
@@ -156,6 +168,7 @@ pub fn torpedo(game: &mut Game, target: Yx, events: &mut Vec<String>) -> Result<
     afford(game, TORPEDO_ENERGY, "a torpedo")?;
     let (hit_yx, path) = first_enemy(game, target, "torpedo")?;
     game.ship.quantorpedoes -= 1;
+    game.counters.torpedoes_fired += 1;
     fire(game, hit_yx, true, TORPEDO_ENERGY, TORPEDO_TIME, events);
     Ok(Report::Shot { hit_yx, path, destroyed: true, energy_cost: TORPEDO_ENERGY, time: format_duration(TORPEDO_TIME) })
 }
@@ -188,19 +201,39 @@ fn pass_time(game: &mut Game, time: i64, events: &mut Vec<String>) {
     events.extend(stardate_events(game));
 }
 
+/// One way a game ends: the status it leaves, its message and what it adds to the counters.
+struct Ending {
+    status: Status,
+    message: &'static str,
+    count: fn(&mut Counters),
+}
+
+const DESTROYED: Ending =
+    Ending { status: Status::Lost, message: "The ship is destroyed", count: |c| c.games_lost += 1 };
+const VICTORIOUS: Ending =
+    Ending { status: Status::Won, message: "Every enemy in the galaxy is destroyed", count: |c| c.games_won += 1 };
+const STRANDED: Ending = Ending {
+    status: Status::Lost,
+    message: "The ship is stranded without energy to reach a starbase",
+    count: |c| {
+        c.games_lost += 1;
+        c.times_stranded += 1;
+    },
+};
+
 /// Runs after every accepted action.
 pub fn game_end(game: &mut Game, events: &mut Vec<String>) {
     if game.ship.hull == 0 {
-        return finish(game, Status::Lost, "The ship is destroyed", events);
+        return finish(game, &DESTROYED, events);
     }
     if game.galaxy.total_enemies() == 0 {
-        return finish(game, Status::Won, "Every enemy in the galaxy is destroyed", events);
+        return finish(game, &VICTORIOUS, events);
     }
     if !stranded(game) {
         return;
     }
     if game.sector.starbase_yx.is_none() {
-        return finish(game, Status::Lost, "The ship is stranded without energy to reach a starbase", events);
+        return finish(game, &STRANDED, events);
     }
     let transfer = STARBASE_EMERGENCY_ENERGY - game.ship.energy;
     if transfer > 0 {
@@ -209,9 +242,10 @@ pub fn game_end(game: &mut Game, events: &mut Vec<String>) {
     }
 }
 
-fn finish(game: &mut Game, status: Status, message: &str, events: &mut Vec<String>) {
-    game.status = status;
-    events.push(message.to_string());
+fn finish(game: &mut Game, ending: &Ending, events: &mut Vec<String>) {
+    game.status = ending.status;
+    (ending.count)(&mut game.counters);
+    events.push(ending.message.to_string());
 }
 
 /// Energy below the warp cost to the nearest visible starbase sector other than this one.

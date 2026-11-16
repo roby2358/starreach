@@ -231,13 +231,15 @@ pub fn fire_base_damage(distance: f64) -> f64 {
     ENEMY_FIRE_BASE + (ENEMY_FIRE_NEAR - ENEMY_FIRE_BASE) * along
 }
 
-/// Shields first, then hull, neither below 0. Returns the damage taken.
+/// Shields first, then hull, neither below 0; each part is counted. Returns the damage taken.
 fn absorb(game: &mut Game, damage: i32) -> i32 {
     let ship = &mut game.ship;
     let to_shields = damage.min(ship.shields);
     let to_hull = (damage - to_shields).min(ship.hull);
     ship.shields -= to_shields;
     ship.hull -= to_hull;
+    game.counters.shield_damage += to_shields as u32;
+    game.counters.hull_damage += to_hull as u32;
     to_shields + to_hull
 }
 

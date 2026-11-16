@@ -94,3 +94,9 @@ mod r_33_fire_variance;
 
 #[path = "R-34/starbase_placement.rs"]
 mod r_34_starbase_placement;
+
+#[path = "R-36/counting.rs"]
+mod r_36_counting;
+
+#[path = "R-36/counter_table.rs"]
+mod r_36_counter_table;

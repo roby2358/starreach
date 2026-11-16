@@ -79,12 +79,12 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 
 ---
 
-## Status — 2026-11-15
+## Status — 2026-11-16
 
-- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28 – R-34.
+- **Automated in the Rust core** (`just cc-test-core`): R-1 – R-17, R-19, R-20, R-22 – R-26, R-28 – R-34, R-36.
   The coverage test runs with them.
-- **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result, and
-  R-21's publishing and link.
+- **Automated in the app layer** (`just cc-test-app`): R-18 (including a `view_id` refused as a `game_id`), R-25's not-found result,
+  R-21's publishing and link, and R-36's counter table through the WASM boundary.
 - **Automated in the Node adapter** (`just cc-test-node`): R-21's real sockets (by `view_id`) and R-27.
 - **Automated in the Cloudflare adapter** (`just cc-test-cloudflare`, inside workerd): R-21's
   sockets on the Durable Object (by `view_id`, through the Worker's upgrade) and R-27's ignored
@@ -106,3 +106,4 @@ the core scans every package and fails when an `automated` row has no `test/R-n/
 | R-33 | Enemy fire's damage factor | The factor is drawn from the game's rng in `ENEMY_FIRE_VARIANCE_MIN..ENEMY_FIRE_VARIANCE_MAX`. Damage taken stays between the damage at those two factors, varies across seeds, and is the same for the same seed | automated |
 | R-34 | A newly generated galaxy's starbases | Besides the `GALAXY_CENTER` one there are `STARBASE_EXTRA_MIN..=STARBASE_EXTRA_MAX` extra ones over many seeds (every count occurs), at most one per sector. Every pair, home base included, is at least `STARBASE_MIN_SPACING` apart (Euclidean). The same seed gives the same placement. When a placement finds no fit within its tries, placement stops with the starbases so far (forced with zero tries), and never goes above the maximum | automated |
 | R-35 | Sign-in on `/mcp` (Cloudflare) | Without a bearer token: 401 whose `WWW-Authenticate` names the protected resource metadata URL and `scope="starreach:play"`. The metadata, at the root and the path-inserted well-known URL, has `resource` = `STARREACH_RESOURCE` and `authorization_servers` = [`AUTH_ISSUER`]. A token signed by auth/'s key whose audience is `STARREACH_RESOURCE` or `STARREACH_CLIENT_ID`, with the play scope, signs in its `sub`; one for any other audience (a near-miss URL included) or issuer, or expired, is 401 `invalid_token`; one without the play scope is 403. `whoami` reports the signed-in `sub`, or `signed_in: false` where the adapter has no sign-in | automated |
+| R-36 | The counters of a game; the counter table | A new game's counters are all 0 and `state.counters` reports the game's. Each counter rises by the right amount on its event and no other counter moves: a blast that kills raises `blasts_hit` and `enemies_destroyed`, a miss only `blasts_missed`; a torpedo raises `torpedoes_fired` and `enemies_destroyed`; the last enemy of the sector also raises `sectors_cleared`; a warp that arrives raises `sectors_warped`, and one the parting enemy turn stops doesn't; a dock raises `docks`, a scan `scans`; a starbase whose sector becomes visible by scan or warp raises `starbases_discovered` once however often it is seen again, and Star Central's never does; enemy fire raises `shield_damage` by what the shields absorbed and `hull_damage` by what the hull took, and nothing when blocked; a destroyed ship raises `games_lost`, a win `games_won`, a stranding `games_lost` and `times_stranded`, a stranded ship a starbase rescues none of them. Queries, a subwarp and a refused command change no counter. The counter table has one row per Counters field with a label; the positive counters may be goals and the negative ones may not; it is the same over JSON and through the WASM boundary, where its keys are the keys of `state.counters` | automated |
