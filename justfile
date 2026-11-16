@@ -38,67 +38,23 @@ cc-setup:
     just setup
 
 # Serve the home page, the viewer page and its sockets, MCP over streamable HTTP at /mcp, and /health
-serve: cc-build-wasm
+serve: cc-wasm-ready
     node adapters/node/src/main.ts http --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
 
 # Serve MCP over stdio, with everything `serve` offers on the HTTP port too
-stdio: cc-build-wasm
+stdio: cc-wasm-ready
     node adapters/node/src/main.ts stdio --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}}
 
 # Its own process group (setsid), the PGID in .run/serve.pid and output in .run/serve.log; waits
 # for the server's "Starreach on" line. In a container: just HTTP_HOST=0.0.0.0 VIEW_ORIGIN=http://localhost:8572 up
 # Run `serve` in the background (stop with down, follow with logs)
-up: cc-build-wasm
-    #!/usr/bin/env bash
-    set -euo pipefail
-    mkdir -p {{RUN}}
-    if [ -f {{PIDFILE}} ] && pgrep -g "$(cat {{PIDFILE}})" >/dev/null 2>&1; then
-      echo "server already running (pgid $(cat {{PIDFILE}})); stop it with: just down"
-      exit 0
-    fi
-    rm -f {{PIDFILE}}
-    # The inner bash writes its pid, which setsid made the PGID, then execs node in its place
-    setsid bash -c 'echo $$ > "$1"; shift; exec node "$@"' _ {{PIDFILE}} \
-      adapters/node/src/main.ts http --host {{HTTP_HOST}} --port {{HTTP_PORT}} --origin {{VIEW_ORIGIN}} \
-      </dev/null >{{LOG}} 2>&1 &
-    for _ in $(seq 1 100); do
-      if grep -q "Starreach on" {{LOG}}; then
-        echo "server started (pgid $(cat {{PIDFILE}})): $(grep -m 1 'Starreach on' {{LOG}})"
-        echo "follow with: just logs    stop with: just down"
-        exit 0
-      fi
-      if [ -s {{PIDFILE}} ] && ! pgrep -g "$(cat {{PIDFILE}})" >/dev/null 2>&1; then
-        echo "server exited during startup; the log:" >&2
-        cat {{LOG}} >&2
-        exit 1
-      fi
-      sleep 0.1
-    done
-    echo "server not ready after 10 s; see {{LOG}} (still running, stop with: just down)" >&2
-    exit 1
+up: cc-wasm-ready
+    @bash tools/server.sh up {{PIDFILE}} {{LOG}} {{HTTP_HOST}} {{HTTP_PORT}} {{VIEW_ORIGIN}}
 
 # TERM to its process group, then KILL after 4 s
 # Stop what up started
 down:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if [ ! -f {{PIDFILE}} ] || ! pgrep -g "$(cat {{PIDFILE}})" >/dev/null 2>&1; then
-      rm -f {{PIDFILE}}
-      echo "server not running"
-      exit 0
-    fi
-    pgid=$(cat {{PIDFILE}})
-    rm -f {{PIDFILE}}
-    kill -TERM -- "-$pgid" 2>/dev/null || true
-    for _ in $(seq 1 40); do
-      if ! pgrep -g "$pgid" >/dev/null 2>&1; then
-        echo "server stopped (pgid $pgid)"
-        exit 0
-      fi
-      sleep 0.1
-    done
-    kill -KILL -- "-$pgid" 2>/dev/null || true
-    echo "server killed (pgid $pgid)"
+    @bash tools/server.sh down {{PIDFILE}}
 
 # Follow the log of the server that up started
 logs:
@@ -220,6 +176,12 @@ cf-undeploy:
 cc-build-wasm:
     cargo build --quiet --manifest-path core/Cargo.toml --release --target wasm32-unknown-unknown
     wasm-bindgen --target web --out-dir app/src/wasm core/target/wasm32-unknown-unknown/release/starreach_core.wasm
+
+# For running the server on a machine without Rust (a host beside the dev container): tests and
+# deploys still use cc-build-wasm, so they never run on a stale build.
+# Build the core if the Rust toolchain is here; otherwise use the last build in app/src/wasm
+cc-wasm-ready:
+    @bash tools/server.sh wasm-ready
 
 # Run every test suite and the typecheck
 cc-test-all: cc-test-core cc-test-app cc-test-node cc-test-cloudflare cc-test-page cc-typecheck
