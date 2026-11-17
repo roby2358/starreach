@@ -33,6 +33,30 @@ Open design questions for the designer:
 
 Shape to propose: GameState gets a list of sieges (sector yx, deadline stardate); the stardate-advance path rolls for a new siege on each galactic tick; a starbase whose deadline passes is removed. Docs: an ONTOLOGY rule with pseudocode, constants in the Numbers table, a RATIONALE decision with alternatives, CRITERIA rows and tests, and a log entry.
 ----
+Score:   60
+ID: multiplayer-iwsy
+Created: 2026-11-17T01:36:11Z
+Updated: 2026-11-17T01:36:11Z
+
+Multiplayer: more than one captain in the same game. Today every game is one captain alone in a private galaxy, with a read-only browser viewer watching. Starreach is meant to become multiplayer; this idea is to decide what form that takes and in what order to build it.
+
+Forms to weigh, from smallest to largest:
+- Side by side: captains play separate games on the same seed and compare results (a race or a daily galaxy). No shared state.
+- A small shared game: a few captains invited into one galaxy, each with a ship.
+- One persistent galaxy that every player's ship occupies at once.
+
+What to settle with the designer before tasks:
+- Cooperate, compete or both: a shared fleet against the enemy, rival captains racing for sectors and goals, or captains who can fire on each other.
+- How time works with several ships: the game is now turn-based on one ship's clock (each command costs starticks and the enemies answer). Options are a shared clock that advances by the ship furthest behind, simultaneous ticks, per-sector turn order, or real time.
+- What captains see of each other: shared or private scans and galaxy map, and whether one captain's discoveries (a starbase, a cleared sector) show for the rest.
+- Shared resources: whether starbases serve everyone, and whether ships can pass energy or torpedoes or come to a stranded ship's rescue.
+- How a game ends and who wins: per captain, per team, or for the galaxy as a whole; what happens to a game when one captain is destroyed, stranded or stops playing.
+- Joining: invitations, open games or matchmaking; whether a captain can join a game under way; whether human-driven and LLM-driven captains mix.
+- Identity: players sign in with Bluesky and must not be doxxed, so what name or handle other players see is a design question.
+- What the game needs first: every game belonging to a signed-in player, and events pushed to clients rather than only the current picture, since each captain must learn what the others did.
+- Where it runs on Cloudflare: one Durable Object per game works for a small shared game; a persistent galaxy would need a different split.
+- Goals, counters, achievements, lifetime totals and telemetry are per game and per player today; decide how each reads in a shared game.
+----
 Score:   50
 ID: starcentral-rixp
 Created: 2026-11-14T15:47:45Z
@@ -224,6 +248,66 @@ Sound effects: candidates are warp, subwarp, blast, torpedo launch, hit and miss
 Music: a theme song now exists, "Starreach Captain" (a shanty-style crew anthem with electronica), made in Suno and kept in the designer's Suno library, with sung takes, fresh instrumental takes, and vocal-removed backing tracks of the preferred sung take. An instrumental would be the background track; the sung version could play on the home page or at a win. The theme may be too imposing to sit behind play, so new, quieter tracks may be made for the background, keeping the theme for the home page and big moments.
 
 To settle before this becomes tasks: which recording is the background track and which (if any) sung version is used, and where; how sound effects are made (Suno's sound-effect generator, another source, or synthesised in the browser); which events get a sound; browsers block audio until the visitor interacts, so how sound is turned on, plus mute and volume controls and whether the choice is remembered; file format, size and where the files are served from (static assets in the repo or elsewhere); looping and whether music changes with the game's state (combat, low energy, docked); and the licence terms of the Suno recordings for use on a public site in a public repository.
+----
+Score:   50
+ID: boundless-5vuw
+Created: 2026-11-17T01:37:38Z
+Updated: 2026-11-17T01:37:38Z
+
+Boundless galaxy: a galaxy with no edge, where sectors are generated as the captain reaches them, instead of today's fixed 10x10 grid made whole at the start of a game.
+
+What it would change, and what to settle with the designer before tasks:
+- Generation: each sector made on demand from the game's seed and its coordinates, so the same seed always gives the same sector whatever order it is visited in. Today the whole galaxy is generated up front.
+- Winning: the game is won by destroying every enemy in the galaxy, which can't happen without an edge. Options: goals only, a score, a set mission (reach or clear some place), or play until lost.
+- What changes with distance: whether enemies grow stronger or more numerous and starbases rarer the further out the captain goes, giving a reason to push outward and a cost for doing so.
+- Starbases and stranding: a ship is stranded when it can't pay the warp to the nearest starbase it has seen. With no edge a captain can always go further from home, so starbase spacing and warp cost decide how far a ship can range.
+- The map: the galaxy map and the viewer draw a fixed grid. A boundless map needs a window around the ship, scrolling or paging, and sector coordinates that can be negative or large.
+- Storage: only visited or seen sectors can be kept, and a long game's record keeps growing; decide whether there is a cap.
+- Goals, counters and telemetry that assume a fixed number of sectors or enemies (such as sectors cleared out of a total) need rereading.
+- Whether this replaces the fixed galaxy or is a second mode alongside it.
+- It bears on any shared galaxy for many players, where room to grow with the player count matters.
+----
+Score:   50
+ID: scanreach-vrv2
+Created: 2026-11-17T01:38:12Z
+Updated: 2026-11-17T01:38:43Z
+
+Consider a wider long range scan: the 5x5 block of sectors centred on the ship's sector, leaving out its four corner sectors, so 21 sectors instead of 9. Today `long_range_scan` reveals the 3x3 block centred on the ship's sector (core/src/galaxy.rs `scan_block`), for a fixed energy and time cost. The new shape reaches two sectors out along rows and columns and to the knight's-move sectors, but not two out on both axes at once, which makes it roughly round.
+
+What to settle with the designer before tasks:
+- Whether it replaces the 3x3 scan or sits beside it as a second, dearer scan.
+- Its energy and time cost against today's scan.
+- The effect on play that recorded games show: over half of warps are made without a scan or a map look first, and most games end stranded out of reach of a known starbase. A wider scan shows more before a warp and makes more starbases count as seen for the stranded rule.
+- Whether seeing 21 sectors at once makes exploring too easy on a 10x10 galaxy: four or five scans could reveal most of it.
+- The effect on the counters and goals that count scans, sectors revealed and starbases discovered, and on the balance harness's scripted captain.
+- How the scan result is laid out for the captain and drawn in the viewer, now that it isn't a full square.
+----
+Score:   50
+ID: jackpots-byf7
+Created: 2026-11-17T01:39:17Z
+Updated: 2026-11-17T01:44:10Z
+
+Jackpots: some sectors reveal resources whose value varies exponentially, so most finds are small, a few are large, and a rare one is enormous. Serves Variable Reinforcement, Low-Probability Hope, and Accumulation and Windfall: a reason to explore one more sector.
+
+Kinds of find suggested so far. The designer's:
+- Minerals: an ore deposit, from a thin seam to a mother lode.
+- Scientific samples: readings or specimens worth bringing home, from routine to a once-in-a-career discovery.
+- Planets: a world in the sector, from barren rock to a habitable one.
+Three more in the same vein (proposed, not the designer's):
+- Derelicts: an abandoned ship to salvage, from a stripped hulk to an intact vessel with full torpedo racks.
+- Ancient artifacts: ruins or relics of a vanished civilisation, from pottery shards to working technology.
+- Anomalies: a strange phenomenon to chart, from a faint energy ripple to a stable wormhole.
+Each kind is the same template with different words and numbers (a name, a value drawn from the exponential scale, what the value pays out as), not its own code path.
+
+What to settle with the designer before tasks:
+- What a find pays out as. Today the ship has energy, shields, hull and quantorpedoes, and nothing is ever found in space; supplies come only from docking. A find could be more of those, a raised maximum, cargo to carry and bring home to a starbase, or score. Kinds could differ here: salvage as supplies, samples as score, a wormhole as a free warp.
+- How a jackpot is revealed and claimed: seen on a long range scan, seen only on arriving, or found by doing something in the sector; and whether claiming costs energy or time, or needs the sector cleared of enemies first.
+- The distribution: how many sectors hold anything, and the scale of the values (for example each tier ten times rarer and ten times richer).
+- The cost side, so that going after one is a decision: richer finds further from starbases, better guarded, or shown only partly on the scan so the captain is gambling on the size.
+- The effect on stranding: energy found in space would rescue a ship that can't reach a starbase, which changes what stranded means.
+- Generation from the seed, so the same seed gives the same jackpots.
+- Counters, goals and achievements for finds, and what telemetry should record about them.
+- How a find is told to the captain and shown in the viewer, so a big one feels big.
 ----
 Score:   45
 ID: emergfloor-vk2v
