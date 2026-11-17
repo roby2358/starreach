@@ -309,6 +309,22 @@ What to settle with the designer before tasks:
 - Counters, goals and achievements for finds, and what telemetry should record about them.
 - How a find is told to the captain and shown in the viewer, so a big one feels big.
 ----
+Score:   50
+ID: basevisible-de6p
+Created: 2026-11-17T16:45:04Z
+Updated: 2026-11-17T16:45:04Z
+
+Starbase visibility: each time the ship warps to a starbase's sector, that starbase becomes more visible to the enemy, and the chance it comes under attack rises. That is all the designer has for now. It makes the safest act in the game double-edged (Double-Edged Mechanics, Guardianship, Loss Aversion): the base a captain leans on most is the one they put most at risk.
+
+What to settle with the designer before tasks:
+- What "under attack" means: enemies arriving in the starbase's sector, a siege that runs on the clock, damage to the base, or its loss. This depends on starbases being able to come under attack at all, which they can't today.
+- What an attack costs the captain: a base under attack may refuse docking, give less, or have to be relieved by clearing its sector; a lost base is gone from the map, which bears on the stranded rule.
+- How visibility is held: a number per starbase that rises by a set amount per warp in, and whether it falls again with time away, so spreading visits across bases is rewarded.
+- What counts as a visit: any warp into the sector, or only a dock; and whether Star Central is exempt.
+- How the chance is rolled (per visit, or per stardate in proportion to visibility), from the game's seed so the same commands give the same game.
+- What the captain is told: the base's visibility shown in the state and on the galaxy map, and an event when a base comes under attack, so the consequence can be traced back to the visits.
+- The pull against recorded play, where captains dock too little and end stranded: this adds a reason not to return to a base, so it may want a warning or a gentle start.
+----
 Score:   45
 ID: emergfloor-vk2v
 Created: 2026-11-16T01:20:41Z
