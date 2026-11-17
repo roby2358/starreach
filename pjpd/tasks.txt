@@ -1,3 +1,27 @@
+Priority:   50
+Status: ToDo
+ID: basereach-vwiz
+Created: 2026-11-17T01:34:16Z
+Updated: 2026-11-17T01:34:57Z
+
+Tell the captain how much energy it takes to get back to a starbase, and warn when energy, shields or hull run low.
+
+Goal: recorded play shows most games ending stranded while the ship still holds thousands of energy, because nothing tells the captain when the nearest starbase is about to fall out of reach. The stranded rule (core/src/actions.rs `stranded`) ends the game when energy is below the warp cost to the nearest visible starbase sector other than the ship's own; the captain should see that same number before it bites. The captain should likewise be told when shields or hull run low, which is the other cue to go and dock. Serves Readable Consequences and Loss Aversion.
+
+Settled design:
+1. One function in the core finds the nearest reachable base: among `galaxy.visible_starbases()` other than `game.sector_xy`, the one with the lowest `warp_cost` from the ship's sector (ties: the first in iteration order). It returns the sector and the cost, or nothing when no such starbase is visible. `stranded` is rewritten to use it, so the readout and the rule can't disagree.
+2. `GameView` (core/src/view.rs) gains a field `nearest_starbase`: `{ sector_xy, energy_cost }`, or null when there is none. It is reported in every state, including when the ship sits in a starbase sector (then it names the nearest OTHER visible starbase, as the rule does). It comes through the WASM boundary and the MCP `state` result like the other fields; no new command or query.
+3. Three low warnings, each one event pushed on the accepted action where its measure crosses from at or above its threshold to below it. Each fires on the crossing only, so it doesn't repeat every command; a measure that recovers to its threshold or above (a dock, a shield recharge) and falls below again warns again. Each is computed from the state before and after the action, with no new stored state, and none is pushed on the command that ends the game. The three are rows of one table (measure, threshold, message) run through one code path, not three separate checks.
+   - Energy: the measure is `energy - nearest_starbase.energy_cost`; the threshold is a new tunable `LOW_ENERGY_MARGIN` [T] = 5000 (about the price of one one-sector warp). Message: `Energy low: {energy_cost} needed to reach the starbase at ({x}, {y}), {energy} remaining`. No warning when no other starbase is visible.
+   - Shields: the measure is `ship.shields`; the threshold is a new tunable `LOW_SHIELDS` [T] = 1000 (of `SHIP_MAX_SHIELDS`). Message: `Shields low: {shields} remaining`.
+   - Hull: the measure is `ship.hull`; the threshold is a new tunable `LOW_HULL` [T] = 1000 (of `SHIP_MAX_HULL`). Message: `Hull low: {hull} remaining`.
+   The constants live in core/src/constants.rs. The before/after comparison covers everything the action did, including the enemy turn and any stardate events (such as a shield recharge) that ran inside it.
+4. Nothing else changes: the stranded rule, emergency energy, warp cost, shields and damage stay as they are. The browser viewer is not changed by this task.
+
+Docs, in the same change (per the project's ontology doc set): ONTOLOGY gets the GameView field, the warnings in the rules (short pseudocode), the three constants in the Numbers table and the three messages in the messages table; RATIONALE gets a new decision for the readout and the warnings, with alternatives (a readout only; a warning every command; an energy margin tied to the cost itself) and the telemetry evidence (3 of 4 ended games stranded, with 9,730 to 12,422 energy before the last command). In it the shield and hull thresholds of 1000 are the designer's (Decided), and the readout, the crossing-only behaviour and the energy margin of 5000 are Proposed. CRITERIA gets a new R row with its own test directory; ARCHITECTURE_LOG gets a dated entry. Follow the project's existing decision on whether RULES_VERSION moves for a change that adds a state field and events but no change to play.
+
+Done when: core tests under the new R directory pass and show (a) `nearest_starbase` names the cheapest other visible starbase and its warp cost, and is null when none is visible; (b) a game is stranded exactly when energy is below that `energy_cost` (one energy either side); (c) each of the three warnings appears on the action that crosses its threshold (one point either side), not on the next action while still below it, and again after recovery and a second crossing; (d) no energy warning with no other visible starbase; (e) no warning on the command that ends the game. `just cc-test-all` passes, including the criteria coverage test, and a `state` call over MCP on a local server shows the field.
+----
 Priority:   45
 Status: ToDo
 ID: warpplay-45ha
