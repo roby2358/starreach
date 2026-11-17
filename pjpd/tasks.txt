@@ -1,3 +1,30 @@
+Priority:   85
+Status: ToDo
+ID: sectorwords-fq7k
+Created: 2026-11-17T18:07:58Z
+Updated: 2026-11-17T18:09:17Z
+
+Use one word for each kind of square: a square of the galaxy map is a "sector" everywhere, and a square inside a sector is a "position" in everything a captain or viewer reads and a "cell" inside the code. Remove "quadrant" from the game.
+
+Goal: the designer finds "quadrant" confusing, and wants the squares inside a sector called positions where players see them. The glossary in docs/ONTOLOGY.md names Sector (one square of the galaxy) and Cell (one square of a sector's 10x10 board) but lists "quadrant" as a flavor-text synonym for sector; the browser viewer heads its view of the current sector "Quadrant"; and the MCP tool descriptions and play instructions say "cell".
+
+Settled design:
+1. "Sector" is the only word for a square of the galaxy map. "Quadrant" is not used anywhere, as a label, a synonym, an identifier or a file name.
+2. A square inside a sector has two names by audience, decided by the designer:
+   - "Position" in everything player-facing: the MCP tool descriptions and parameter descriptions (app/src/mcp.ts; today the `state`, `subwarp`, `blast` and `torpedo` descriptions say "cell"), any result, refusal or event text a captain reads that says cell, public/instructions.txt (including its enemy table's "cell" column heading), the home page and the browser viewer under public/ (labels, headings, tooltips and any visible text).
+   - "Cell" inside the code: Rust and TypeScript identifiers, code comments, tests, the balance harness, the telemetry report (a developer tool, which keeps headings such as "cells moved" and "range in cells"), and the design docs' rules and pseudocode. Nothing in the code is renamed to position.
+   - Names in the MCP JSON (tool names, argument names, result field names) are part of the interface, not prose. None contains "cell" today (an enemy's square is the field `xy`), so this task renames no JSON name and existing clients keep working unchanged. If one turns up, leave it and list it in the report to the user.
+3. Known places to change, besides those in 2:
+   - public/viewer.html: the heading "Quadrant" and its id `quadrant-title` (with the matching aria-labelledby) become "Sector" and `sector-title`. Check public/js/script.js and public/css/styles.css for anything that refers to the old id or to a tab or label called Quadrant.
+   - docs/mockups/viewer_styles.html: the "Quadrant ${y}, ${x}" heading becomes "Sector".
+   - adapters/node/test-browser/viewer_page.test.ts: the screenshot file name `desktop-quadrant.png` becomes `desktop-sector.png`, along with any assertion on the heading text.
+   - docs/ONTOLOGY.md glossary: remove "quadrant" from the Sector row. Rewrite the Cell row to say that Cell is the name in code and docs and Position is the name in player-facing text (viewer and MCP), instead of listing "position, space" as loose synonyms.
+4. Then sweep for misuse, not only for the listed words: read every player-facing text for a "sector" that means a square inside one, a "position" that means a sector, and other stray names for either (square, quadrant, grid position, space, tile). Fix what is found. "Position" as ordinary English for where something is (the ship's position) is fine in code and docs.
+5. Leave alone: docs/ARCHITECTURE_LOG.md entries already written (they record their time; one past entry's heading mentions a Quadrant tab), and the closed pjpd history. Add a new dated ARCHITECTURE_LOG entry for this change, and a RATIONALE decision (Decided) for the two names by audience. If a message a captain sees changes wording, update the messages table in ONTOLOGY and any test that asserts the text.
+6. No change to rules or play. A change of wording in a tool description, refusal or event is a change to what captains read, so follow the project's existing decision on whether RULES_VERSION moves for it.
+
+Done when: `git grep -i quadrant` finds nothing outside docs/ARCHITECTURE_LOG.md's earlier entries (and the new entry describing this change) and the pjpd files; the MCP tool list, public/instructions.txt, the home page and the viewer contain no "cell" as a word a player reads; the viewer shows "Sector" over the current sector's board; `just cc-test-all` passes, including the browser viewer test; and the report to the user lists every wording change made, plus any JSON name containing "cell" that turned up and was left unchanged.
+----
 Priority:   50
 Status: ToDo
 ID: basereach-vwiz

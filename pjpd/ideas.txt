@@ -325,6 +325,23 @@ What to settle with the designer before tasks:
 - What the captain is told: the base's visibility shown in the state and on the galaxy map, and an event when a base comes under attack, so the consequence can be traced back to the visits.
 - The pull against recorded play, where captains dock too little and end stranded: this adds a reason not to return to a base, so it may want a warning or a gentle start.
 ----
+Score:   50
+ID: enemywarp-br6z
+Created: 2026-11-17T18:05:24Z
+Updated: 2026-11-17T18:06:16Z
+
+Moving enemies: enemies warp between sectors during a game, instead of staying in the sector where they were generated. When it happens, Star Central reports it to the captain as "Warp detected in" with the sector it left and the sector it reached, and both of those sectors are reset to unknown ("?") on the galaxy map, as if never seen, so the captain's knowledge goes stale and has to be won back by scanning or visiting. The exception, decided by the designer: a sector with a starbase is not reset and stays visible, so an enemy's move can never hide a starbase and strand the ship under the stranded rule, which counts only visible starbases. ("Sector" here is the game's word for one square of the galaxy map.) Serves Information as Currency and Variable Reinforcement: the map is no longer a ledger that only fills in, and a cleared path may not stay clear.
+
+What to settle with the designer before tasks:
+- When enemies move: on the stardate clock, in answer to what the ship does (a sector emptied next door, a starbase visited), or at random; how often; and from the game's seed so the same commands give the same game.
+- Who moves and where: one ship or a whole sector's group, how far, and whether they wander, gather, head for the ship or head for starbases.
+- The report: the exact wording, whether it names both sectors or only that a warp happened, and whether Star Central hears every warp or only those within some range of the ship or of a known starbase.
+- What resetting means: the sector's record goes back to not visible, so its enemy and star counts are hidden again.
+- For a starbase sector, which stays visible: whether the enemy count shown for it updates at once when enemies arrive or leave, or stays as last seen until the captain looks again.
+- Whether a sector the captain has cleared can be entered again, and what that does to the sectors-cleared counter, the goals that use it, and winning by destroying every enemy.
+- Whether enemies can warp into or out of the sector the ship is in, during a fight.
+- Counters, achievements and telemetry for enemy warps, and how the viewer shows the report and the sectors going dark.
+----
 Score:   45
 ID: emergfloor-vk2v
 Created: 2026-11-16T01:20:41Z
